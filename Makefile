@@ -23,18 +23,27 @@ endif
 IMG_URL = https://github.com/Starry-OS/StarryOS/releases/download/rootfs-250905/
 IMG = rootfs-$(ARCH).img
 
-img:
+img: build
 	@if [ ! -f $(IMG) ]; then \
 		echo "Image not found, downloading..."; \
 		curl -f -L $(IMG_URL)/$(IMG).xz -O; \
 		xz -d $(IMG).xz; \
 	fi
 	@cp $(IMG) arceos/disk.img
+	@mkdir ./disk
+	@sudo mount arceos/disk.img ./disk
+	@-sudo cp kallsyms ./disk/root/kallsyms
+	@sudo umount ./disk
+	@rmdir ./disk
+	@-rm kallsyms
 
 defconfig justrun clean:
 	@make -C arceos $@
 
-build run debug disasm: defconfig
+run: img
+	@make -C arceos justrun
+
+build debug disasm: defconfig
 	@make -C arceos $@
 
 # Aliases
@@ -50,4 +59,4 @@ vf2:
 2k1000la:
 	$(MAKE) ARCH=loongarch64 APP_FEATURES=2k1000la MYPLAT=axplat-loongarch64-2k1000la BUS=dummy build
 
-.PHONY: build run justrun debug disasm clean
+.PHONY: build run justrun debug disasm clean img

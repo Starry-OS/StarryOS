@@ -466,6 +466,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "axksym"
+version = "0.2.0"
+dependencies = [
+ "lazyinit",
+]
+
+[[package]]
 name = "axlog"
 version = "0.2.0"
 dependencies = [
@@ -2182,6 +2189,7 @@ dependencies = [
  "axhal",
  "axinput",
  "axio",
+ "axksym",
  "axlog",
  "axmm",
  "axnet",
@@ -2200,6 +2208,7 @@ dependencies = [
  "inherit-methods-macro",
  "kspin",
  "lazy_static",
+ "lazyinit",
  "linkme",
  "linux-raw-sys",
  "memory_addr",

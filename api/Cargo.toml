@@ -28,8 +28,9 @@ axmm.workspace = true
 axnet.workspace = true
 axsync.workspace = true
 axtask.workspace = true
-
+axksym.workspace = true
 starry-core.workspace = true
+lazyinit.workspace = true
 
 arrayvec = { version = "0.7.6", default-features = false }
 axbacktrace.workspace = true
@@ -52,8 +53,8 @@ linux-raw-sys = { workspace = true, features = ["ioctl", "loop_device"] }
 memory_addr.workspace = true
 num_enum = { version = "0.7", default-features = false }
 rand = { version = "0.9.1", default-features = false, features = [
-    "alloc",
-    "small_rng",
+	"alloc",
+	"small_rng",
 ] }
 scope-local.workspace = true
 slab.workspace = true
