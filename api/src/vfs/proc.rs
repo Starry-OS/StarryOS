@@ -12,6 +12,7 @@ use core::{ffi::CStr, iter};
 use axfs_ng_vfs::{Filesystem, NodeType, VfsError, VfsResult};
 use axtask::{AxTaskRef, WeakAxTaskRef, current};
 use indoc::indoc;
+use lazyinit::LazyInit;
 use starry_core::{
     task::{AsThread, TaskStat, get_task, tasks},
     vfs::{
@@ -83,7 +84,10 @@ const DUMMY_MEMINFO: &str = indoc! {"
     DirectMap1G:     1048576 kB
 "};
 
-pub fn new_procfs() -> Filesystem {
+static KALLSYMS: LazyInit<String> = LazyInit::new();
+
+pub fn new_procfs(kallsyms: String) -> Filesystem {
+    KALLSYMS.init_once(kallsyms);
     SimpleFs::new_with("proc".into(), 0x9fa0, builder)
 }
 
@@ -354,6 +358,10 @@ impl SimpleDirOps for ProcFsHandler {
 
 fn builder(fs: Arc<SimpleFs>) -> DirMaker {
     let mut root = DirMapping::new();
+    root.add(
+        "kallsyms",
+        SimpleFile::new_regular(fs.clone(), || Ok(KALLSYMS.get().unwrap().as_str())),
+    );
     root.add(
         "mounts",
         SimpleFile::new_regular(fs.clone(), || {

@@ -49,8 +49,8 @@ linux-raw-sys = { workspace = true, features = ["ioctl", "loop_device"] }
 memory_addr.workspace = true
 num_enum = { version = "0.7", default-features = false }
 rand = { version = "0.9.1", default-features = false, features = [
-    "alloc",
-    "small_rng",
+	"alloc",
+	"small_rng",
 ] }
 ringbuf = { version = "0.4.8", default-features = false, features = ["alloc"] }
 scope-local.workspace = true
@@ -63,6 +63,9 @@ syscalls = { git = "https://github.com/jasonwhite/syscalls.git", rev = "92624de"
 zerocopy = { version = "0.8.26", features = ["derive"] }
 
 starry-core.workspace = true
+
+axksym.workspace = true
+lazyinit.workspace = true
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 x86 = "0.52"
