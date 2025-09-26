@@ -18,7 +18,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9acbfca36652500c911ddb767ed433e3ed99b032b5d935be73c6923662db1d43"
 dependencies = [
  "cpp_demangle",
- "gimli",
+ "gimli 0.32.2",
  "rustc-demangle",
  "rustc-std-workspace-alloc",
 ]
@@ -194,7 +194,7 @@ checksum = "ac82d77c48f98335e4f9b546ef69356d429ee7e9933560bb55696f498a1a26dc"
 dependencies = [
  "addr2line",
  "cfg-if",
- "gimli",
+ "gimli 0.32.2",
  "log",
  "paste",
  "spin 0.10.0",
@@ -237,6 +237,7 @@ dependencies = [
  "aarch64-cpu",
  "axbacktrace",
  "cfg-if",
+ "kprobe",
  "lazyinit",
  "linkme",
  "log",
@@ -467,6 +468,8 @@ version = "0.1.1"
 source = "git+https://github.com/Starry-OS/axio.git?rev=ebb0c6b#ebb0c6bb0c7d42d1f2d6f2cc703ddfe5b209a4d9"
 dependencies = [
  "axerrno",
+ "bitflags 2.9.4",
+ "spin 0.10.0",
 ]
 
 [[package]]
@@ -701,7 +704,9 @@ dependencies = [
  "chrono",
  "crate_interface",
  "indoc",
+ "ksym",
  "percpu",
+ "unwinding",
 ]
 
 [[package]]
@@ -1274,6 +1279,12 @@ dependencies = [
 
 [[package]]
 name = "gimli"
+version = "0.31.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
+
+[[package]]
+name = "gimli"
 version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc6298e594375a7fead9efd5568f0a46e6a154fb6a9bdcbe3c06946ffd81a5f6"
@@ -1446,6 +1457,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "kprobe"
+version = "0.1.0"
+source = "git+https://github.com/Starry-OS/kprobe?rev=318cbb2#318cbb242ec8285903a909433fdf8da54554b324"
+dependencies = [
+ "cfg-if",
+ "lock_api",
+ "log",
+ "yaxpeax-arch",
+ "yaxpeax-x86",
+]
+
+[[package]]
 name = "kspin"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1453,6 +1476,14 @@ checksum = "3d841fd3aeaa9a55871068f5c3ce48497a6dbcf14e20ca7784a9f68bfdb4c825"
 dependencies = [
  "cfg-if",
  "kernel_guard",
+]
+
+[[package]]
+name = "ksym"
+version = "0.1.0"
+source = "git+https://github.com/Starry-OS/ksym?rev=1e37536#1e375363290449aaf2a9b681773eea958f38880d"
+dependencies = [
+ "lazyinit",
 ]
 
 [[package]]
@@ -2133,6 +2164,7 @@ dependencies = [
  "axalloc",
  "axbacktrace",
  "axconfig",
+ "axcpu",
  "axdisplay",
  "axdriver",
  "axerrno",
@@ -2142,7 +2174,6 @@ dependencies = [
  "axhal",
  "axinput",
  "axio",
- "axksym",
  "axlog",
  "axmm",
  "axnet",
@@ -2156,15 +2187,19 @@ dependencies = [
  "chrono",
  "event-listener",
  "flatten_objects",
- "gimli",
+ "gimli 0.32.2",
  "hashbrown",
  "indoc",
  "inherit-methods-macro",
+ "kernel_guard",
+ "kprobe",
  "kspin",
+ "ksym",
  "lazy_static",
  "lazyinit",
  "linkme",
  "linux-raw-sys",
+ "lock_api",
  "memory_addr",
  "num_enum",
  "rand",
@@ -2178,6 +2213,7 @@ dependencies = [
  "starry-signal",
  "starry-vm",
  "syscalls",
+ "unwinding",
  "x86",
  "zerocopy 0.8.26",
 ]
@@ -2208,6 +2244,7 @@ dependencies = [
  "inherit-methods-macro",
  "kernel-elf-parser",
  "kernel_guard",
+ "kprobe",
  "kspin",
  "lazy_static",
  "linkme",
@@ -2463,6 +2500,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
+name = "unwinding"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8393f2782b6060a807337ff353780c1ca15206f9ba2424df18cb6e733bd7b345"
+dependencies = [
+ "gimli 0.31.1",
+]
+
+[[package]]
 name = "utf8parse"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2666,6 +2712,26 @@ name = "yansi"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
+
+[[package]]
+name = "yaxpeax-arch"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36274fcc5403da2a7636ffda4d02eca12a1b2b8267b9d2e04447bd2ccfc72082"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "yaxpeax-x86"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a9a30b7dd533c7b1a73eaf7c4ea162a7a632a2bb29b9fff47d8f2cc8513a883"
+dependencies = [
+ "cfg-if",
+ "num-traits",
+ "yaxpeax-arch",
+]
 
 [[package]]
 name = "zero"

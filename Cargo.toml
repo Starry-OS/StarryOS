@@ -17,17 +17,17 @@ repository = "https://github.com/arceos-org/starry-next"
 
 [workspace.dependencies]
 axfeat = { path = "arceos/api/axfeat", features = [
-    "alloc-slab",
-    "fp-simd",
-    "ext4",
-    "fs",
-    "irq",
-    "multitask",
-    "net",
-    "page-alloc-4g",
-    "rtc",
-    # "sched-fifo",
-    "sched-rr",
+	"alloc-slab",
+	"fp-simd",
+	"ext4",
+	"fs",
+	"irq",
+	"multitask",
+	"net",
+	"page-alloc-4g",
+	"rtc",
+	# "sched-fifo",
+	"sched-rr",
 ] }
 
 axalloc = { path = "arceos/modules/axalloc" }
@@ -43,7 +43,11 @@ axnet = { path = "arceos/modules/axnet" }
 axruntime = { path = "arceos/modules/axruntime" }
 axsync = { path = "arceos/modules/axsync" }
 axtask = { path = "arceos/modules/axtask", features = ["task-ext"] }
-axksym = { path = "arceos/modules/axksym" }
+ksym = { git = "https://github.com/Starry-OS/ksym", rev = "1e37536" }
+kprobe = { git = "https://github.com/Starry-OS/kprobe", rev = "318cbb2" }
+# axcpu = { path = "arceos/modules/axcpu" }
+# axcpu = { git = "https://github.com/Starry-OS/axcpu", branch = "dev" }
+axcpu = { path = "../ax-projetct/axcpu", features = ["kprobe"] }
 lazyinit = "0.2"
 
 axbacktrace = "0.1"
@@ -77,6 +81,14 @@ starry-vm = "0.2"
 
 starry-core = { path = "./core" }
 starry-api = { path = "./api" }
+lock_api = { version = "0.4", default-features = false }
+kernel_guard = "0.1"
+unwinding = { version = "=0.2.6", default-features = false, features = [
+	"unwinder",
+	"fde-gnu-eh-frame-hdr",
+	"panic",
+	"personality",
+] }
 
 [package]
 name = "starry"
@@ -93,22 +105,22 @@ qemu = [
     "axfeat/driver-virtio-net",
     "axfeat/driver-virtio-socket",
 
-    "axfeat/driver-virtio-gpu",
-    "axfeat/display",
+	"axfeat/driver-virtio-gpu",
+	"axfeat/display",
 
-    "axfeat/driver-virtio-input",
-    "axfeat/input",
-    # "axdriver/dyn",
-    "starry-api/input",
+	"axfeat/driver-virtio-input",
+	"axfeat/input",
+	# "axdriver/dyn",
+	"starry-api/input",
 
     "axfeat/vsock",
     "starry-api/vsock",
 
     "axfeat/defplat",
 
-    # auxilary features
-    "axfeat/fs-times",
-    "starry-api/dev-log",
+	# auxilary features
+	"axfeat/fs-times",
+	"starry-api/dev-log",
 ]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc-gpt"]

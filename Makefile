@@ -41,7 +41,7 @@ img: build
 defconfig justrun clean:
 	@make -C arceos $@
 
-run: img
+run:
 	@make -C arceos justrun
 
 build debug disasm: defconfig

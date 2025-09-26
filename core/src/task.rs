@@ -226,6 +226,9 @@ pub struct ProcessData {
 
     /// The default mask for file permissions.
     umask: AtomicU32,
+
+    /// Kretprobe instances attached to this process
+    pub kretprobe_instances: RwLock<Vec<kprobe::KretprobeInstance>>,
 }
 
 impl ProcessData {
@@ -261,6 +264,7 @@ impl ProcessData {
             futex_table: Arc::new(FutexTable::new()),
 
             umask: AtomicU32::new(0o022),
+            kretprobe_instances: RwLock::new(Vec::new()),
         })
     }
 

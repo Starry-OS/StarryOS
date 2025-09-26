@@ -49,10 +49,10 @@ fn read_kallsyms() -> LinuxResult<String> {
 /// Mount all filesystems
 pub fn mount_all() -> LinuxResult<()> {
     let kallsyms = read_kallsyms()?;
-    axksym::init_kernel_symbols(&kallsyms);
+    ksym::init_kernel_symbols(&kallsyms);
     ax_println!(
         "find addr of _stext: {:#x}",
-        axksym::addr_from_symbol("_start").unwrap_or(0)
+        ksym::addr_from_symbol("_start").unwrap_or(0)
     );
     let fs = FS_CONTEXT.lock();
     mount_at(&fs, "/dev", dev::new_devfs())?;
