@@ -1,5 +1,6 @@
 # Build Options
-export ARCH := riscv64
+export RUSTC_BOOTSTRAP := 1
+export ARCH := aarch64
 export LOG := warn
 export BACKTRACE := y
 export MEMTRACK := n

@@ -1,4 +1,20 @@
 [submodule "arceos"]
 	path = arceos
-	url = https://github.com/Starry-OS/arceos
+	url = https://github.com/kylin-x-kernel/arceos.git
+	branch = main
+[submodule "local_crates/axcpu"]
+	path = local_crates/axcpu
+	url = https://github.com/kylin-x-kernel/axcpu.git
+	branch = main
+[submodule "local_crates/page_table_multiarch"]
+	path = local_crates/page_table_multiarch
+	url = https://github.com/kylin-x-kernel/page_table_multiarch.git
+	branch = main
+[submodule "local_crates/axdriver_crates"]
+	path = local_crates/axdriver_crates
+	url = https://github.com/kylin-x-kernel/axdriver_crates.git
+	branch = main
+[submodule "local_crates/axplat_crates"]
+	path = local_crates/axplat_crates
+	url = https://github.com/kylin-x-kernel/axplat_crates.git
 	branch = main
