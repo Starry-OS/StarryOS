@@ -5,11 +5,12 @@
 #![allow(missing_docs)]
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-use axerrno::{LinuxError, LinuxResult};
 #[macro_use]
 extern crate axlog;
 
 extern crate alloc;
+#[cfg(not(target_arch = "loongarch64"))]
+use axerrno::{LinuxError, LinuxResult};
 
 mod exception;
 pub mod file;
@@ -44,7 +45,7 @@ pub fn init() {
     info!("Initialize alarm...");
     starry_core::time::spawn_alarm_task();
 }
-
+#[cfg(not(target_arch = "loongarch64"))]
 pub fn kernel_catch_unwind<R, F: FnOnce() -> R>(f: F) -> LinuxResult<R> {
     let res = unwinding::panic::catch_unwind(f);
     match res {

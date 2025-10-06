@@ -18,7 +18,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9acbfca36652500c911ddb767ed433e3ed99b032b5d935be73c6923662db1d43"
 dependencies = [
  "cpp_demangle",
- "gimli 0.32.2",
+ "gimli",
  "rustc-demangle",
  "rustc-std-workspace-alloc",
 ]
@@ -194,7 +194,7 @@ checksum = "ac82d77c48f98335e4f9b546ef69356d429ee7e9933560bb55696f498a1a26dc"
 dependencies = [
  "addr2line",
  "cfg-if",
- "gimli 0.32.2",
+ "gimli",
  "log",
  "paste",
  "spin 0.10.0",
@@ -1279,12 +1279,6 @@ dependencies = [
 
 [[package]]
 name = "gimli"
-version = "0.31.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
-
-[[package]]
-name = "gimli"
 version = "0.32.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc6298e594375a7fead9efd5568f0a46e6a154fb6a9bdcbe3c06946ffd81a5f6"
@@ -2187,7 +2181,7 @@ dependencies = [
  "chrono",
  "event-listener",
  "flatten_objects",
- "gimli 0.32.2",
+ "gimli",
  "hashbrown",
  "indoc",
  "inherit-methods-macro",
@@ -2501,11 +2495,11 @@ checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
 name = "unwinding"
-version = "0.2.6"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8393f2782b6060a807337ff353780c1ca15206f9ba2424df18cb6e733bd7b345"
+checksum = "60612c845ef41699f39dc8c5391f252942c0a88b7d15da672eff0d14101bbd6d"
 dependencies = [
- "gimli 0.31.1",
+ "gimli",
 ]
 
 [[package]]
