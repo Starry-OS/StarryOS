@@ -17,17 +17,17 @@ repository = "https://github.com/arceos-org/starry-next"
 
 [workspace.dependencies]
 axfeat = { path = "arceos/api/axfeat", features = [
-	"alloc-slab",
-	"fp-simd",
-	"ext4",
-	"fs",
-	"irq",
-	"multitask",
-	"net",
-	"page-alloc-4g",
-	"rtc",
-	# "sched-fifo",
-	"sched-rr",
+    "alloc-slab",
+    "fp-simd",
+    "ext4",
+    "fs",
+    "irq",
+    "multitask",
+    "net",
+    "page-alloc-4g",
+    "rtc",
+    # "sched-fifo",
+    "sched-rr",
 ] }
 
 axalloc = { path = "arceos/modules/axalloc" }
@@ -97,22 +97,22 @@ qemu = [
     "axfeat/driver-virtio-net",
     "axfeat/driver-virtio-socket",
 
-	"axfeat/driver-virtio-gpu",
-	"axfeat/display",
+    "axfeat/driver-virtio-gpu",
+    "axfeat/display",
 
-	"axfeat/driver-virtio-input",
-	"axfeat/input",
-	# "axdriver/dyn",
-	"starry-api/input",
+    "axfeat/driver-virtio-input",
+    "axfeat/input",
+    # "axdriver/dyn",
+    "starry-api/input",
 
     "axfeat/vsock",
     "starry-api/vsock",
 
     "axfeat/defplat",
 
-	# auxilary features
-	"axfeat/fs-times",
-	"starry-api/dev-log",
+    # auxilary features
+    "axfeat/fs-times",
+    "starry-api/dev-log",
 ]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc-gpt"]

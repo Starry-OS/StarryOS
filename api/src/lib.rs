@@ -42,9 +42,13 @@ pub fn init() {
         time::inc_irq_cnt();
     });
 
+    #[cfg(not(target_arch = "loongarch64"))]
+    test_unwind();
+
     info!("Initialize alarm...");
     starry_core::time::spawn_alarm_task();
 }
+
 #[cfg(not(target_arch = "loongarch64"))]
 pub fn kernel_catch_unwind<R, F: FnOnce() -> R>(f: F) -> LinuxResult<R> {
     let res = unwinding::panic::catch_unwind(f);
@@ -55,4 +59,26 @@ pub fn kernel_catch_unwind<R, F: FnOnce() -> R>(f: F) -> LinuxResult<R> {
             Err(LinuxError::EAGAIN)
         }
     }
+}
+
+#[cfg(not(target_arch = "loongarch64"))]
+pub fn test_unwind() {
+    struct UnwindTest;
+    impl Drop for UnwindTest {
+        fn drop(&mut self) {
+            ax_println!("Drop UnwindTest");
+        }
+    }
+    let res1 = unwinding::panic::catch_unwind(|| {
+        let _unwind_test = UnwindTest;
+        ax_println!("Test panic...");
+        panic!("Test panic");
+    });
+    assert_eq!(res1.is_err(), true);
+    let res2 = unwinding::panic::catch_unwind(|| {
+        let _unwind_test = UnwindTest;
+        ax_println!("Test no panic...");
+        0
+    });
+    assert_eq!(res2.is_ok(), true);
 }

@@ -13,9 +13,9 @@ dependencies = [
 
 [[package]]
 name = "addr2line"
-version = "0.25.0"
+version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9acbfca36652500c911ddb767ed433e3ed99b032b5d935be73c6923662db1d43"
+checksum = "1b5d307320b3181d6d7954e663bd7c774a838b8220fe0593c86d9fb09f498b4b"
 dependencies = [
  "cpp_demangle",
  "gimli",
@@ -973,9 +973,9 @@ dependencies = [
 
 [[package]]
 name = "cpp_demangle"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96e58d342ad113c2b878f16d5d034c03be492ae460cdbc02b7f0f2284d310c7d"
+checksum = "f2bb79cb74d735044c972aae58ed0aaa9a837e85b01106a54c39e42e97f62253"
 dependencies = [
  "cfg-if",
 ]
