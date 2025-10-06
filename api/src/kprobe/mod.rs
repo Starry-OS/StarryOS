@@ -132,8 +132,7 @@ pub fn unregister_kprobe(kprobe: Arc<KernelKprobe>) {
 pub fn register_kprobe(kprobe_builder: KprobeBuilder<KprobeAuxiliary>) -> Arc<KernelKprobe> {
     let mut manager = KPROBE_MANAGER.lock();
     let mut kprobe_list = KPROBE_POINT_LIST.lock();
-    let kprobe = kprobe::register_kprobe(&mut manager, &mut kprobe_list, kprobe_builder);
-    kprobe
+    kprobe::register_kprobe(&mut manager, &mut kprobe_list, kprobe_builder)
 }
 
 pub fn run_all_kprobe(frame: &mut TrapFrame) -> Option<()> {

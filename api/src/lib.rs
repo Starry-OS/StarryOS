@@ -74,11 +74,11 @@ pub fn test_unwind() {
         ax_println!("Test panic...");
         panic!("Test panic");
     });
-    assert_eq!(res1.is_err(), true);
+    assert!(res1.is_err());
     let res2 = unwinding::panic::catch_unwind(|| {
         let _unwind_test = UnwindTest;
         ax_println!("Test no panic...");
         0
     });
-    assert_eq!(res2.is_ok(), true);
+    assert!(res2.is_ok());
 }

@@ -22,7 +22,7 @@ impl<T> KSpinNoPreempt<T> {
 
 unsafe impl lock_api::RawMutex for KSpinNoPreempt<()> {
     type GuardMarker = lock_api::GuardSend;
-
+    #[allow(clippy::declare_interior_mutable_const)]
     const INIT: Self = KSpinNoPreempt(SpinNoPreempt::new(()));
 
     fn lock(&self) {
