@@ -24,12 +24,15 @@ pub mod syscall;
 pub mod task;
 pub mod terminal;
 pub mod time;
+pub mod tracepoint;
 pub mod vfs;
 
 /// Initialize.
 pub fn init() {
     #[cfg(feature = "kprobe_test")]
     kprobe::kprobe_test::kprobe_test();
+
+    tracepoint::tracepoint_init();
 
     if axconfig::plat::CPU_NUM > 1 {
         panic!("SMP is not supported");

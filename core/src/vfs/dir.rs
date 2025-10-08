@@ -41,26 +41,65 @@ pub trait SimpleDirOps: Send + Sync + 'static {
 
 impl SimpleDirOps for DirMapping {
     fn child_names<'a>(&'a self) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a> {
-        Box::new(self.0.keys().map(|s| s.as_str().into()))
+        Box::new(self.map.keys().map(|s| s.as_str().into()))
     }
 
     fn lookup_child(&self, name: &str) -> VfsResult<NodeOpsMux> {
-        self.0.get(name).cloned().ok_or(VfsError::NotFound)
+        self.map
+            .get(name)
+            .cloned()
+            .map(|ty| match ty {
+                NodeOpsMuxTy::Static(ops) => ops,
+                NodeOpsMuxTy::Dynamic(maker) => maker(),
+            })
+            .ok_or(VfsError::NotFound)
+    }
+
+    fn is_cacheable(&self) -> bool {
+        self.cacheable
     }
 }
 
+#[derive(Clone)]
+enum NodeOpsMuxTy {
+    Static(NodeOpsMux),
+    Dynamic(Arc<dyn Fn() -> NodeOpsMux + Send + Sync>),
+}
+
 /// A mapping of directory names to entries.
-pub struct DirMapping(BTreeMap<String, NodeOpsMux>);
+pub struct DirMapping {
+    map: BTreeMap<String, NodeOpsMuxTy>,
+    cacheable: bool,
+}
 
 impl DirMapping {
     /// Create a new empty directory mapping.
     pub fn new() -> Self {
-        Self(BTreeMap::new())
+        Self {
+            map: BTreeMap::new(),
+            cacheable: true,
+        }
+    }
+
+    /// Set whether the directory is cacheable.
+    pub fn set_cacheable(&mut self, cacheable: bool) {
+        self.cacheable = cacheable;
     }
 
     /// Add a new entry to the directory mapping.
     pub fn add(&mut self, name: impl Into<String>, ops: impl Into<NodeOpsMux>) {
-        self.0.insert(name.into(), ops.into());
+        self.map
+            .insert(name.into(), NodeOpsMuxTy::Static(ops.into()));
+    }
+
+    /// Add a new entry to the directory mapping, created on demand.
+    pub fn add_dynamic(
+        &mut self,
+        name: impl Into<String>,
+        maker: impl Fn() -> NodeOpsMux + Send + Sync + 'static,
+    ) {
+        self.map
+            .insert(name.into(), NodeOpsMuxTy::Dynamic(Arc::new(maker)));
     }
 }
 

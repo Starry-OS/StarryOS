@@ -33,20 +33,6 @@ axnet.workspace = true
 axpoll.workspace = true
 axsync.workspace = true
 axtask.workspace = true
-<<<<<<< HEAD
-=======
-ksym.workspace = true
-kprobe.workspace = true
-lock_api.workspace = true
-axcpu.workspace = true
-kernel_guard.workspace = true
-
-starry-core.workspace = true
-lazyinit.workspace = true
-
-axbacktrace.workspace = true
-axerrno.workspace = true
->>>>>>> a0c2f8b (fix: update unwinding dep)
 bitflags.workspace = true
 bitmaps = { version = "3.2.1", default-features = false }
 bytemuck.workspace = true
@@ -89,6 +75,8 @@ lock_api.workspace = true
 axcpu.workspace = true
 kernel_guard.workspace = true
 unwinding.workspace = true
+tracepoint.workspace = true
+static-keys.workspace = true
 
 [target.'cfg(not(target_arch = "loongarch64"))'.dependencies]
 unwinding = { version = "=0.2.8", default-features = false, features = [

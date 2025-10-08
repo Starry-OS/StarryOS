@@ -1,5 +1,6 @@
 //! Virtual filesystems
 
+pub mod debug;
 pub mod dev;
 mod proc;
 mod tmp;
@@ -70,6 +71,18 @@ pub fn mount_all() -> LinuxResult<()> {
     }
     path.push("subsystem");
     fs.symlink("whatever", &path)?;
+
+    // for debugfs
+    let mut path = PathBuf::new();
+    for comp in Path::new("/sys/kernel/debug").components() {
+        path.push(comp.as_str());
+        if fs.resolve(&path).is_err() {
+            fs.create_dir(&path, DIR_PERMISSION)?;
+        }
+    }
+
+    mount_at(&fs, "/sys/kernel/debug", debug::new_debugfs())?;
+
     drop(fs);
 
     #[cfg(feature = "dev-log")]
