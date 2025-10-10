@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["api", "core"]
+members = ["api", "core", "user/musl/async_test"]
 exclude = ["arceos"]
 
 [workspace.package]

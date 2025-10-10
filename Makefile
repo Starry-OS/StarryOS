@@ -17,6 +17,9 @@ export NO_AXSTD := y
 export AX_LIB := axfeat
 export APP_FEATURES := qemu
 
+# Disk Path
+export DISK_PATH := $(abspath ./disk)
+
 ifeq ($(MEMTRACK), y)
 	APP_FEATURES += starry-api/memtrack
 endif
@@ -25,15 +28,18 @@ IMG_URL = https://github.com/Starry-OS/rootfs/releases/download/20250917
 IMG = rootfs-$(ARCH).img
 
 img: build
+	@echo ${DISK_PATH}
 	@if [ ! -f $(IMG) ]; then \
 		echo "Image not found, downloading..."; \
 		curl -f -L $(IMG_URL)/$(IMG).xz -O; \
 		xz -d $(IMG).xz; \
 	fi
 	@cp $(IMG) arceos/disk.img
-	@mkdir ./disk
-	@sudo mount arceos/disk.img ./disk
+	@-mkdir ./disk
+	@-sudo mount arceos/disk.img ./disk
 	@-sudo cp kallsyms ./disk/root/kallsyms
+	@-sudo mkdir -p $(DISK_PATH)/musl
+	@make -C user/musl all
 	@sudo umount ./disk
 	@rmdir ./disk
 	@-rm kallsyms
