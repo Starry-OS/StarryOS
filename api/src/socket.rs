@@ -8,10 +8,10 @@ use core::{
 };
 
 use axerrno::{AxError, AxResult, LinuxError};
-use axnet::{SocketAddrEx, unix::UnixSocketAddr};
+use axnet::{SocketAddrEx, unix::UnixSocketAddr, vsock::VsocketAddr};
 use linux_raw_sys::net::{
-    __kernel_sa_family_t, AF_INET, AF_INET6, AF_UNIX, in_addr, in6_addr, sockaddr, sockaddr_in,
-    sockaddr_in6, socklen_t,
+    __kernel_sa_family_t, AF_INET, AF_INET6, AF_UNIX, AF_VSOCK, in_addr, in6_addr, sockaddr,
+    sockaddr_in, sockaddr_in6, socklen_t,
 };
 
 use crate::mm::{UserConstPtr, UserPtr};
@@ -195,11 +195,54 @@ impl SocketAddrExt for UnixSocketAddr {
     }
 }
 
+// Linux sockaddr_vm is not public in linux_raw_sys crate.
+// its struct is like below:
+// struct sockaddr_vm {
+//    __kernel_sa_family_t svm_family; /* Address family */
+//    unsigned short svm_reserved1;
+//    __u32 svm_port;                /* Port # */
+//    __u32 svm_cid;                 /* Context ID */
+//    unsigned char svm_zero[sizeof(struct sockaddr) - sizeof(__kernel_sa_family_t) - 2 * sizeof(__u32)];
+// };
+impl SocketAddrExt for VsocketAddr {
+    fn read_from_user(addr: UserConstPtr<sockaddr>, addrlen: socklen_t) -> AxResult<Self> {
+        if read_family(addr, addrlen)? as u32 != AF_VSOCK {
+            return Err(AxError::Other(LinuxError::EAFNOSUPPORT));
+        }
+        let addr_vm_ptr: UserConstPtr<u8> = addr.cast::<u8>();
+        let addr_vm: &'static [u8] = addr_vm_ptr.get_as_slice(addrlen as usize)?;
+        // sockaddr_vm at least has 12 bytes for family, reserved1, port and cid.
+        if addr_vm.len() < 12 {
+            return Err(AxError::InvalidInput);
+        }
+        let port: u32 = u32::from_le_bytes([addr_vm[4], addr_vm[5], addr_vm[6], addr_vm[7]]);
+        let cid: u32 = u32::from_le_bytes([addr_vm[8], addr_vm[9], addr_vm[10], addr_vm[11]]);
+
+        info!("read_from_user: port={}, cid={}", port, cid);
+        Ok(VsocketAddr { cid, port })
+    }
+
+    fn write_to_user(&self, addr: UserPtr<sockaddr>, addrlen: &mut socklen_t) -> AxResult<()> {
+        let mut buf: Vec<u8> = Vec::with_capacity(16); // size of sockaddr_vm
+        buf.extend_from_slice(&(AF_VSOCK as u16).to_le_bytes()); // family
+        buf.extend_from_slice(&0u16.to_le_bytes()); // reserved1
+        buf.extend_from_slice(&self.port.to_le_bytes());
+        buf.extend_from_slice(&self.cid.to_le_bytes());
+        buf.extend_from_slice(&[0u8; 4]); // padding = 16 - 2 - 2 - 4 - 4 = 4
+        fill_addr(addr, addrlen, &buf)
+    }
+
+    fn family(&self) -> u16 {
+        AF_VSOCK as u16
+    }
+}
+
 impl SocketAddrExt for SocketAddrEx {
     fn read_from_user(addr: UserConstPtr<sockaddr>, addrlen: socklen_t) -> AxResult<Self> {
         match read_family(addr, addrlen)? as u32 {
             AF_INET | AF_INET6 => SocketAddr::read_from_user(addr, addrlen).map(Self::Ip),
             AF_UNIX => UnixSocketAddr::read_from_user(addr, addrlen).map(Self::Unix),
+            AF_VSOCK => VsocketAddr::read_from_user(addr, addrlen).map(Self::Vsock),
             _ => Err(AxError::Other(LinuxError::EAFNOSUPPORT)),
         }
     }
@@ -208,6 +251,7 @@ impl SocketAddrExt for SocketAddrEx {
         match self {
             SocketAddrEx::Ip(ip_addr) => ip_addr.write_to_user(addr, addrlen),
             SocketAddrEx::Unix(unix_addr) => unix_addr.write_to_user(addr, addrlen),
+            SocketAddrEx::Vsock(vsock_addr) => vsock_addr.write_to_user(addr, addrlen),
         }
     }
 
