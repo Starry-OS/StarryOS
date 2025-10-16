@@ -204,35 +204,39 @@ impl SocketAddrExt for UnixSocketAddr {
 //    __u32 svm_cid;                 /* Context ID */
 //    unsigned char svm_zero[sizeof(struct sockaddr) - sizeof(__kernel_sa_family_t) - 2 * sizeof(__u32)];
 // };
+#[allow(non_camel_case_types)]
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct sockaddr_vm {
+    pub svm_family: __kernel_sa_family_t,
+    pub svm_reserved1: u16,
+    pub svm_port: u32,
+    pub svm_cid: u32,
+    pub svm_zero: [u8; 4],
+}
+
 impl SocketAddrExt for VsockAddr {
     fn read_from_user(addr: UserConstPtr<sockaddr>, addrlen: socklen_t) -> AxResult<Self> {
-        if read_family(addr, addrlen)? as u32 != AF_VSOCK {
-            return Err(AxError::Other(LinuxError::EAFNOSUPPORT));
-        }
-        let addr_vm_ptr: UserConstPtr<u8> = addr.cast::<u8>();
-        let addr_vm: &'static [u8] = addr_vm_ptr.get_as_slice(addrlen as usize)?;
-        // sockaddr_vm at least has 12 bytes for family, reserved1, port and cid.
-        if addr_vm.len() < 12 {
+        if addrlen != size_of::<sockaddr_vm>() as socklen_t {
             return Err(AxError::InvalidInput);
         }
-        let port: u32 = u32::from_le_bytes([addr_vm[4], addr_vm[5], addr_vm[6], addr_vm[7]]);
-        let cid: u32 = u32::from_le_bytes([addr_vm[8], addr_vm[9], addr_vm[10], addr_vm[11]]);
 
-        info!("read_from_user: port={}, cid={}", port, cid);
-        Ok(VsockAddr { cid, port })
+        let addr_vsock = addr.cast::<sockaddr_vm>().get_as_ref()?;
+        if addr_vsock.svm_family as u32 != AF_VSOCK {
+            return Err(AxError::Other(LinuxError::EAFNOSUPPORT));
+        }
+        Ok(VsockAddr { cid: addr_vsock.svm_cid, port: addr_vsock.svm_port })
     }
 
     fn write_to_user(&self, addr: UserPtr<sockaddr>, addrlen: &mut socklen_t) -> AxResult<()> {
-        let mut buf = [0u8; 16];
-        // 0-1: family (AF_VSOCK = 40)
-        buf[0..2].copy_from_slice(&(AF_VSOCK as u16).to_le_bytes());
-        // 2-3: reserved1 as 0
-        // 4-7: port
-        buf[4..8].copy_from_slice(&self.port.to_le_bytes());
-        // 8-11: cid
-        buf[8..12].copy_from_slice(&self.cid.to_le_bytes());
-        // 12-15: padding 0
-        fill_addr(addr, addrlen, &buf)
+        let sockvm_addr = sockaddr_vm {
+            svm_family: AF_VSOCK as _,
+            svm_reserved1: 0,
+            svm_port: self.port,
+            svm_cid: self.cid,
+            svm_zero: [0_u8; 4],
+        };
+        fill_addr(addr, addrlen, unsafe { cast_to_slice(&sockvm_addr) })
     }
 
     fn family(&self) -> u16 {
