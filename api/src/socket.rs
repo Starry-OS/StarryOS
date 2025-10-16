@@ -8,7 +8,7 @@ use core::{
 };
 
 use axerrno::{AxError, AxResult, LinuxError};
-use axnet::{SocketAddrEx, unix::UnixSocketAddr, vsock::VsocketAddr};
+use axnet::{SocketAddrEx, unix::UnixSocketAddr, vsock::VsockAddr};
 use linux_raw_sys::net::{
     __kernel_sa_family_t, AF_INET, AF_INET6, AF_UNIX, AF_VSOCK, in_addr, in6_addr, sockaddr,
     sockaddr_in, sockaddr_in6, socklen_t,
@@ -204,7 +204,7 @@ impl SocketAddrExt for UnixSocketAddr {
 //    __u32 svm_cid;                 /* Context ID */
 //    unsigned char svm_zero[sizeof(struct sockaddr) - sizeof(__kernel_sa_family_t) - 2 * sizeof(__u32)];
 // };
-impl SocketAddrExt for VsocketAddr {
+impl SocketAddrExt for VsockAddr {
     fn read_from_user(addr: UserConstPtr<sockaddr>, addrlen: socklen_t) -> AxResult<Self> {
         if read_family(addr, addrlen)? as u32 != AF_VSOCK {
             return Err(AxError::Other(LinuxError::EAFNOSUPPORT));
@@ -219,7 +219,7 @@ impl SocketAddrExt for VsocketAddr {
         let cid: u32 = u32::from_le_bytes([addr_vm[8], addr_vm[9], addr_vm[10], addr_vm[11]]);
 
         info!("read_from_user: port={}, cid={}", port, cid);
-        Ok(VsocketAddr { cid, port })
+        Ok(VsockAddr { cid, port })
     }
 
     fn write_to_user(&self, addr: UserPtr<sockaddr>, addrlen: &mut socklen_t) -> AxResult<()> {
@@ -245,7 +245,7 @@ impl SocketAddrExt for SocketAddrEx {
         match read_family(addr, addrlen)? as u32 {
             AF_INET | AF_INET6 => SocketAddr::read_from_user(addr, addrlen).map(Self::Ip),
             AF_UNIX => UnixSocketAddr::read_from_user(addr, addrlen).map(Self::Unix),
-            AF_VSOCK => VsocketAddr::read_from_user(addr, addrlen).map(Self::Vsock),
+            AF_VSOCK => VsockAddr::read_from_user(addr, addrlen).map(Self::Vsock),
             _ => Err(AxError::Other(LinuxError::EAFNOSUPPORT)),
         }
     }
