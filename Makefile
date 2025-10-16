@@ -7,7 +7,7 @@ export MEMTRACK := n
 # QEMU Options
 export BLK := y
 export NET := y
-export VSOCK := y
+export VSOCK := n
 export MEM := 1G
 export ICOUNT := n
 

@@ -223,12 +223,15 @@ impl SocketAddrExt for VsocketAddr {
     }
 
     fn write_to_user(&self, addr: UserPtr<sockaddr>, addrlen: &mut socklen_t) -> AxResult<()> {
-        let mut buf: Vec<u8> = Vec::with_capacity(16); // size of sockaddr_vm
-        buf.extend_from_slice(&(AF_VSOCK as u16).to_le_bytes()); // family
-        buf.extend_from_slice(&0u16.to_le_bytes()); // reserved1
-        buf.extend_from_slice(&self.port.to_le_bytes());
-        buf.extend_from_slice(&self.cid.to_le_bytes());
-        buf.extend_from_slice(&[0u8; 4]); // padding = 16 - 2 - 2 - 4 - 4 = 4
+        let mut buf = [0u8; 16];
+        // 0-1: family (AF_VSOCK = 40)
+        buf[0..2].copy_from_slice(&(AF_VSOCK as u16).to_le_bytes());
+        // 2-3: reserved1 as 0
+        // 4-7: port
+        buf[4..8].copy_from_slice(&self.port.to_le_bytes());
+        // 8-11: cid
+        buf[8..12].copy_from_slice(&self.cid.to_le_bytes());
+        // 12-15: padding 0
         fill_addr(addr, addrlen, &buf)
     }
 
