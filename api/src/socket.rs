@@ -195,15 +195,8 @@ impl SocketAddrExt for UnixSocketAddr {
     }
 }
 
-// Linux sockaddr_vm is not public in linux_raw_sys crate.
-// its struct is like below:
-// struct sockaddr_vm {
-//    __kernel_sa_family_t svm_family; /* Address family */
-//    unsigned short svm_reserved1;
-//    __u32 svm_port;                /* Port # */
-//    __u32 svm_cid;                 /* Context ID */
-//    unsigned char svm_zero[sizeof(struct sockaddr) - sizeof(__kernel_sa_family_t) - 2 * sizeof(__u32)];
-// };
+// This type should be provided by linux_raw_sys but it's missing.
+// See https://github.com/sunfishcode/linux-raw-sys/issues/169
 #[allow(non_camel_case_types)]
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -225,7 +218,10 @@ impl SocketAddrExt for VsockAddr {
         if addr_vsock.svm_family as u32 != AF_VSOCK {
             return Err(AxError::Other(LinuxError::EAFNOSUPPORT));
         }
-        Ok(VsockAddr { cid: addr_vsock.svm_cid, port: addr_vsock.svm_port })
+        Ok(VsockAddr {
+            cid: addr_vsock.svm_cid,
+            port: addr_vsock.svm_port,
+        })
     }
 
     fn write_to_user(&self, addr: UserPtr<sockaddr>, addrlen: &mut socklen_t) -> AxResult<()> {

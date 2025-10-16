@@ -45,14 +45,10 @@ pub fn sys_socket(domain: u32, raw_ty: u32, proto: u32) -> AxResult<isize> {
         }
         (AF_UNIX, SOCK_STREAM) => axnet::Socket::Unix(UnixSocket::new(StreamTransport::new(pid))),
         (AF_UNIX, SOCK_DGRAM) => axnet::Socket::Unix(UnixSocket::new(DgramTransport::new(pid))),
-        (AF_INET, _) | (AF_UNIX, _) => {
-            warn!("Unsupported socket type: domain: {}, ty: {}", domain, ty);
-            return Err(AxError::Other(LinuxError::ESOCKTNOSUPPORT));
-        }
         (AF_VSOCK, SOCK_STREAM) => {
             axnet::Socket::Vsock(VsockSocket::new(VsockStreamTransport::new()))
         }
-        (AF_VSOCK, SOCK_DGRAM) => {
+        (AF_INET, _) | (AF_UNIX, _) | (AF_VSOCK, _) => {
             warn!("Unsupported socket type: domain: {}, ty: {}", domain, ty);
             return Err(AxError::Other(LinuxError::ESOCKTNOSUPPORT));
         }
