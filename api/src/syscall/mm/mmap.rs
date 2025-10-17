@@ -13,14 +13,14 @@ use starry_core::{
 };
 use starry_vm::{vm_load, vm_write_slice};
 
-use crate::file::{File, FileLike};
+use crate::file::{File, FileLike, get_file_like};
 
 bitflags::bitflags! {
     /// `PROT_*` flags for use with [`sys_mmap`].
     ///
     /// For `PROT_NONE`, use `ProtFlags::empty()`.
     #[derive(Debug, Clone, Copy)]
-    struct MmapProt: u32 {
+    pub struct MmapProt: u32 {
         /// Page can be read.
         const READ = PROT_READ;
         /// Page can be written.
@@ -55,7 +55,7 @@ bitflags::bitflags! {
     ///
     /// See <https://github.com/bminor/glibc/blob/master/bits/mman.h>
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-    struct MmapFlags: u32 {
+    pub struct MmapFlags: u32 {
         /// Share changes
         const SHARED = MAP_SHARED;
         /// Share changes, but fail if mapping flags contain unknown
@@ -170,7 +170,18 @@ pub fn sys_mmap(
     };
 
     let file = if fd > 0 {
-        Some(File::from_fd(fd)?)
+        let file = get_file_like(fd)?;
+        if file.custom_mmap() {
+            return file.mmap(
+                &mut aspace,
+                start,
+                length,
+                permission_flags,
+                map_flags,
+                offset,
+            );
+        }
+        Some(File::from_fd(fd).unwrap())
     } else {
         None
     };

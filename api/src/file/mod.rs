@@ -6,6 +6,7 @@ mod pidfd;
 mod pipe;
 
 use alloc::{borrow::Cow, sync::Arc};
+use memory_addr::VirtAddr;
 use core::{any::Any, ffi::c_int, time::Duration};
 
 use axerrno::{AxError, AxResult};
@@ -275,6 +276,22 @@ pub trait FileLike: Pollable + Send + Sync {
         Self: Sized + 'static,
     {
         add_file_like(Arc::new(self), cloexec)
+    }
+
+    fn custom_mmap(&self) -> bool {
+        false
+    }
+
+    fn mmap(
+        &self,
+        _aspace:&mut axmm::AddrSpace,
+        _start: VirtAddr,
+        _length: usize,
+        _prot: crate::syscall::MmapProt,
+        _flags: crate::syscall::MmapFlags,
+        _offset: usize,
+    ) -> AxResult<isize> {
+        Err(AxError::OperationNotSupported)
     }
 }
 

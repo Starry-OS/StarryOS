@@ -3,6 +3,7 @@
 pub mod debug;
 pub mod dev;
 mod proc;
+mod sys;
 mod tmp;
 
 use alloc::string::String;
@@ -71,6 +72,8 @@ pub fn mount_all() -> LinuxResult<()> {
     }
     path.push("subsystem");
     fs.symlink("whatever", &path)?;
+
+    sys::init_sysfs(&fs)?;
 
     // for debugfs
     let mut path = PathBuf::new();

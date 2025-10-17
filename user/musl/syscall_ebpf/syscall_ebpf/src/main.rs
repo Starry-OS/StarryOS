@@ -37,7 +37,7 @@ async fn main() -> anyhow::Result<()> {
 
     let program: &mut KProbe = ebpf.program_mut("syscall_ebpf").unwrap().try_into()?;
     program.load()?;
-    program.attach("kernel::trap::exception::syscall_entry", 0)?;
+    program.attach("starry_api::syscall::sysno", 0)?;
     log::info!("attacch the kprobe to syscall_entry ok");
 
     // print the value of the blocklist per 5 seconds

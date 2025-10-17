@@ -1,8 +1,10 @@
+mod bpf;
 mod fs;
 mod io_mpx;
 mod ipc;
 mod mm;
 mod net;
+mod perf;
 mod resources;
 mod signal;
 mod sync;
@@ -12,16 +14,25 @@ mod time;
 
 use axerrno::{AxError, LinuxError};
 use axhal::uspace::UserContext;
+pub use mm::{MmapFlags, MmapProt};
 use syscalls::Sysno;
 
 use self::{
-    fs::*, io_mpx::*, ipc::*, mm::*, net::*, resources::*, signal::*, sync::*, sys::*, task::*,
-    time::*,
+    bpf::*, fs::*, io_mpx::*, ipc::*, mm::*, net::*, perf::*, resources::*, signal::*, sync::*,
+    sys::*, task::*, time::*,
 };
 
+#[inline(never)]
+pub fn sysno(id: usize) -> Option<Sysno> {
+    let Some(sysno) = Sysno::new(id) else {
+        warn!("Invalid syscall number: {}", id);
+        return None;
+    };
+    Some(sysno)
+}
+
 pub fn handle_syscall(uctx: &mut UserContext) {
-    let Some(sysno) = Sysno::new(uctx.sysno()) else {
-        warn!("Invalid syscall number: {}", uctx.sysno());
+    let Some(sysno) = sysno(uctx.sysno() as usize) else {
         uctx.set_retval(-LinuxError::ENOSYS.code() as _);
         return;
     };
@@ -581,16 +592,21 @@ pub fn handle_syscall(uctx: &mut UserContext) {
             uctx.arg3().into(),
             uctx.arg4() as _,
         ),
-
+        Sysno::bpf => sys_bpf(uctx.arg0() as _, uctx.arg1() as _, uctx.arg2() as _),
+        Sysno::perf_event_open => sys_perf_event_open(
+            uctx.arg0() as _,
+            uctx.arg1() as _,
+            uctx.arg2() as _,
+            uctx.arg3() as _,
+            uctx.arg4() as _,
+        ),
         // dummy fds
         Sysno::signalfd4
         | Sysno::timerfd_create
         | Sysno::fanotify_init
         | Sysno::inotify_init1
         | Sysno::userfaultfd
-        | Sysno::perf_event_open
         | Sysno::io_uring_setup
-        | Sysno::bpf
         | Sysno::fsopen
         | Sysno::fspick
         | Sysno::open_tree

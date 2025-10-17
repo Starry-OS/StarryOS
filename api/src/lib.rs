@@ -26,6 +26,8 @@ pub mod terminal;
 pub mod time;
 pub mod tracepoint;
 pub mod vfs;
+pub mod bpf;
+pub mod perf;
 
 /// Initialize.
 pub fn init() {
@@ -33,6 +35,7 @@ pub fn init() {
     kprobe::kprobe_test::kprobe_test();
 
     tracepoint::tracepoint_init();
+    bpf::init_bpf();
 
     if axconfig::plat::CPU_NUM > 1 {
         panic!("SMP is not supported");
