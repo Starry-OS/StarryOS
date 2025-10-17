@@ -63,6 +63,7 @@ impl FileLike for BpfMap {
 
 pub fn bpf_map_create(attr: &bpf_attr) -> AxResult<isize> {
     let map_meta = BpfMapMeta::try_from(attr).map_err(bpferror_to_axerr)?;
+    axlog::info!("The map attr is {:#?}", map_meta);
     let unified_map =
         kbpf_basic::map::bpf_map_create::<PerCpuImpl>(map_meta).map_err(bpferror_to_axerr);
     if let Err(e) = &unified_map {

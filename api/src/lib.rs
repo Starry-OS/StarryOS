@@ -36,6 +36,7 @@ pub fn init() {
 
     tracepoint::tracepoint_init();
     bpf::init_bpf();
+    perf::perf_event_init();
 
     if axconfig::plat::CPU_NUM > 1 {
         panic!("SMP is not supported");

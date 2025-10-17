@@ -1,20 +1,21 @@
-use alloc::sync::Arc;
 use core::{any::Any, convert::Into, fmt::Debug};
 
 use axerrno::AxResult;
 use axhal::paging::PageSize;
 use axio::{IoEvents, PollSet, Pollable};
-use axmm::backend::SharedPages;
+use axmm::backend::{alloc_frames, dealloc_frames};
 use kbpf_basic::{
     linux_bpf::perf_event_sample_format,
     perf::{PerfProbeArgs, bpf::BpfPerfEvent},
 };
+use memory_addr::PhysAddr;
 
 use super::PerfEventOps;
 
 pub struct BpfPerfEventWrapper {
     inner: BpfPerfEvent,
     poll_ready: PollSet,
+    phys_addr: Option<(PhysAddr, usize)>,
 }
 
 impl BpfPerfEventWrapper {
@@ -22,11 +23,16 @@ impl BpfPerfEventWrapper {
         BpfPerfEventWrapper {
             inner,
             poll_ready: PollSet::new(),
+            phys_addr: None,
         }
     }
 
     pub fn write_event(&mut self, data: &[u8]) -> AxResult<()> {
         // TODO: remove unwrap
+        if self.phys_addr.is_none() {
+            axlog::warn!("BpfPerfEventWrapper: first write_event, mmap not done yet");
+            return Ok(());
+        }
         self.inner.write_event(data).unwrap();
         if self.inner.enabled() {
             self.poll_ready.wake();
@@ -71,21 +77,39 @@ impl PerfEventOps for BpfPerfEventWrapper {
         length: usize,
         prot: crate::syscall::MmapProt,
         flags: crate::syscall::MmapFlags,
-        _offset: usize,
+        offset: usize,
     ) -> AxResult<isize> {
-        axlog::warn!(
+        axlog::info!(
             "BpfPerfEventWrapper::mmap prot:{:?} flags:{:?}",
             prot,
             flags
         );
-        let back = axmm::backend::Backend::new_shared(
-            start,
-            Arc::new(SharedPages::new(length, PageSize::Size4K)?),
-        );
-        aspace.map(start, length, prot.into(), true, back)?;
 
-        self.inner.do_mmap(start.as_usize(), length, 0).unwrap();
+        let phys_addr = alloc_frames(
+            true,
+            PageSize::Size4K,
+            length / PageSize::Size4K as usize,
+            axalloc::UsageKind::PageCache,
+        )?;
+        let page_virt = axhal::mem::phys_to_virt(phys_addr);
+
+        aspace.map_linear(start, phys_addr, length, prot.into())?;
+
+        self.inner
+            .do_mmap(page_virt.as_usize(), length, offset)
+            .unwrap();
+
+        self.phys_addr = Some((phys_addr, length / PageSize::Size4K as usize));
+
         Ok(start.as_usize() as isize)
+    }
+}
+
+impl Drop for BpfPerfEventWrapper {
+    fn drop(&mut self) {
+        if let Some((phys_addr, nums)) = self.phys_addr {
+            dealloc_frames(phys_addr, nums);
+        }
     }
 }
 

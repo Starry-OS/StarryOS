@@ -282,6 +282,7 @@ dependencies = [
 name = "async_test"
 version = "0.1.0"
 dependencies = [
+ "log",
  "smol",
  "tokio",
 ]
@@ -1660,6 +1661,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
+]
+
+[[package]]
+name = "kbpf-basic"
+version = "0.1.0"
+source = "git+https://github.com/Starry-OS/kbpf-basic?rev=ef8ade5#ef8ade57d96e79e985cc84be38c00c914e52750a"
+dependencies = [
+ "bitflags 2.9.4",
+ "int-enum",
+ "log",
+ "lru 0.14.0",
+ "printf-compat 0.2.1",
+ "rbpf 0.3.0 (git+https://github.com/qmonnet/rbpf)",
 ]
 
 [[package]]

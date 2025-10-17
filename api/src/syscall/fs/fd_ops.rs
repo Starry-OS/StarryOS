@@ -108,6 +108,8 @@ fn add_to_fd(result: OpenResult, flags: u32) -> AxResult<i32> {
     add_file_like(f, flags & O_CLOEXEC != 0)
 }
 
+// WARN: We need to ensure that the fields in TP_STRUCT__entry are not
+// rearranged.
 tracepoint::define_event_trace!(
     sys_enter_openat,
     TP_lock(crate::lock_api::KSpinNoPreempt<()>),
@@ -116,8 +118,8 @@ tracepoint::define_event_trace!(
     TP_PROTO(dfd: i32, path: *const u8, o_flags: u32, mode: u32),
     TP_STRUCT__entry{
         dfd: i32,
-        path: u64,
         o_flags: u32,
+        path: u64,
         mode: u32,
     },
     TP_fast_assign{

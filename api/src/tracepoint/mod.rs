@@ -49,7 +49,7 @@ mod tests {
 static TRACE_POINT_MANAGER: LazyInit<TracingEventsManager<KSpinNoPreempt<()>, KernelTraceAux>> =
     LazyInit::new();
 
-fn trace_point_manager() -> &'static TracingEventsManager<KSpinNoPreempt<()>, KernelTraceAux> {
+pub fn tracepoint_manager() -> &'static TracingEventsManager<KSpinNoPreempt<()>, KernelTraceAux> {
     &TRACE_POINT_MANAGER
 }
 
@@ -133,7 +133,7 @@ impl KernelTraceOps for KernelTraceAux {
 }
 
 fn common_trace_pipe_read(trace_buf: &mut dyn TracePipeOps, buf: &mut [u8]) -> usize {
-    let manager = trace_point_manager();
+    let manager = tracepoint_manager();
     let tracepoint_map = manager.tracepoint_map();
     let trace_cmdline_cache = TRACE_CMDLINE_CACHE.lock();
     // read real trace data
@@ -179,7 +179,7 @@ pub fn tracepoint_init() {
 pub fn init_events(fs: Arc<SimpleFs>) -> DirMaker {
     let mut events_root = DirMapping::new();
 
-    let events_manager = trace_point_manager();
+    let events_manager = tracepoint_manager();
     // Register the global tracing events manager
     for subsystem_name in events_manager.subsystem_names() {
         let subsystem = events_manager.get_subsystem(&subsystem_name).unwrap();

@@ -96,7 +96,6 @@ impl KernelAuxiliaryOps for EbpfKernelAuxiliary {
         let ret = func(&mut *unified_map);
         drop(unified_map);
         // avoid double free
-        // log::error!("get_unified_map_from_ptr: ret: {:?}", ret);
         let _ = Arc::into_raw(map);
         ret
     }
@@ -105,7 +104,6 @@ impl KernelAuxiliaryOps for EbpfKernelAuxiliary {
     where
         F: FnOnce(&mut UnifiedMap) -> kbpf_basic::Result<R>,
     {
-        // log::error!("get_unified_map_from_fd: map_fd: {}", map_fd);
         let file = get_file_like(map_fd as _).map_err(|_| BpfError::NotFound)?;
         let bpf_map = file.into_any().downcast::<BpfMap>().unwrap();
         let unified_map = &mut bpf_map.unified_map();
@@ -113,7 +111,6 @@ impl KernelAuxiliaryOps for EbpfKernelAuxiliary {
     }
 
     fn get_unified_map_ptr_from_fd(map_fd: u32) -> kbpf_basic::Result<*const u8> {
-        // log::error!("get_unified_map_ptr_from_fd: map_fd: {}", map_fd);
         let file = get_file_like(map_fd as _).map_err(|_| BpfError::NotFound)?;
         let bpf_map = file.into_any().downcast::<BpfMap>().unwrap();
         let map_ptr = Arc::into_raw(bpf_map) as usize;
@@ -149,7 +146,6 @@ impl KernelAuxiliaryOps for EbpfKernelAuxiliary {
 
     fn string_from_user_cstr(ptr: *const u8) -> kbpf_basic::Result<String> {
         let str = vm_load_string(ptr).map_err(|_| BpfError::InvalidArgument)?;
-        // axlog::info!("string_from_user_cstr: string: {:?}", str);
         Ok(str)
     }
 

@@ -69,6 +69,27 @@ impl PerfEventOps for KprobePerfEvent {
     fn as_any_mut(&mut self) -> &mut dyn Any {
         self
     }
+
+    fn set_bpf_prog(&mut self, bpf_prog: Arc<dyn FileLike>) -> AxResult<()> {
+        let bpf_prog = bpf_prog.into_any().downcast::<BpfProg>().unwrap();
+        let prog = bpf_prog.insns();
+        let prog = unsafe { core::slice::from_raw_parts_mut(prog.as_ptr() as *mut u8, prog.len()) };
+        let mut vm = EbpfVmRaw::new(Some(prog)).unwrap();
+        for (key, value) in BPF_HELPER_FUN_SET.iter() {
+            vm.register_helper(*key, *value).unwrap();
+        }
+        vm.register_allowed_memory(0..u64::MAX);
+        static CALLBACK_ID: AtomicU32 = AtomicU32::new(0);
+
+        let id = CALLBACK_ID.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
+
+        // create a callback to execute the ebpf prog
+        let callback = Box::new(KprobePerfCallBack::new(bpf_prog, vm));
+        // update callback for kprobe
+        self.kprobe.register_event_callback(id, callback);
+        self.callback_list.push(id);
+        Ok(())
+    }
 }
 
 pub struct KprobePerfCallBack {
@@ -97,29 +118,6 @@ impl CallBackFunc for KprobePerfCallBack {
         if res.is_err() {
             axlog::error!("kprobe callback error: {:?}", res);
         }
-    }
-}
-
-impl KprobePerfEvent {
-    pub fn set_bpf_prog(&mut self, bpf_prog: Arc<dyn FileLike>) -> AxResult<()> {
-        let bpf_prog = bpf_prog.into_any().downcast::<BpfProg>().unwrap();
-        let prog = bpf_prog.insns();
-        let prog = unsafe { core::slice::from_raw_parts_mut(prog.as_ptr() as *mut u8, prog.len()) };
-        let mut vm = EbpfVmRaw::new(Some(prog)).unwrap();
-        for (key, value) in BPF_HELPER_FUN_SET.iter() {
-            vm.register_helper(*key, *value).unwrap();
-        }
-        vm.register_allowed_memory(0..u64::MAX);
-        static CALLBACK_ID: AtomicU32 = AtomicU32::new(0);
-
-        let id = CALLBACK_ID.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
-
-        // create a callback to execute the ebpf prog
-        let callback = Box::new(KprobePerfCallBack::new(bpf_prog, vm));
-        // update callback for kprobe
-        self.kprobe.register_event_callback(id, callback);
-        self.callback_list.push(id);
-        Ok(())
     }
 }
 

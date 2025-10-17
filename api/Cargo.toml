@@ -79,7 +79,7 @@ tracepoint.workspace = true
 static-keys.workspace = true
 
 # kbpf-basic = { path = "../../ax-project/kbpf-basic/" }
-kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic" }
+kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "ef8ade5" }
 rbpf = { git = "https://github.com/qmonnet/rbpf.git", default-features = false, rev = "f31e471" }
 
 [target.'cfg(not(target_arch = "loongarch64"))'.dependencies]

@@ -1,21 +1,27 @@
 mod bpf;
 mod kprobe;
+mod tracepoint;
 
-use alloc::{boxed::Box, sync::Arc};
+use alloc::{
+    boxed::Box,
+    sync::{Arc, Weak},
+};
 use core::{any::Any, ffi::c_void, fmt::Debug};
 
 use axerrno::{AxError, AxResult};
 use axio::Pollable;
+use hashbrown::HashMap;
 use kbpf_basic::{
     linux_bpf::{perf_event_attr, perf_type_id},
     perf::{PerfEventIoc, PerfProbeArgs},
 };
 use kspin::{SpinNoPreempt, SpinNoPreemptGuard};
+use lazyinit::LazyInit;
 
 use crate::{
     bpf::tansform::EbpfKernelAuxiliary,
     file::{FileLike, Kstat, add_file_like, get_file_like},
-    perf::{bpf::BpfPerfEventWrapper, kprobe::KprobePerfEvent},
+    perf::bpf::BpfPerfEventWrapper,
 };
 
 pub trait PerfEventOps: Pollable + Send + Sync + Debug {
@@ -26,7 +32,9 @@ pub trait PerfEventOps: Pollable + Send + Sync + Debug {
     fn custom_mmap(&self) -> bool {
         false
     }
-
+    fn set_bpf_prog(&mut self, _bpf_prog: Arc<dyn FileLike>) -> AxResult<()> {
+        Err(AxError::OperationNotSupported)
+    }
     fn mmap(
         &mut self,
         _aspace: &mut axmm::AddrSpace,
@@ -104,11 +112,7 @@ impl FileLike for PerfEvent {
                 let file = get_file_like(bpf_prog_fd as _)?;
 
                 let mut event = self.event.lock();
-                let kprobe_event = event
-                    .as_any_mut()
-                    .downcast_mut::<KprobePerfEvent>()
-                    .ok_or(AxError::InvalidInput)?;
-                kprobe_event.set_bpf_prog(file)?;
+                event.set_bpf_prog(file)?;
             }
         }
         Ok(0)
@@ -143,7 +147,7 @@ pub fn perf_event_open(
     let args =
         PerfProbeArgs::try_from_perf_attr::<EbpfKernelAuxiliary>(attr, pid, cpu, group_fd, flags)
             .unwrap();
-    axlog::warn!("perf_event_process: {:#?}", args);
+    axlog::info!("perf_event_process: {:#?}", args);
     let event: Box<dyn PerfEventOps> = match args.type_ {
         // Kprobe
         // See /sys/bus/event_source/devices/kprobe/type
@@ -155,21 +159,49 @@ pub fn perf_event_open(
             let bpf_event = bpf::perf_event_open_bpf(args);
             Box::new(bpf_event)
         }
+        perf_type_id::PERF_TYPE_TRACEPOINT => {
+            let tracepoint_event = tracepoint::perf_event_open_tracepoint(args)?;
+            Box::new(tracepoint_event)
+        }
         _ => {
             unimplemented!("perf_event_process: unknown type: {:?}", args);
         }
     };
-    let event = Arc::new(PerfEvent::new(event));
-    let fd = add_file_like(event, false).map(|fd| fd as _);
-    fd
+    let event = Arc::new(PerfEvent::new(event)) as Arc<dyn FileLike>;
+    let fd = add_file_like(event.clone(), false).map(|fd| fd as _)?;
+
+    PERF_FILE
+        .get()
+        .unwrap()
+        .lock()
+        .insert(fd, Arc::downgrade(&event));
+
+    axlog::info!("perf_event_open: fd: {:?}", fd);
+    Ok(fd as _)
+}
+
+static PERF_FILE: LazyInit<SpinNoPreempt<HashMap<usize, Weak<dyn FileLike>>>> = LazyInit::new();
+
+pub fn perf_event_init() {
+    PERF_FILE.init_once(SpinNoPreempt::new(HashMap::new()));
 }
 
 pub fn perf_event_output(_ctx: *mut c_void, fd: usize, _flags: u32, data: &[u8]) -> AxResult<()> {
-    // axlog::error!("perf_event_output: fd: {}, data: {:?}", fd, data.len());
-    let file = get_file_like(fd as _)?;
+    let mut perf_file_map = PERF_FILE.get().unwrap().lock();
+    let perf_file_weak = perf_file_map.get(&fd).ok_or(AxError::NotFound)?;
+
+    let Some(file) = perf_file_weak.upgrade() else {
+        // The file has been dropped, remove the weak reference from the map
+        perf_file_map.remove(&fd);
+        return Err(AxError::NotFound);
+    };
+
     let bpf_event_file = file.into_any().downcast::<PerfEvent>().unwrap();
     let mut event = bpf_event_file.event();
-    let event = event.as_any_mut().downcast_mut::<BpfPerfEventWrapper>().unwrap();
+    let event = event
+        .as_any_mut()
+        .downcast_mut::<BpfPerfEventWrapper>()
+        .unwrap();
     event.write_event(data).unwrap();
     Ok(())
 }
