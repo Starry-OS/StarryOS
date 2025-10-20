@@ -1,4 +1,5 @@
 use alloc::vec;
+use axconfig::ARCH;
 use core::ffi::c_char;
 
 use axerrno::{AxError, AxResult};
@@ -64,7 +65,7 @@ const UTSNAME: new_utsname = new_utsname {
     nodename: pad_str("starry"),
     release: pad_str("10.0.0"),
     version: pad_str("10.0.0"),
-    machine: pad_str("riscv64"),
+    machine: pad_str(ARCH),
     domainname: pad_str("https://github.com/Starry-OS/StarryOS"),
 };
 
