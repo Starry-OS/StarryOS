@@ -12,12 +12,14 @@ extern crate alloc;
 #[cfg(not(target_arch = "loongarch64"))]
 use axerrno::{LinuxError, LinuxResult};
 
+pub mod bpf;
 mod exception;
 pub mod file;
 pub mod io;
 pub mod kprobe;
 mod lock_api;
 pub mod mm;
+pub mod perf;
 pub mod signal;
 pub mod socket;
 pub mod syscall;
@@ -26,8 +28,15 @@ pub mod terminal;
 pub mod time;
 pub mod tracepoint;
 pub mod vfs;
-pub mod bpf;
-pub mod perf;
+
+pub struct KernelPanicHelper;
+impl axruntime::PanicHelper for KernelPanicHelper {
+    fn lookup_symbol<'a>(&self, addr: usize, buf: &'a mut [u8; 1024]) -> Option<(&'a str, usize)> {
+        let ksym = vfs::KALLSYMS.get()?;
+        ksym.lookup_address(addr as _, buf)
+            .map(|(name, _size, offset, _ty)| (name, addr - offset as usize))
+    }
+}
 
 /// Initialize.
 pub fn init() {
@@ -43,6 +52,8 @@ pub fn init() {
     }
     info!("Initialize VFS...");
     vfs::mount_all().expect("Failed to mount vfs");
+
+    axruntime::set_panic_helper(&KernelPanicHelper);
 
     info!("Initialize /proc/interrupts...");
     axtask::register_timer_callback(|_| {

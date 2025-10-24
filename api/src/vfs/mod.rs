@@ -6,7 +6,7 @@ mod proc;
 mod sys;
 mod tmp;
 
-use alloc::string::String;
+use alloc::vec::Vec;
 
 use axerrno::LinuxResult;
 use axfs_ng::{FS_CONTEXT, FsContext, OpenOptions};
@@ -14,6 +14,7 @@ use axfs_ng_vfs::{
     Filesystem, NodePermission,
     path::{Path, PathBuf},
 };
+pub use proc::KALLSYMS;
 pub use starry_core::vfs::{Device, DeviceOps, DirMapping, SimpleFs};
 pub use tmp::MemoryFs;
 
@@ -28,13 +29,13 @@ fn mount_at(fs: &FsContext, path: &str, mount_fs: Filesystem) -> LinuxResult<()>
     Ok(())
 }
 
-fn read_kallsyms() -> LinuxResult<String> {
+fn read_kallsyms() -> LinuxResult<Vec<u8>> {
     let file = OpenOptions::new()
         .read(true)
         .open(&FS_CONTEXT.lock(), "/root/kallsyms")?
         .into_file()?;
 
-    let mut kallsyms = String::new();
+    let mut kallsyms = Vec::new();
     let mut buf = [0; 4096];
     let mut offset = 0;
     loop {
@@ -42,25 +43,32 @@ fn read_kallsyms() -> LinuxResult<String> {
         if n == 0 {
             break;
         }
-        kallsyms.push_str(core::str::from_utf8(&buf[..n]).unwrap());
+        kallsyms.extend_from_slice(&buf[..n]);
         offset += n as u64;
     }
     Ok(kallsyms)
 }
 
+unsafe extern "C" {
+    fn _stext();
+    fn _etext();
+}
+
 /// Mount all filesystems
 pub fn mount_all() -> LinuxResult<()> {
     let kallsyms = read_kallsyms()?;
-    ksym::init_kernel_symbols(&kallsyms);
+    ax_println!("Read kallsyms, size: {}", kallsyms.len());
+    let kallsyms = kallsyms.leak();
+    let ksym = ksym::KallsymsMapped::from_blob(kallsyms, _stext as u64, _etext as u64).unwrap();
     ax_println!(
         "find addr of _stext: {:#x}",
-        ksym::addr_from_symbol("_start").unwrap_or(0)
+        ksym.lookup_name("_start").unwrap_or(0)
     );
     let fs = FS_CONTEXT.lock();
     mount_at(&fs, "/dev", dev::new_devfs())?;
     mount_at(&fs, "/dev/shm", tmp::MemoryFs::new())?;
     mount_at(&fs, "/tmp", tmp::MemoryFs::new())?;
-    mount_at(&fs, "/proc", proc::new_procfs(kallsyms))?;
+    mount_at(&fs, "/proc", proc::new_procfs(ksym))?;
 
     mount_at(&fs, "/sys", tmp::MemoryFs::new())?;
     let mut path = PathBuf::new();

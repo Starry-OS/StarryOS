@@ -123,7 +123,10 @@ impl CallBackFunc for KprobePerfCallBack {
 
 fn perf_probe_arg_to_kprobe_builder(args: &PerfProbeArgs) -> KprobeBuilder<KprobeAuxiliary> {
     let symbol = &args.name;
-    let addr = ksym::addr_from_symbol(symbol).unwrap() as usize;
+    let addr = crate::vfs::KALLSYMS
+        .get()
+        .and_then(|ksym| ksym.lookup_name(symbol))
+        .unwrap() as usize;
     // let addr = syscall_entry as usize;
     axlog::warn!("perf_probe: symbol: {}, addr: {:#x}", symbol, addr);
     let builder = KprobeBuilder::new(Some(symbol.clone()), addr, 0, false);

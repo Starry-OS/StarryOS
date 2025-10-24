@@ -832,6 +832,7 @@ dependencies = [
  "crate_interface",
  "indoc",
  "ksym",
+ "lazyinit",
  "percpu",
  "unwinding",
 ]
@@ -1720,11 +1721,8 @@ dependencies = [
 
 [[package]]
 name = "ksym"
-version = "0.1.0"
-source = "git+https://github.com/Starry-OS/ksym?rev=1e37536#1e375363290449aaf2a9b681773eea958f38880d"
-dependencies = [
- "lazyinit",
-]
+version = "0.2.0"
+source = "git+https://github.com/Starry-OS/ksym?rev=8fa0df1#8fa0df12076718f84d16117f410375a2e0d87c5a"
 
 [[package]]
 name = "lazy_static"
@@ -2535,7 +2533,6 @@ dependencies = [
  "axlog",
  "axmm",
  "axnet",
- "axpoll",
  "axsync",
  "axtask",
  "bitflags 2.10.0",
