@@ -145,7 +145,7 @@ impl KernelAuxiliaryOps for EbpfKernelAuxiliary {
     }
 
     fn string_from_user_cstr(ptr: *const u8) -> kbpf_basic::Result<String> {
-        let str = vm_load_string(ptr).map_err(|_| BpfError::InvalidArgument)?;
+        let str = vm_load_string(ptr as _).map_err(|_| BpfError::InvalidArgument)?;
         Ok(str)
     }
 
