@@ -18,3 +18,12 @@
 	path = local_crates/axplat_crates
 	url = https://github.com/kylin-x-kernel/axplat_crates.git
 	branch = main
+[submodule "local_crates/axplat-aarch64-crosvm-virt"]
+	path = local_crates/axplat-aarch64-crosvm-virt
+	url = https://github.com/kylin-x-kernel/axplat-aarch64-crosvm-virt.git
+[submodule "local_crates/fdtree-rs"]
+	path = local_crates/fdtree-rs
+	url = https://github.com/kylin-x-kernel/fdtree-rs.git
+[submodule "local_crates/arm-gic"]
+	path = local_crates/arm-gic
+	url = https://github.com/kylin-x-kernel/arm-gic.git
