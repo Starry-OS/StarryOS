@@ -158,12 +158,12 @@ axcpu = { git = "https://github.com/kylin-x-kernel/axcpu.git",branch="main" }
 axerrno = { git = "https://github.com/Starry-OS/axerrno.git", rev = "58be232" }
 axfs-ng-vfs = { git = "https://github.com/Starry-OS/axfs-ng-vfs.git", rev = "6cf8893" }
 axio = { git = "https://github.com/Starry-OS/axio.git", rev = "ebb0c6b" }
-axplat = { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch = "main"}
-axplat-x86-pc = { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch = "main" }
-axplat-riscv64-qemu-virt = { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch="main"}
-axplat-loongarch64-qemu-virt = { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch="main"}
-axplat-aarch64-qemu-virt = { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch = "main"}
-axplat-aarch64-peripherals =  { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch = "main"}
+axplat = { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch = "crosvm"}
+axplat-x86-pc = { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch = "crosvm" }
+axplat-riscv64-qemu-virt = { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch="crosvm"}
+axplat-loongarch64-qemu-virt = { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch="crosvm"}
+axplat-aarch64-qemu-virt = { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch = "crosvm"}
+axplat-aarch64-peripherals =  { git = "https://github.com/kylin-x-kernel/axplat_crates.git", branch = "crosvm"}
 axpoll = { git = "https://github.com/Starry-OS/axpoll.git", rev = "258cb5f" }
 page_table_entry = { git = "https://github.com/kylin-x-kernel/page_table_multiarch.git", branch="main" }
 page_table_multiarch = { git ="https://github.com/kylin-x-kernel/page_table_multiarch.git", branch="main"}
