@@ -1,6 +1,7 @@
 mod bpf;
 mod kprobe;
 mod tracepoint;
+pub mod raw_tracepoint;
 
 use alloc::{
     boxed::Box,

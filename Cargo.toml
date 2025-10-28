@@ -83,8 +83,6 @@ starry-core = { path = "./core" }
 starry-api = { path = "./api" }
 lock_api = { version = "0.4", default-features = false }
 kernel_guard = "0.1"
-tracepoint = { git = "https://github.com/Starry-OS/tracepoint.git" }
-static-keys = { git = "https://github.com/Godones/static-keys.git" }
 
 [package]
 name = "starry"

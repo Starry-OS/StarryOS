@@ -9,6 +9,7 @@ use kbpf_basic::{
     helper::RawBPFHelperFn,
     linux_bpf::{bpf_attr, bpf_cmd},
     map::{BpfMapGetNextKeyArg, BpfMapUpdateArg},
+    raw_tracepoint::BpfRawTracePointArg,
 };
 use lazyinit::LazyInit;
 
@@ -54,6 +55,12 @@ pub fn bpf(cmd: bpf_cmd, attr: &bpf_attr) -> AxResult<isize> {
         bpf_cmd::BPF_MAP_FREEZE => {
             kbpf_basic::map::bpf_map_freeze::<EbpfKernelAuxiliary>(update_arg.map_fd)
                 .map_or_else(bpferror_to_axresult, |_| Ok(0))
+        }
+        // Attaches the program to the given tracepoint.
+        bpf_cmd::BPF_RAW_TRACEPOINT_OPEN => {
+            let arg = BpfRawTracePointArg::try_from_bpf_attr::<EbpfKernelAuxiliary>(attr)
+                .map_err(|_| AxError::InvalidInput)?;
+            crate::perf::raw_tracepoint::bpf_raw_tracepoint_open(arg)
         }
         // Program related commands
         bpf_cmd::BPF_PROG_LOAD => prog::bpf_prog_load(attr),

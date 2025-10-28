@@ -6,14 +6,10 @@ use axio::Pollable;
 use kbpf_basic::perf::{PerfProbeArgs, PerfProbeConfig};
 use kspin::SpinNoPreempt;
 use rbpf::EbpfVmRaw;
-use tracepoint::{TracePoint, TracePointCallBackFunc};
+use tracepoint::{RawTracePointCallBackFunc, TracePoint, TracePointCallBackFunc};
 
 use crate::{
-    bpf::{BPF_HELPER_FUN_SET, prog::BpfProg},
-    file::FileLike,
-    lock_api::KSpinNoPreempt,
-    perf::PerfEventOps,
-    tracepoint::KernelTraceAux,
+    file::FileLike, lock_api::KSpinNoPreempt, perf::PerfEventOps, tracepoint::KernelTraceAux,
 };
 
 #[derive(Debug)]
@@ -37,12 +33,12 @@ impl TracepointPerfEvent {
 }
 
 pub struct TracePointPerfCallBack {
-    _bpf_prog_file: Arc<BpfProg>,
+    _bpf_prog_file: Arc<dyn FileLike>,
     vm: EbpfVmRaw<'static>,
 }
 
 impl TracePointPerfCallBack {
-    pub fn new(bpf_prog_file: Arc<BpfProg>, vm: EbpfVmRaw<'static>) -> Self {
+    pub fn new(bpf_prog_file: Arc<dyn FileLike>, vm: EbpfVmRaw<'static>) -> Self {
         TracePointPerfCallBack {
             _bpf_prog_file: bpf_prog_file,
             vm,
@@ -66,6 +62,17 @@ impl TracePointCallBackFunc for TracePointPerfCallBack {
     }
 }
 
+impl RawTracePointCallBackFunc for TracePointPerfCallBack {
+    fn call(&self, args: &[u64]) {
+        let args =
+            unsafe { core::slice::from_raw_parts_mut(args.as_ptr() as *mut u8, args.len() * 8) };
+        let res = self.vm.execute_program(args);
+        if res.is_err() {
+            axlog::error!("raw tracepoint callback error: {:?}", res);
+        }
+    }
+}
+
 impl Pollable for TracepointPerfEvent {
     fn poll(&self) -> axio::IoEvents {
         panic!("TracepointPerfEvent::poll() should not be called");
@@ -80,26 +87,12 @@ impl PerfEventOps for TracepointPerfEvent {
     fn set_bpf_prog(&mut self, bpf_prog: Arc<dyn FileLike>) -> AxResult<()> {
         static CALLBACK_ID: AtomicUsize = AtomicUsize::new(0);
 
-        let bpf_prog = bpf_prog.into_any().downcast::<BpfProg>().unwrap();
-        let prog_slice = bpf_prog.insns();
-
-        let prog_slice =
-            unsafe { core::slice::from_raw_parts(prog_slice.as_ptr(), prog_slice.len()) };
-        let mut vm = EbpfVmRaw::new(Some(prog_slice)).map_err(|e| {
-            axlog::error!("create ebpf vm failed: {:?}", e);
-            AxError::InvalidInput
-        })?;
-        for (key, value) in BPF_HELPER_FUN_SET.iter() {
-            vm.register_helper(*key, *value).unwrap();
-        }
-
-        // create a callback to execute the ebpf prog
-        vm.register_allowed_memory(0..u64::MAX);
+        let vm = super::bpf::create_basic_ebpf_vm(bpf_prog.clone())?;
         let callback = Box::new(TracePointPerfCallBack::new(bpf_prog, vm));
 
         let id = CALLBACK_ID.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
 
-        self.tp.register_raw_callback(id, callback);
+        self.tp.register_event_callback(id, callback);
 
         axlog::warn!(
             "Registered BPF program for tracepoint: {}:{} with ID: {}",
@@ -118,12 +111,12 @@ impl PerfEventOps for TracepointPerfEvent {
             self.tp.system(),
             self.tp.name()
         );
-        self.tp.enable();
+        self.tp.enable_event();
         Ok(())
     }
 
     fn disable(&mut self) -> AxResult<()> {
-        self.tp.disable();
+        self.tp.disable_event();
         Ok(())
     }
 
@@ -141,7 +134,7 @@ impl Drop for TracepointPerfEvent {
         // Unregister all callbacks associated with this tracepoint event
         let mut ebpf_list = self.ebpf_list.lock();
         for id in ebpf_list.iter() {
-            self.tp.unregister_raw_callback(*id);
+            self.tp.unregister_event_callback(*id);
         }
         ebpf_list.clear();
     }

@@ -8,7 +8,6 @@ use kprobe::{CallBackFunc, KprobeBuilder, PtRegs};
 use rbpf::EbpfVmRaw;
 
 use crate::{
-    bpf::{BPF_HELPER_FUN_SET, prog::BpfProg},
     file::FileLike,
     kprobe::{KernelKprobe, KprobeAuxiliary, register_kprobe, unregister_kprobe},
     perf::PerfEventOps,
@@ -71,14 +70,8 @@ impl PerfEventOps for KprobePerfEvent {
     }
 
     fn set_bpf_prog(&mut self, bpf_prog: Arc<dyn FileLike>) -> AxResult<()> {
-        let bpf_prog = bpf_prog.into_any().downcast::<BpfProg>().unwrap();
-        let prog = bpf_prog.insns();
-        let prog = unsafe { core::slice::from_raw_parts_mut(prog.as_ptr() as *mut u8, prog.len()) };
-        let mut vm = EbpfVmRaw::new(Some(prog)).unwrap();
-        for (key, value) in BPF_HELPER_FUN_SET.iter() {
-            vm.register_helper(*key, *value).unwrap();
-        }
-        vm.register_allowed_memory(0..u64::MAX);
+        let vm = super::bpf::create_basic_ebpf_vm(bpf_prog.clone())?;
+
         static CALLBACK_ID: AtomicU32 = AtomicU32::new(0);
 
         let id = CALLBACK_ID.fetch_add(1, core::sync::atomic::Ordering::Relaxed);
@@ -93,7 +86,7 @@ impl PerfEventOps for KprobePerfEvent {
 }
 
 pub struct KprobePerfCallBack {
-    _bpf_prog_file: Arc<BpfProg>,
+    _bpf_prog_file: Arc<dyn FileLike>,
     vm: EbpfVmRaw<'static>,
 }
 
@@ -101,7 +94,7 @@ unsafe impl Send for KprobePerfCallBack {}
 unsafe impl Sync for KprobePerfCallBack {}
 
 impl KprobePerfCallBack {
-    fn new(bpf_prog_file: Arc<BpfProg>, vm: EbpfVmRaw<'static>) -> Self {
+    fn new(bpf_prog_file: Arc<dyn FileLike>, vm: EbpfVmRaw<'static>) -> Self {
         Self {
             _bpf_prog_file: bpf_prog_file,
             vm,

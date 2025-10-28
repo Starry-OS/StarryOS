@@ -1,6 +1,7 @@
+use alloc::sync::Arc;
 use core::{any::Any, convert::Into, fmt::Debug};
 
-use axerrno::AxResult;
+use axerrno::{AxError, AxResult};
 use axhal::paging::PageSize;
 use axio::{IoEvents, PollSet, Pollable};
 use axmm::backend::{alloc_frames, dealloc_frames};
@@ -9,8 +10,13 @@ use kbpf_basic::{
     perf::{PerfProbeArgs, bpf::BpfPerfEvent},
 };
 use memory_addr::PhysAddr;
+use rbpf::EbpfVmRaw;
 
 use super::PerfEventOps;
+use crate::{
+    bpf::{BPF_HELPER_FUN_SET, prog::BpfProg},
+    file::FileLike,
+};
 
 pub struct BpfPerfEventWrapper {
     inner: BpfPerfEvent,
@@ -136,4 +142,24 @@ pub fn perf_event_open_bpf(args: PerfProbeArgs) -> BpfPerfEventWrapper {
         Some(perf_event_sample_format::PERF_SAMPLE_RAW)
     );
     BpfPerfEventWrapper::new(BpfPerfEvent::new(args))
+}
+
+/// Create a basic ebpf vm from a bpf program file
+pub fn create_basic_ebpf_vm(bpf_prog: Arc<dyn FileLike>) -> AxResult<EbpfVmRaw<'static>> {
+    let bpf_prog = bpf_prog.into_any().downcast::<BpfProg>().unwrap();
+    let prog_slice = bpf_prog.insns();
+
+    let prog_slice = unsafe { core::slice::from_raw_parts(prog_slice.as_ptr(), prog_slice.len()) };
+    let mut vm = EbpfVmRaw::new(Some(prog_slice)).map_err(|e| {
+        axlog::error!("create ebpf vm failed: {:?}", e);
+        AxError::InvalidInput
+    })?;
+
+    for (key, value) in BPF_HELPER_FUN_SET.iter() {
+        vm.register_helper(*key, *value).unwrap();
+    }
+
+    // create a callback to execute the ebpf prog
+    vm.register_allowed_memory(0..u64::MAX);
+    Ok(vm)
 }

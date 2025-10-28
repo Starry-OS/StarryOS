@@ -38,7 +38,8 @@ BUILD_CRATES = \
 	async_test
 
 BUILD_EBPF_CRATES = \
-	mytrace
+	mytrace \
+	rawtp
 
 ifeq ($(ARCH), riscv64)
 	BUILD_EBPF_CRATES += syscall_ebpf

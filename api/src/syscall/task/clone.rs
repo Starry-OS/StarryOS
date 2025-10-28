@@ -85,6 +85,31 @@ bitflags! {
     }
 }
 
+tracepoint::define_event_trace!(
+    sys_clone,
+    TP_lock(crate::lock_api::KSpinNoPreempt<()>),
+    TP_kops(crate::tracepoint::KernelTraceAux),
+    TP_system(syscalls),
+    TP_PROTO(flags:u32, stack:usize, parent_tid:usize),
+    TP_STRUCT__entry {
+        stack: usize,
+        parent_tid: usize,
+        flags: u32,
+    },
+    TP_fast_assign {
+        flags: flags,
+        stack: stack,
+        parent_tid: parent_tid,
+    },
+    TP_ident(__entry),
+    TP_printk({
+        let flags = __entry.flags;
+        let stack = __entry.stack;
+        let parent_tid = __entry.parent_tid;
+        alloc::format!("clone with flags: {flags}, stack: {stack:#x}, parent_tid: {parent_tid:#x}")
+    })
+);
+
 pub fn sys_clone(
     uctx: &UserContext,
     flags: u32,
@@ -101,6 +126,8 @@ pub fn sys_clone(
         debug!("sys_clone: CLONE_VFORK slow path");
         flags.remove(CloneFlags::VM);
     }
+    
+    trace_sys_clone(flags.bits(), stack, parent_tid);
 
     debug!(
         "sys_clone <= flags: {flags:?}, exit_signal: {exit_signal}, stack: {stack:#x}, ptid: \

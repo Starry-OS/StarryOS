@@ -91,9 +91,9 @@ tracepoint::define_event_trace!(
     TP_lock(crate::lock_api::KSpinNoPreempt<()>),
     TP_kops(crate::tracepoint::KernelTraceAux),
     TP_system(syscalls),
-    TP_PROTO(path:&str, mode: NodePermission),
+    TP_PROTO(path:&str, mode: u16),
     TP_STRUCT__entry {
-        mode: NodePermission,
+        mode: u16,
         path: [u8;64],
     },
     TP_fast_assign {
@@ -111,6 +111,7 @@ tracepoint::define_event_trace!(
     TP_printk({
         let path = core::str::from_utf8(&__entry.path).unwrap_or("invalid utf8");
         let mode = __entry.mode;
+        let mode = NodePermission::from_bits_truncate(mode);
         alloc::format!("mkdir at {path} with mode {mode:?}")
     })
 );
@@ -123,7 +124,7 @@ pub fn sys_mkdirat(dirfd: i32, path: *const c_char, mode: u32) -> AxResult<isize
     let mode = NodePermission::from_bits_truncate(mode as u16);
 
     // call tp:trace_sys_mkdirat
-    trace_sys_mkdirat(&path, mode);
+    trace_sys_mkdirat(&path, mode.bits());
 
     with_fs(dirfd, |fs| {
         fs.create_dir(path, mode)?;

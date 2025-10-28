@@ -34,8 +34,18 @@ dependencies = [
  "log",
  "object",
  "once_cell",
- "thiserror",
+ "thiserror 1.0.69",
  "tokio",
+]
+
+[[package]]
+name = "aya-build"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "765c92c523541cbf5e3a94c7a6ff4068a4d9537f98a2eeb136461c0537ded8c1"
+dependencies = [
+ "anyhow",
+ "cargo_metadata 0.19.2",
 ]
 
 [[package]]
@@ -87,7 +97,7 @@ dependencies = [
  "aya-log-common",
  "bytes",
  "log",
- "thiserror",
+ "thiserror 1.0.69",
  "tokio",
 ]
 
@@ -144,7 +154,7 @@ dependencies = [
  "hashbrown 0.15.5",
  "log",
  "object",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -178,17 +188,40 @@ dependencies = [
 ]
 
 [[package]]
-name = "cargo_metadata"
-version = "0.18.1"
+name = "cargo-platform"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d886547e41f740c616ae73108f6eb70afe6d940c7bc697cb30f13daec073037"
+checksum = "122ec45a44b270afd1402f351b782c676b173e3c3fb28d86ff7ebfb4d86a4ee4"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "cargo_metadata"
+version = "0.19.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd5eb614ed4c27c5d706420e4320fbe3216ab31fa1c33cd8246ac36dae4479ba"
 dependencies = [
  "camino",
- "cargo-platform",
+ "cargo-platform 0.1.9",
  "semver",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 2.0.17",
+]
+
+[[package]]
+name = "cargo_metadata"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "981a6f317983eec002839b90fae7411a85621410ae591a9cab2ecf5cb5744873"
+dependencies = [
+ "camino",
+ "cargo-platform 0.3.1",
+ "semver",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -426,6 +459,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "rawtp"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aya",
+ "aya-build",
+ "aya-log",
+ "cargo_metadata 0.23.0",
+ "env_logger",
+ "libc",
+ "log",
+ "rawtp-common",
+ "rawtp-ebpf",
+ "tokio",
+]
+
+[[package]]
+name = "rawtp-common"
+version = "0.1.0"
+dependencies = [
+ "aya",
+]
+
+[[package]]
+name = "rawtp-ebpf"
+version = "0.1.0"
+dependencies = [
+ "aya-ebpf",
+ "aya-log-ebpf",
+ "rawtp-common",
+ "which",
+]
+
+[[package]]
 name = "rustix"
 version = "0.38.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -534,45 +601,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "syscall_ebpf"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "aya",
- "aya-log",
- "cargo_metadata",
- "env_logger",
- "libc",
- "log",
- "syscall_ebpf-common",
- "syscall_ebpf-ebpf",
- "tokio",
-]
-
-[[package]]
-name = "syscall_ebpf-common"
-version = "0.1.0"
-dependencies = [
- "aya",
-]
-
-[[package]]
-name = "syscall_ebpf-ebpf"
-version = "0.1.0"
-dependencies = [
- "aya-ebpf",
- "aya-log-ebpf",
- "syscall_ebpf-common",
- "which",
-]
-
-[[package]]
 name = "thiserror"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
 dependencies = [
- "thiserror-impl",
+ "thiserror-impl 1.0.69",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
+dependencies = [
+ "thiserror-impl 2.0.17",
 ]
 
 [[package]]
@@ -580,6 +623,17 @@ name = "thiserror-impl"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
 dependencies = [
  "proc-macro2",
  "quote",
