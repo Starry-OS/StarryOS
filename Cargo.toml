@@ -109,13 +109,22 @@ qemu = [
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc-gpt"]
 crosvm = [
+    "axfeat/driver-virtio-blk",
+
+    "axfeat/driver-virtio-socket",
     "axfeat/vsock",
     "starry-api/vsock",
-    "axfeat/driver-virtio-blk",
-    "axfeat/driver-virtio-socket",
-	"axfeat/crosvm",
-	"dep:axplat-aarch64-crosvm-virt",
-	"pci",
+
+    "axfeat/fs-times",
+    "starry-api/dev-log",
+
+    "axfeat/crosvm",
+    "dep:axplat-aarch64-crosvm-virt",
+    "pci",
+
+    # auxilary features
+    "axfeat/fs-times",
+    "starry-api/dev-log",
 ]
 
 # Stubs
