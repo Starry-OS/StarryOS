@@ -42,7 +42,7 @@ img: build
 	@make -C user/musl all
 	@sudo umount ./disk
 	@rmdir ./disk
-	@-rm kallsyms
+	@rm kallsyms
 
 defconfig justrun clean:
 	@make -C arceos $@

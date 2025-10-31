@@ -4,7 +4,9 @@ use num_enum::TryFromPrimitive;
 use starry_core::task::AsThread;
 
 pub fn sys_getpid() -> AxResult<isize> {
-    Ok(current().as_thread().proc_data.proc.pid() as _)
+    let res = Ok(current().as_thread().proc_data.proc.pid() as _);
+    axlog::debug!("sys_getpid => {:?}", res);
+    res
 }
 
 pub fn sys_getppid() -> AxResult<isize> {

@@ -22,8 +22,8 @@ pub fn init_sysfs(fs: &FsContext) -> LinuxResult<()> {
     // /sys/devices/system/cpu/
     // /sys/bus/event_source/devices/kprbe
     let cpu_path = create_dir(fs, "/sys/devices/system/cpu")?;
-    let kprbe_path = create_dir(fs, "/sys/bus/event_source/devices/kprobe")?;
-
+    let kprobe_path = create_dir(fs, "/sys/bus/event_source/devices/kprobe")?;
+    let kprobe_fmt = create_dir(fs, "/sys/bus/event_source/devices/kprobe/format")?;
     let online_cpu = format!("0-{}\n", CPU_NUM - 1);
     let online = OpenOptions::new()
         .create(true)
@@ -39,11 +39,18 @@ pub fn init_sysfs(fs: &FsContext) -> LinuxResult<()> {
         .into_file()?;
     possible.write_at(&mut online_cpu.as_bytes(), 0)?;
 
-    let kprbe_type = OpenOptions::new()
+    let kprobe_type = OpenOptions::new()
         .create(true)
         .write(true)
-        .open(fs, kprbe_path.join("type"))?
+        .open(fs, kprobe_path.join("type"))?
         .into_file()?;
-    kprbe_type.write_at(&mut b"6\n".as_ref(), 0)?;
+    kprobe_type.write_at(&mut b"6\n".as_ref(), 0)?;
+
+    let retprobe = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(fs, kprobe_fmt.join("retprobe"))?
+        .into_file()?;
+    retprobe.write_at(&mut b"config:0\n".as_ref(), 0)?;
     Ok(())
 }

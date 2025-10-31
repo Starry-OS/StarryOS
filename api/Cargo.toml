@@ -66,22 +66,21 @@ zerocopy = { version = "0.8.26", features = ["derive"] }
 
 starry-core.workspace = true
 
-axksym.workspace = true
 lazyinit.workspace = true
-
-ksym.workspace = true
-kprobe.workspace = true
 lock_api.workspace = true
 axcpu.workspace = true
 kernel_guard.workspace = true
 unwinding.workspace = true
+ksym.workspace = true
 
 static-keys = "0.8.2"
 tracepoint = { git = "https://github.com/Starry-OS/tracepoint.git" }
 # tracepoint = { path = "../../ax-project/tracepoint" }
 # kbpf-basic = { path = "../../ax-project/kbpf-basic/" }
+# kprobe = { path = "../../ax-project/kprobe" }
 kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "9e03b29" }
 rbpf = { git = "https://github.com/qmonnet/rbpf.git", default-features = false, rev = "f31e471" }
+kprobe = { git = "https://github.com/Starry-OS/kprobe" }
 
 [target.'cfg(not(target_arch = "loongarch64"))'.dependencies]
 unwinding = { version = "=0.2.8", default-features = false, features = [

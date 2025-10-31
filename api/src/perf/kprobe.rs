@@ -3,43 +3,67 @@ use core::{any::Any, sync::atomic::AtomicU32};
 
 use axerrno::AxResult;
 use axio::Pollable;
-use kbpf_basic::perf::PerfProbeArgs;
-use kprobe::{CallBackFunc, KprobeBuilder, PtRegs};
+use kbpf_basic::perf::{PerfProbeArgs, PerfProbeConfig};
+use kprobe::{CallBackFunc, KprobeBuilder, KretprobeBuilder, PtRegs};
 use rbpf::EbpfVmRaw;
 
 use crate::{
     file::FileLike,
-    kprobe::{KernelKprobe, KprobeAuxiliary, register_kprobe, unregister_kprobe},
+    kprobe::{
+        KernelKprobe, KernelKretprobe, KprobeAuxiliary, register_kprobe, register_kretprobe,
+        unregister_kprobe, unregister_kretprobe,
+    },
+    lock_api::KSpinNoPreempt,
     perf::PerfEventOps,
 };
 
 #[derive(Debug)]
-pub struct KprobePerfEvent {
+pub enum ProbeTy {
+    Kprobe(Arc<KernelKprobe>),
+    Kretprobe(Arc<KernelKretprobe>),
+}
+
+#[derive(Debug)]
+pub struct ProbePerfEvent {
     _args: PerfProbeArgs,
-    kprobe: Arc<KernelKprobe>,
+    probe: ProbeTy,
     callback_list: Vec<u32>,
 }
 
-impl KprobePerfEvent {
-    pub fn new(args: PerfProbeArgs, kprobe: Arc<KernelKprobe>) -> Self {
-        KprobePerfEvent {
+impl ProbePerfEvent {
+    pub fn new(args: PerfProbeArgs, probe: ProbeTy) -> Self {
+        ProbePerfEvent {
             _args: args,
-            kprobe,
+            probe,
             callback_list: Vec::new(),
         }
     }
 }
 
-impl Drop for KprobePerfEvent {
+impl Drop for ProbePerfEvent {
     fn drop(&mut self) {
         for callback_id in &self.callback_list {
-            self.kprobe.unregister_event_callback(*callback_id);
+            match self.probe {
+                ProbeTy::Kprobe(ref kprobe) => {
+                    kprobe.unregister_event_callback(*callback_id);
+                }
+                ProbeTy::Kretprobe(ref kretprobe) => {
+                    kretprobe.unregister_event_callback(*callback_id);
+                }
+            }
         }
-        unregister_kprobe(self.kprobe.clone());
+        match self.probe {
+            ProbeTy::Kprobe(ref kprobe) => {
+                unregister_kprobe(kprobe.clone());
+            }
+            ProbeTy::Kretprobe(ref kretprobe) => {
+                unregister_kretprobe(kretprobe.clone());
+            }
+        }
     }
 }
 
-impl Pollable for KprobePerfEvent {
+impl Pollable for ProbePerfEvent {
     fn poll(&self) -> axio::IoEvents {
         axio::IoEvents::empty()
     }
@@ -50,14 +74,29 @@ impl Pollable for KprobePerfEvent {
     }
 }
 
-impl PerfEventOps for KprobePerfEvent {
+impl PerfEventOps for ProbePerfEvent {
     fn enable(&mut self) -> AxResult<()> {
-        self.kprobe.enable();
+        axlog::warn!("enabling kprobe/rertprobe");
+        match self.probe {
+            ProbeTy::Kprobe(ref kprobe) => {
+                kprobe.enable();
+            }
+            ProbeTy::Kretprobe(ref kretprobe) => {
+                kretprobe.kprobe().enable();
+            }
+        }
         Ok(())
     }
 
     fn disable(&mut self) -> AxResult<()> {
-        self.kprobe.disable();
+        match self.probe {
+            ProbeTy::Kprobe(ref kprobe) => {
+                kprobe.disable();
+            }
+            ProbeTy::Kretprobe(ref kretprobe) => {
+                kretprobe.kprobe().disable();
+            }
+        }
         Ok(())
     }
 
@@ -79,7 +118,14 @@ impl PerfEventOps for KprobePerfEvent {
         // create a callback to execute the ebpf prog
         let callback = Box::new(KprobePerfCallBack::new(bpf_prog, vm));
         // update callback for kprobe
-        self.kprobe.register_event_callback(id, callback);
+        match self.probe {
+            ProbeTy::Kprobe(ref kprobe) => {
+                kprobe.register_event_callback(id, callback);
+            }
+            ProbeTy::Kretprobe(ref kretprobe) => {
+                kretprobe.register_event_callback(id, callback);
+            }
+        }
         self.callback_list.push(id);
         Ok(())
     }
@@ -104,6 +150,7 @@ impl KprobePerfCallBack {
 
 impl CallBackFunc for KprobePerfCallBack {
     fn call(&self, pt_regs: &mut PtRegs) {
+        axlog::trace!("PtRegs in kprobe callback: {:#x?}", pt_regs);
         let probe_context = unsafe {
             core::slice::from_raw_parts_mut(pt_regs as *mut PtRegs as *mut u8, size_of::<PtRegs>())
         };
@@ -126,11 +173,44 @@ fn perf_probe_arg_to_kprobe_builder(args: &PerfProbeArgs) -> KprobeBuilder<Kprob
     builder
 }
 
-pub fn perf_event_open_kprobe(args: PerfProbeArgs) -> KprobePerfEvent {
+fn perf_probe_arg_to_kretprobe_builder(
+    args: &PerfProbeArgs,
+) -> KretprobeBuilder<KSpinNoPreempt<()>> {
+    let symbol = &args.name;
+    let addr = crate::vfs::KALLSYMS
+        .get()
+        .and_then(|ksym| ksym.lookup_name(symbol))
+        .unwrap() as usize;
+    axlog::warn!("perf_probe: symbol: {}, addr: {:#x}", symbol, addr);
+    let builder = KretprobeBuilder::<KSpinNoPreempt<()>>::new(Some(symbol.clone()), addr, 10);
+    builder
+}
+
+pub fn perf_event_open_kprobe(args: PerfProbeArgs) -> ProbePerfEvent {
     let symbol = &args.name;
     axlog::warn!("create kprobe for symbol: {symbol}");
-    let builder = perf_probe_arg_to_kprobe_builder(&args);
-    let kprobe = register_kprobe(builder);
+
+    let probe = match args.config {
+        PerfProbeConfig::Raw(val) => {
+            if val == 0 {
+                // kprobe
+                let builder = perf_probe_arg_to_kprobe_builder(&args);
+                let kprobe = register_kprobe(builder);
+                ProbeTy::Kprobe(kprobe)
+            } else if val == 1 {
+                // kretprobe
+                let builder = perf_probe_arg_to_kretprobe_builder(&args);
+                let kretprobe = register_kretprobe(builder);
+                ProbeTy::Kretprobe(kretprobe)
+            } else {
+                panic!("unsupported config for kprobe");
+            }
+        }
+        _ => {
+            panic!("unsupported config for kprobe");
+        }
+    };
+
     axlog::warn!("create kprobe ok");
-    KprobePerfEvent::new(args, kprobe)
+    ProbePerfEvent::new(args, probe)
 }

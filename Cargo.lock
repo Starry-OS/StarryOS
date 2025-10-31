@@ -359,7 +359,11 @@ dependencies = [
 [[package]]
 name = "axcpu"
 version = "0.2.2"
+<<<<<<< HEAD
 source = "git+https://github.com/Starry-OS/axcpu.git?rev=f1359df#f1359dffda997d035f1dc971c2df2b19c01d4c7b"
+=======
+source = "git+https://github.com/Starry-OS/axcpu.git?rev=398ef5e#398ef5ecb09ec290978e8eefa08887265a43b0ba"
+>>>>>>> 6ea7cee (support kretprobe-based eBPF app.)
 dependencies = [
  "aarch64-cpu",
  "axbacktrace",
@@ -1700,7 +1704,7 @@ dependencies = [
 [[package]]
 name = "kprobe"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kprobe?rev=318cbb2#318cbb242ec8285903a909433fdf8da54554b324"
+source = "git+https://github.com/Starry-OS/kprobe#830b33435dc4fde657b0bb060fca1e69750d1ce4"
 dependencies = [
  "cfg-if",
  "lock_api",

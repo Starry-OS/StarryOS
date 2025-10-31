@@ -13,13 +13,17 @@ use axmm::{
     kernel_aspace,
 };
 use axtask::current_may_uninit;
-use kprobe::{Kprobe, KprobeAuxiliaryOps, KprobeBuilder, KprobeManager, KprobePointList, PtRegs};
+use kprobe::{
+    Kprobe, KprobeAuxiliaryOps, KprobeBuilder, KprobeManager, KprobePointList, Kretprobe,
+    KretprobeBuilder, PtRegs,
+};
 use memory_addr::{PAGE_SIZE_4K, VirtAddr, align_down_4k, align_up_4k};
 use starry_core::task::AsThread;
 
 use crate::lock_api::KSpinNoPreempt;
 
 pub type KernelKprobe = Kprobe<KSpinNoPreempt<()>, KprobeAuxiliary>;
+pub type KernelKretprobe = Kretprobe<KSpinNoPreempt<()>, KprobeAuxiliary>;
 
 #[derive(Debug)]
 pub struct KprobeAuxiliary;
@@ -88,33 +92,36 @@ impl KprobeAuxiliaryOps for KprobeAuxiliary {
     }
 
     fn insert_kretprobe_instance_to_task(instance: kprobe::KretprobeInstance) {
-        static INSTANCE: KSpinNoPreempt<Vec<kprobe::KretprobeInstance>> =
-            KSpinNoPreempt::new(Vec::new());
         let task = current_may_uninit();
         if let Some(task) = task {
-            let mut inner = task.as_thread().proc_data.kretprobe_instances.write();
-            inner.push(instance);
-        } else {
-            // If the current task is None, we can store it in a static variable
-            let mut instances = INSTANCE.lock();
-            instances.push(instance);
+            let thread = task.try_as_thread();
+            if let Some(thread) = thread {
+                let mut kretprobe_instances = thread.proc_data.kretprobe_instances.write();
+                kretprobe_instances.push(instance);
+                return;
+            }
         }
+        // If the current task is None, we can store it in a static variable
+        let mut instances = INSTANCE.lock();
+        instances.push(instance);
     }
 
     fn pop_kretprobe_instance_from_task() -> kprobe::KretprobeInstance {
-        static INSTANCE: KSpinNoPreempt<Vec<kprobe::KretprobeInstance>> =
-            KSpinNoPreempt::new(Vec::new());
         let task = current_may_uninit();
         if let Some(task) = task {
-            let mut inner = task.as_thread().proc_data.kretprobe_instances.write();
-            inner.pop().unwrap()
-        } else {
-            // If the current task is None, we can pop it from the static variable
-            let mut instances = INSTANCE.lock();
-            instances.pop().unwrap()
+            let thread = task.try_as_thread();
+            if let Some(thread) = thread {
+                let mut kretprobe_instances = thread.proc_data.kretprobe_instances.write();
+                return kretprobe_instances.pop().unwrap();
+            }
         }
+        // If the current task is None, we can pop it from the static variable
+        let mut instances = INSTANCE.lock();
+        instances.pop().unwrap()
     }
 }
+
+static INSTANCE: KSpinNoPreempt<Vec<kprobe::KretprobeInstance>> = KSpinNoPreempt::new(Vec::new());
 
 pub static KPROBE_MANAGER: KSpinNoPreempt<KprobeManager<KSpinNoPreempt<()>, KprobeAuxiliary>> =
     KSpinNoPreempt::new(KprobeManager::new());
@@ -133,6 +140,22 @@ pub fn register_kprobe(kprobe_builder: KprobeBuilder<KprobeAuxiliary>) -> Arc<Ke
     let mut manager = KPROBE_MANAGER.lock();
     let mut kprobe_list = KPROBE_POINT_LIST.lock();
     kprobe::register_kprobe(&mut manager, &mut kprobe_list, kprobe_builder)
+}
+
+/// unregister a kretprobe
+pub fn unregister_kretprobe(kretprobe: Arc<KernelKretprobe>) {
+    let mut manager = KPROBE_MANAGER.lock();
+    let mut kprobe_list = KPROBE_POINT_LIST.lock();
+    kprobe::unregister_kretprobe(&mut manager, &mut kprobe_list, kretprobe)
+}
+
+/// Register a kretprobe
+pub fn register_kretprobe(
+    kretprobe_builder: KretprobeBuilder<KSpinNoPreempt<()>>,
+) -> Arc<KernelKretprobe> {
+    let mut manager = KPROBE_MANAGER.lock();
+    let mut kprobe_list = KPROBE_POINT_LIST.lock();
+    kprobe::register_kretprobe(&mut manager, &mut kprobe_list, kretprobe_builder)
 }
 
 pub fn run_all_kprobe(frame: &mut TrapFrame) -> Option<()> {

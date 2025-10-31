@@ -153,8 +153,8 @@ pub fn perf_event_open(
         // Kprobe
         // See /sys/bus/event_source/devices/kprobe/type
         perf_type_id::PERF_TYPE_MAX => {
-            let kprobe_event = kprobe::perf_event_open_kprobe(args);
-            Box::new(kprobe_event)
+            let probe_event = kprobe::perf_event_open_kprobe(args);
+            Box::new(probe_event)
         }
         perf_type_id::PERF_TYPE_SOFTWARE => {
             let bpf_event = bpf::perf_event_open_bpf(args);

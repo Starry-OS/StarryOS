@@ -39,7 +39,8 @@ BUILD_CRATES = \
 
 BUILD_EBPF_CRATES = \
 	mytrace \
-	rawtp
+	rawtp \
+	kret
 
 ifeq ($(ARCH), riscv64)
 	BUILD_EBPF_CRATES += syscall_ebpf

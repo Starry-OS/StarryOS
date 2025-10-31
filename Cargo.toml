@@ -44,8 +44,8 @@ axruntime = { path = "arceos/modules/axruntime" }
 axsync = { path = "arceos/modules/axsync" }
 axtask = { path = "arceos/modules/axtask", features = ["task-ext"] }
 ksym = { git = "https://github.com/Starry-OS/ksym", rev = "8fa0df1" }
-kprobe = { git = "https://github.com/Starry-OS/kprobe", rev = "318cbb2" }
-axcpu = { git = "https://github.com/Starry-OS/axcpu", rev = "94aa1bd", features = [
+
+axcpu = { git = "https://github.com/Starry-OS/axcpu", rev = "398ef5e", features = [
     "kprobe",
 ] }
 lazyinit = "0.2"
