@@ -73,6 +73,7 @@ starry-vm = "0.2"
 
 starry-core = { path = "./core" }
 starry-api = { path = "./api" }
+axmacros = { git = "https://github.com/Starry-OS/axmacros" }
 
 [package]
 name = "starry"
@@ -131,6 +132,15 @@ starry-signal.workspace = true
 
 starry-core.workspace = true
 starry-api.workspace = true
+axmacros.workspace = true
+
+[target.'cfg(not(target_arch = "loongarch64"))'.dependencies]
+unwinding = { version = "=0.2.8", default-features = false, features = [
+    "unwinder",
+    "fde-gnu-eh-frame-hdr",
+    "panic",
+    "personality",
+] }
 
 [dependencies.axplat-riscv64-visionfive2]
 git = "https://github.com/Starry-OS/axplat-riscv64-visionfive2.git"
