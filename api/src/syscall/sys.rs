@@ -1,5 +1,4 @@
 use alloc::vec;
-use axconfig::ARCH;
 use core::ffi::c_char;
 
 use axconfig::ARCH;
