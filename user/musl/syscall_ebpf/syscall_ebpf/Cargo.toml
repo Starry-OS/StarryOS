@@ -1,7 +1,9 @@
 [package]
 name = "syscall_ebpf"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+
+license.workspace = true
 
 [dependencies]
 syscall_ebpf-common = { path = "../syscall_ebpf-common", features = ["user"] }
@@ -12,9 +14,26 @@ aya-log = { workspace = true }
 env_logger = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "net", "signal", "time"] }
+tokio = { workspace = true, features = [
+    "macros",
+    "rt",
+    "rt-multi-thread",
+    "net",
+    "signal",
+    "time",
+] }
+
+
+[features]
+default = []
+riscv64 = []
+x86_64 = []
+loongarch64 = []
+
 
 [build-dependencies]
+anyhow = { workspace = true }
+aya-build = { workspace = true }
 cargo_metadata = { workspace = true }
 # TODO(https://github.com/rust-lang/cargo/issues/12375): this should be an artifact dependency, but
 # it's not possible to tell cargo to use `-Z build-std` to build it. We cargo-in-cargo in the build

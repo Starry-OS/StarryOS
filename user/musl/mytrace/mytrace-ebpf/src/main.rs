@@ -38,6 +38,7 @@ fn try_mytrace(ctx: TracePointContext) -> Result<u32, u32> {
     }
 }
 
+#[allow(static_mut_refs)]
 fn try_aya_tracepoint_echo_open(ctx: &TracePointContext) -> Result<u32, i64> {
     // Load the pointer to the filename. The offset value can be found running:
     // sudo cat /sys/kernel/debug/tracing/events/syscalls/sys_enter_open/format
@@ -114,6 +115,6 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
     loop {}
 }
 
-#[link_section = "license"]
-#[no_mangle]
+#[unsafe(link_section = "license")]
+#[unsafe(no_mangle)]
 static LICENSE: [u8; 13] = *b"Dual MIT/GPL\0";

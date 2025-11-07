@@ -1,13 +1,19 @@
 [package]
 name = "syscall_ebpf-ebpf"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
 
 [dependencies]
 syscall_ebpf-common = { path = "../syscall_ebpf-common" }
 
 aya-ebpf = { workspace = true }
 aya-log-ebpf = { workspace = true }
+
+[features]
+default = []
+riscv64 = []
+x86_64 = []
+loongarch64 = []
 
 [build-dependencies]
 which = { workspace = true }

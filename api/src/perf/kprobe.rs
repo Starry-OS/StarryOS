@@ -207,7 +207,7 @@ pub fn perf_event_open_kprobe(args: PerfProbeArgs) -> ProbePerfEvent {
             }
         }
         _ => {
-            panic!("unsupported config for kprobe");
+            panic!("unsupported config {:?} for kprobe", args.config);
         }
     };
 

@@ -20,11 +20,17 @@ fn detect_func(x: usize, y: usize, z: Option<usize>) -> Option<usize> {
 }
 
 fn pre_handler(_data: &dyn ProbeData, pt_regs: &mut PtRegs) {
-    ax_println!("[kprobe] pre_handler: ret_value: {}", pt_regs.ret_value());
+    ax_println!(
+        "[kprobe] pre_handler: ret_value: {}",
+        pt_regs.first_ret_value()
+    );
 }
 
 fn post_handler(_data: &dyn ProbeData, pt_regs: &mut PtRegs) {
-    ax_println!("[kprobe] post_handler: ret_value: {}", pt_regs.ret_value());
+    ax_println!(
+        "[kprobe] post_handler: ret_value: {}",
+        pt_regs.first_ret_value()
+    );
 }
 
 pub fn kprobe_test() {
@@ -40,7 +46,7 @@ pub fn kprobe_test() {
     let new_pre_handler = |_data: &dyn ProbeData, pt_regs: &mut PtRegs| {
         ax_println!(
             "[kprobe] new_pre_handler: ret_value: {}",
-            pt_regs.ret_value()
+            pt_regs.first_ret_value()
         );
     };
 
@@ -87,7 +93,7 @@ pub fn kprobe_test() {
 fn kret_post_handler(_data: &dyn ProbeData, pt_regs: &mut PtRegs) {
     ax_println!(
         "[kretprobe] post_handler: ret_value(a0): {}, ret_value(a1): {}",
-        pt_regs.ret_value(),
-        pt_regs.a1
+        pt_regs.first_ret_value(),
+        pt_regs.second_ret_value()
     );
 }

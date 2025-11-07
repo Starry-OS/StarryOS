@@ -1,7 +1,7 @@
 use aya::programs::TracePoint;
 #[rustfmt::skip]
 use log::{debug, warn};
-use tokio::{signal, task::yield_now, time};
+use tokio::signal;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -9,6 +9,7 @@ async fn main() -> anyhow::Result<()> {
         .filter_level(log::LevelFilter::Info)
         .format_timestamp(None)
         .init();
+
     // Bump the memlock rlimit. This is needed for older kernels that don't use the
     // new memcg based accounting, see https://lwn.net/Articles/837122/
     let rlim = libc::rlimit {
@@ -28,29 +29,26 @@ async fn main() -> anyhow::Result<()> {
         env!("OUT_DIR"),
         "/mytrace"
     )))?;
-    if let Err(e) = aya_log::EbpfLogger::init(&mut ebpf) {
-        // This can happen if you remove all log statements from your eBPF program.
-        warn!("failed to initialize eBPF logger: {e}");
+    match aya_log::EbpfLogger::init(&mut ebpf) {
+        Err(e) => {
+            // This can happen if you remove all log statements from your eBPF program.
+            warn!("failed to initialize eBPF logger: {e}");
+        }
+        Ok(logger) => {
+            let mut logger =
+                tokio::io::unix::AsyncFd::with_interest(logger, tokio::io::Interest::READABLE)?;
+            tokio::task::spawn(async move {
+                loop {
+                    let mut guard = logger.readable_mut().await.unwrap();
+                    guard.get_inner_mut().flush();
+                    guard.clear_ready();
+                }
+            });
+        }
     }
     let program: &mut TracePoint = ebpf.program_mut("mytrace").unwrap().try_into()?;
     program.load()?;
     program.attach("syscalls", "sys_enter_openat")?;
-
-    tokio::spawn(async move {
-        let mut now = time::Instant::now();
-        loop {
-            let new_now = time::Instant::now();
-            let duration = new_now.duration_since(now);
-            if duration.as_secs() >= 2 {
-                // open a file to trigger the tracepoint
-                // log::info!("Triggering tracepoint by opening /bin");
-                // let bin = std::fs::File::open("/bin").unwrap();
-                // drop(bin);
-                now = new_now;
-            }
-            yield_now().await;
-        }
-    });
 
     let ctrl_c = signal::ctrl_c();
     println!("Waiting for Ctrl-C...");

@@ -9,6 +9,13 @@ kret-common = { path = "../kret-common" }
 aya-ebpf = { workspace = true }
 aya-log-ebpf = { workspace = true }
 
+[features]
+default = []
+riscv64 = []
+x86_64 = []
+loongarch64 = []
+
+
 [build-dependencies]
 which = { workspace = true }
 

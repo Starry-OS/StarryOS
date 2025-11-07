@@ -6,12 +6,18 @@ use core::{
 
 use axconfig::plat::CPU_NUM;
 use axerrno::{AxError, AxResult};
-use axhal::{percpu::this_cpu_id, time::monotonic_time_nanos};
+use axhal::{
+    paging::{MappingFlags, PageSize},
+    percpu::this_cpu_id,
+    time::monotonic_time_nanos,
+};
 use axio::{Read, Write};
+use axmm::backend::{alloc_frame, dealloc_frame};
 use kbpf_basic::{
     BpfError, KernelAuxiliaryOps,
     map::{PerCpuVariants, PerCpuVariantsOps, UnifiedMap},
 };
+use memory_addr::{PhysAddr, VirtAddr, VirtAddrRange};
 use starry_vm::{VmBytes, VmBytesMut};
 
 use crate::{bpf::map::BpfMap, file::get_file_like, mm::vm_load_string, perf::perf_event_output};
@@ -26,6 +32,8 @@ pub fn bpferror_to_axerr(err: BpfError) -> AxError {
         BpfError::NotFound => AxError::NotFound,
         BpfError::NotSupported => AxError::OperationNotSupported,
         BpfError::NoSpace => AxError::NoMemory,
+        BpfError::TooBig => AxError::TooBig,
+        BpfError::TryAgain => AxError::Other(axerrno::LinuxError::EAGAIN),
     }
 }
 
@@ -93,7 +101,7 @@ impl KernelAuxiliaryOps for EbpfKernelAuxiliary {
     {
         let map = unsafe { Arc::from_raw(ptr as *const BpfMap) };
         let mut unified_map = map.unified_map();
-        let ret = func(&mut *unified_map);
+        let ret = func(&mut unified_map);
         drop(unified_map);
         // avoid double free
         let _ = Arc::into_raw(map);
@@ -156,5 +164,56 @@ impl KernelAuxiliaryOps for EbpfKernelAuxiliary {
 
     fn ebpf_time_ns() -> kbpf_basic::Result<u64> {
         Ok(monotonic_time_nanos())
+    }
+
+    fn alloc_page() -> kbpf_basic::Result<usize> {
+        let page_phy = alloc_frame(true, PageSize::Size4K)
+            .map_err(|_| BpfError::NoSpace)
+            .map(|phys_addr| phys_addr.as_usize());
+        page_phy
+    }
+
+    fn free_page(phys_addr: usize) {
+        dealloc_frame(PhysAddr::from_usize(phys_addr), PageSize::Size4K);
+    }
+
+    fn vmap(phys_addrs: &[usize]) -> kbpf_basic::Result<usize> {
+        let len = phys_addrs.len() * PageSize::Size4K as usize;
+        let kspace = axmm::kernel_aspace();
+        let mut guard = kspace.lock();
+
+        let mut virt_start = guard
+            .find_free_area(
+                guard.base(),
+                len,
+                VirtAddrRange::new(guard.base(), guard.end()),
+            )
+            .ok_or(BpfError::NoSpace)?;
+
+        let res_virt = virt_start.as_usize();
+
+        for phy_addr in phys_addrs {
+            let start_paddr = PhysAddr::from_usize(*phy_addr);
+            guard
+                .map_linear(
+                    virt_start,
+                    start_paddr,
+                    PageSize::Size4K as usize,
+                    MappingFlags::READ | MappingFlags::WRITE,
+                )
+                .map_err(|_| BpfError::InvalidArgument)?;
+            virt_start += PageSize::Size4K as usize;
+        }
+        Ok(res_virt)
+    }
+
+    fn unmap(virt_addr: usize) {
+        let kspace = axmm::kernel_aspace();
+        let mut guard = kspace.lock();
+
+        let virt_addr = VirtAddr::from_usize(virt_addr);
+        guard
+            .unmap(virt_addr, PageSize::Size4K as usize)
+            .expect("unmap failed");
     }
 }

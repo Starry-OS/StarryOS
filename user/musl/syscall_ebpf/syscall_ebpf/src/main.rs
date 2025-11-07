@@ -1,10 +1,9 @@
-extern crate libc;
 use aya::{maps::HashMap, programs::KProbe};
 #[rustfmt::skip]
 use log::{debug, warn};
 use tokio::{signal, task::yield_now, time};
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::builder()
         .filter_level(log::LevelFilter::Warn)
@@ -19,7 +18,7 @@ async fn main() -> anyhow::Result<()> {
     };
     let ret = unsafe { libc::setrlimit(libc::RLIMIT_MEMLOCK, &rlim) };
     if ret != 0 {
-        debug!("remove limit on locked memory failed, ret is: {}", ret);
+        debug!("remove limit on locked memory failed, ret is: {ret}");
     }
 
     // This will include your eBPF object file as raw bytes at compile-time and load it at
@@ -30,14 +29,27 @@ async fn main() -> anyhow::Result<()> {
         env!("OUT_DIR"),
         "/syscall_ebpf"
     )))?;
-    if let Err(e) = aya_log::EbpfLogger::init(&mut ebpf) {
-        // This can happen if you remove all log statements from your eBPF program.
-        warn!("failed to initialize eBPF logger: {}", e);
+    match aya_log::EbpfLogger::init(&mut ebpf) {
+        Err(e) => {
+            // This can happen if you remove all log statements from your eBPF program.
+            warn!("failed to initialize eBPF logger: {e}");
+        }
+        Ok(logger) => {
+            let mut logger =
+                tokio::io::unix::AsyncFd::with_interest(logger, tokio::io::Interest::READABLE)?;
+            tokio::task::spawn(async move {
+                loop {
+                    let mut guard = logger.readable_mut().await.unwrap();
+                    guard.get_inner_mut().flush();
+                    guard.clear_ready();
+                }
+            });
+        }
     }
-
     let program: &mut KProbe = ebpf.program_mut("syscall_ebpf").unwrap().try_into()?;
     program.load()?;
     program.attach("starry_api::syscall::sysno", 0)?;
+
     log::info!("attacch the kprobe to syscall_entry ok");
 
     // print the value of the blocklist per 5 seconds

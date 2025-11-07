@@ -78,7 +78,7 @@ tracepoint = { git = "https://github.com/Starry-OS/tracepoint.git" }
 # tracepoint = { path = "../../ax-project/tracepoint" }
 # kbpf-basic = { path = "../../ax-project/kbpf-basic/" }
 # kprobe = { path = "../../ax-project/kprobe" }
-kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "9e03b29" }
+kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "7a93710" }
 rbpf = { git = "https://github.com/qmonnet/rbpf.git", default-features = false, rev = "f31e471" }
 kprobe = { git = "https://github.com/Starry-OS/kprobe" }
 
