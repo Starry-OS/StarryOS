@@ -3,9 +3,8 @@ use alloc::vec;
 use axerrno::AxResult;
 use axio::Read;
 use kbpf_basic::linux_bpf::perf_event_attr;
-use starry_vm::VmBytes;
 
-use crate::perf::perf_event_open;
+use crate::{mm::VmBytes, perf::perf_event_open};
 
 pub fn sys_perf_event_open(
     attr: *const u8,

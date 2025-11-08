@@ -3,7 +3,7 @@ use core::ops::{Deref, DerefMut};
 
 use axerrno::{AxError, AxResult};
 use axhal::paging::PageSize;
-use axio::{PollSet, Pollable};
+use axpoll::{PollSet, Pollable};
 use kbpf_basic::{
     PollWaker,
     linux_bpf::bpf_attr,
@@ -40,21 +40,21 @@ impl BpfMap {
 }
 
 impl Pollable for BpfMap {
-    fn poll(&self) -> axio::IoEvents {
+    fn poll(&self) -> axpoll::IoEvents {
         let map = self.unified_map();
 
-        let mut events = axio::IoEvents::empty();
+        let mut events = axpoll::IoEvents::empty();
         if map.map().readable() {
-            events |= axio::IoEvents::IN;
+            events |= axpoll::IoEvents::IN;
         }
 
         if map.map().writable() {
-            events |= axio::IoEvents::OUT;
+            events |= axpoll::IoEvents::OUT;
         }
         events
     }
 
-    fn register(&self, context: &mut core::task::Context<'_>, _events: axio::IoEvents) {
+    fn register(&self, context: &mut core::task::Context<'_>, _events: axpoll::IoEvents) {
         self.poll_ready.register(context.waker());
     }
 }

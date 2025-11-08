@@ -5,7 +5,7 @@ use axfs_ng_vfs::{
     FileNodeOps, Filesystem, FilesystemOps, Metadata, MetadataUpdate, NodeFlags, NodeOps,
     NodePermission, NodeType, VfsError, VfsResult,
 };
-use axio::{IoEvents, Pollable};
+use axpoll::{IoEvents, Pollable};
 use inherit_methods_macro::inherit_methods;
 use starry_core::vfs::{DirMaker, DirMapping, SimpleDir, SimpleFs, SimpleFsNode};
 
@@ -83,7 +83,7 @@ impl FileNodeOps for DebugFsFile {
     }
 
     fn ioctl(&self, _cmd: u32, _arg: usize) -> VfsResult<usize> {
-        Err(VfsError::BadIoctl)
+        Err(VfsError::OperationNotSupported)
     }
 }
 

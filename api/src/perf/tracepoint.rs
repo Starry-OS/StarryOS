@@ -2,7 +2,7 @@ use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use core::sync::atomic::AtomicUsize;
 
 use axerrno::{AxError, AxResult};
-use axio::Pollable;
+use axpoll::Pollable;
 use kbpf_basic::perf::{PerfProbeArgs, PerfProbeConfig};
 use kspin::SpinNoPreempt;
 use rbpf::EbpfVmRaw;
@@ -74,11 +74,11 @@ impl RawTracePointCallBackFunc for TracePointPerfCallBack {
 }
 
 impl Pollable for TracepointPerfEvent {
-    fn poll(&self) -> axio::IoEvents {
+    fn poll(&self) -> axpoll::IoEvents {
         panic!("TracepointPerfEvent::poll() should not be called");
     }
 
-    fn register(&self, _context: &mut core::task::Context<'_>, _events: axio::IoEvents) {
+    fn register(&self, _context: &mut core::task::Context<'_>, _events: axpoll::IoEvents) {
         panic!("TracepointPerfEvent::register() should not be called");
     }
 }

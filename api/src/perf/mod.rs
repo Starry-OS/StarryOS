@@ -1,7 +1,7 @@
 mod bpf;
 mod kprobe;
-mod tracepoint;
 pub mod raw_tracepoint;
+mod tracepoint;
 
 use alloc::{
     boxed::Box,
@@ -10,7 +10,7 @@ use alloc::{
 use core::{any::Any, ffi::c_void, fmt::Debug};
 
 use axerrno::{AxError, AxResult};
-use axio::Pollable;
+use axpoll::Pollable;
 use hashbrown::HashMap;
 use kbpf_basic::{
     linux_bpf::{perf_event_attr, perf_type_id},
@@ -67,11 +67,11 @@ impl PerfEvent {
 }
 
 impl Pollable for PerfEvent {
-    fn poll(&self) -> axio::IoEvents {
+    fn poll(&self) -> axpoll::IoEvents {
         self.event.lock().poll()
     }
 
-    fn register(&self, context: &mut core::task::Context<'_>, events: axio::IoEvents) {
+    fn register(&self, context: &mut core::task::Context<'_>, events: axpoll::IoEvents) {
         self.event.lock().register(context, events)
     }
 }

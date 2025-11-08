@@ -18,9 +18,13 @@ use kbpf_basic::{
     map::{PerCpuVariants, PerCpuVariantsOps, UnifiedMap},
 };
 use memory_addr::{PhysAddr, VirtAddr, VirtAddrRange};
-use starry_vm::{VmBytes, VmBytesMut};
 
-use crate::{bpf::map::BpfMap, file::get_file_like, mm::vm_load_string, perf::perf_event_output};
+use crate::{
+    bpf::map::BpfMap,
+    file::get_file_like,
+    mm::{VmBytes, VmBytesMut, vm_load_string},
+    perf::perf_event_output,
+};
 
 pub fn bpferror_to_axresult(err: BpfError) -> AxResult<isize> {
     Err(bpferror_to_axerr(err))
@@ -32,7 +36,7 @@ pub fn bpferror_to_axerr(err: BpfError) -> AxError {
         BpfError::NotFound => AxError::NotFound,
         BpfError::NotSupported => AxError::OperationNotSupported,
         BpfError::NoSpace => AxError::NoMemory,
-        BpfError::TooBig => AxError::TooBig,
+        BpfError::TooBig => AxError::Other(axerrno::LinuxError::E2BIG),
         BpfError::TryAgain => AxError::Other(axerrno::LinuxError::EAGAIN),
     }
 }

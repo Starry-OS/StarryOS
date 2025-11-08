@@ -3,8 +3,8 @@ use core::{any::Any, convert::Into, fmt::Debug};
 
 use axerrno::{AxError, AxResult};
 use axhal::paging::PageSize;
-use axio::{IoEvents, PollSet, Pollable};
 use axmm::backend::{alloc_frames, dealloc_frames};
+use axpoll::{IoEvents, PollSet, Pollable};
 use kbpf_basic::{
     linux_bpf::perf_event_sample_format,
     perf::{PerfProbeArgs, bpf::BpfPerfEvent},
@@ -120,15 +120,15 @@ impl Drop for BpfPerfEventWrapper {
 }
 
 impl Pollable for BpfPerfEventWrapper {
-    fn poll(&self) -> axio::IoEvents {
+    fn poll(&self) -> axpoll::IoEvents {
         if self.inner.readable() {
-            axio::IoEvents::IN
+            axpoll::IoEvents::IN
         } else {
-            axio::IoEvents::empty()
+            axpoll::IoEvents::empty()
         }
     }
 
-    fn register(&self, context: &mut core::task::Context<'_>, events: axio::IoEvents) {
+    fn register(&self, context: &mut core::task::Context<'_>, events: axpoll::IoEvents) {
         if events.contains(IoEvents::IN) {
             self.poll_ready.register(context.waker());
         }

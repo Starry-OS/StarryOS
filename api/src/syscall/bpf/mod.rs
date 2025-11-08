@@ -3,7 +3,8 @@ use alloc::vec;
 use axerrno::{AxError, AxResult};
 use axio::Read;
 use kbpf_basic::linux_bpf::{bpf_attr, bpf_cmd};
-use starry_vm::VmBytes;
+
+use crate::mm::VmBytes;
 
 /// Handle the bpf syscall
 pub fn sys_bpf(cmd: u32, attr: *mut u8, size: u32) -> AxResult<isize> {

@@ -15,6 +15,7 @@ dev-log = []
 kprobe_test = []
 
 [dependencies]
+axruntime.workspace = true
 axalloc.workspace = true
 axbacktrace.workspace = true
 axconfig.workspace = true
@@ -70,7 +71,6 @@ lazyinit.workspace = true
 lock_api.workspace = true
 axcpu.workspace = true
 kernel_guard.workspace = true
-unwinding.workspace = true
 ksym.workspace = true
 
 static-keys = "0.8.2"

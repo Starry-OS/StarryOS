@@ -45,7 +45,7 @@ axsync = { path = "arceos/modules/axsync" }
 axtask = { path = "arceos/modules/axtask", features = ["task-ext"] }
 ksym = { git = "https://github.com/Starry-OS/ksym", rev = "8fa0df1" }
 
-axcpu = { git = "https://github.com/Starry-OS/axcpu", rev = "398ef5e", features = [
+axcpu = { git = "https://github.com/Starry-OS/axcpu", rev = "1b026ee", features = [
     "kprobe",
 ] }
 lazyinit = "0.2"
@@ -149,7 +149,7 @@ features = ["fp-simd", "irq", "rtc"]
 optional = true
 
 [patch.crates-io]
-axcpu = { git = "https://github.com/Starry-OS/axcpu.git", rev = "94aa1bd" }
+axcpu = { git = "https://github.com/Starry-OS/axcpu.git", rev = "1b026ee" }
 axerrno = { git = "https://github.com/Starry-OS/axerrno.git", rev = "f1e2bca" }
 axfs-ng-vfs = { git = "https://github.com/Starry-OS/axfs-ng-vfs.git", rev = "d6f470f" }
 axio = { git = "https://github.com/Starry-OS/axio.git", rev = "ebb0c6b" }

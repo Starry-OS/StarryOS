@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::{fmt::Debug, panic};
 
 use axerrno::AxResult;
-use axio::Pollable;
+use axpoll::Pollable;
 use kbpf_basic::{
     EBPFPreProcessor,
     linux_bpf::bpf_attr,
@@ -49,11 +49,11 @@ impl Drop for BpfProg {
 }
 
 impl Pollable for BpfProg {
-    fn poll(&self) -> axio::IoEvents {
+    fn poll(&self) -> axpoll::IoEvents {
         panic!("BpfProg::poll() should not be called");
     }
 
-    fn register(&self, _context: &mut core::task::Context<'_>, _events: axio::IoEvents) {
+    fn register(&self, _context: &mut core::task::Context<'_>, _events: axpoll::IoEvents) {
         panic!("BpfProg::register() should not be called");
     }
 }

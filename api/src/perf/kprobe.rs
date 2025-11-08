@@ -2,7 +2,7 @@ use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use core::{any::Any, sync::atomic::AtomicU32};
 
 use axerrno::AxResult;
-use axio::Pollable;
+use axpoll::Pollable;
 use kbpf_basic::perf::{PerfProbeArgs, PerfProbeConfig};
 use kprobe::{CallBackFunc, KprobeBuilder, KretprobeBuilder, PtRegs};
 use rbpf::EbpfVmRaw;
@@ -64,11 +64,11 @@ impl Drop for ProbePerfEvent {
 }
 
 impl Pollable for ProbePerfEvent {
-    fn poll(&self) -> axio::IoEvents {
-        axio::IoEvents::empty()
+    fn poll(&self) -> axpoll::IoEvents {
+        axpoll::IoEvents::empty()
     }
 
-    fn register(&self, _context: &mut core::task::Context<'_>, _events: axio::IoEvents) {
+    fn register(&self, _context: &mut core::task::Context<'_>, _events: axpoll::IoEvents) {
         // do nothing
         todo!()
     }

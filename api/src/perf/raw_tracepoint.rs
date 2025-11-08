@@ -2,7 +2,7 @@ use alloc::{boxed::Box, sync::Arc};
 use core::sync::atomic::AtomicUsize;
 
 use axerrno::{AxError, AxResult};
-use axio::Pollable;
+use axpoll::Pollable;
 use kbpf_basic::raw_tracepoint::BpfRawTracePointArg;
 use tracepoint::TracePoint;
 
@@ -19,11 +19,11 @@ pub struct RawTracepointPerfEvent {
 }
 
 impl Pollable for RawTracepointPerfEvent {
-    fn poll(&self) -> axio::IoEvents {
+    fn poll(&self) -> axpoll::IoEvents {
         panic!("RawTracepointPerfEvent::poll() should not be called");
     }
 
-    fn register(&self, _context: &mut core::task::Context<'_>, _events: axio::IoEvents) {
+    fn register(&self, _context: &mut core::task::Context<'_>, _events: axpoll::IoEvents) {
         panic!("RawTracepointPerfEvent::register() should not be called");
     }
 }
