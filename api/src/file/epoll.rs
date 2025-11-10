@@ -195,9 +195,7 @@ impl EpollInterest {
         // shoud still keep in ready?
         match *mode {
             TriggerMode::Level => ConsumeResult::EventAndKeep(event),
-            TriggerMode::Edge | TriggerMode::OneShot { .. } => {
-                ConsumeResult::EventAndRemove(event)
-            }
+            TriggerMode::Edge | TriggerMode::OneShot { .. } => ConsumeResult::EventAndRemove(event),
         }
     }
 }
@@ -353,7 +351,7 @@ impl Epoll {
             .lock()
             .remove(&key)
             .ok_or(AxError::NotFound)?;
-        trace!("Epoll: delete fd={}", fd);
+        trace!("Epoll: delete fd={fd}");
         Ok(())
     }
 
