@@ -112,6 +112,9 @@ qemu = [
     "axfeat/fs-times",
     "starry-api/dev-log",
 ]
+smp = [
+    "axfeat/smp"
+]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc-gpt"]
 
