@@ -23,9 +23,9 @@ jobs:
     needs: test
     env:
       ARCH: aarch64
-      STARRYOS_ROOT: ${{ format('{0}/starry-src', github.workspace) }}
+      STARRYOS_ROOT: ${{ github.workspace }}/starry-src
       STARRYOS_REF: ${{ github.sha }}
-      STARRYOS_REMOTE: ${{ format('https://github.com/{0}.git', github.repository) }}
+      STARRYOS_REMOTE: https://github.com/${{ github.repository }}.git
     steps:
       - name: Checkout StarryOS
         uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
           ref: master
           path: starry-test-harness
 
-       - name: Install Rust nightly
+      - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
         with:
           toolchain: nightly-2025-05-20
