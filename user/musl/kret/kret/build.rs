@@ -20,6 +20,8 @@ fn main() -> anyhow::Result<()> {
         "riscv64"
     } else if cfg!(feature = "loongarch64") {
         "loongarch64"
+    } else if cfg!(feature = "aarch64") {
+        "aarch64"
     } else {
         "x86_64"
     };

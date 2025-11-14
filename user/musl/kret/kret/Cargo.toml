@@ -27,6 +27,7 @@ default = []
 riscv64 = []
 x86_64 = []
 loongarch64 = []
+aarch64 = []
 
 [build-dependencies]
 anyhow = { workspace = true }

@@ -36,6 +36,12 @@ pub fn get_arg0(ctx: &ProbeContext) -> u64 {
     pt_regs.regs[4] as u64
 }
 
+#[cfg(feature = "aarch64")]
+pub fn get_arg0(ctx: &ProbeContext) -> u64 {
+    let pt_regs = unsafe { &*ctx.regs };
+    pt_regs.regs[0] as u64
+}
+
 fn try_syscall_ebpf(ctx: ProbeContext) -> Result<u32, u32> {
     let syscall_num = get_arg0(&ctx) as usize;
     if syscall_num != 1 {

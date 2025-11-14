@@ -158,10 +158,21 @@ pub fn register_kretprobe(
     kprobe::register_kretprobe(&mut manager, &mut kprobe_list, kretprobe_builder)
 }
 
-pub fn run_all_kprobe(frame: &mut TrapFrame) -> Option<()> {
+/// Handle kprobe from a breakpoint exception
+pub fn kernel_break_kprobe(frame: &mut TrapFrame) -> Option<()> {
     let mut manager = KPROBE_MANAGER.lock();
     let mut pt_regs = PtRegs::from(frame as &TrapFrame);
     let res = kprobe::kprobe_handler_from_break(&mut manager, &mut pt_regs);
+    frame.update_from_ptregs(pt_regs);
+    res
+}
+
+#[cfg(target_arch = "x86_64")]
+/// Handle kprobe from a debug exception
+pub fn kernel_debug_kprobe(frame: &mut TrapFrame) -> Option<()> {
+    let mut manager = KPROBE_MANAGER.lock();
+    let mut pt_regs = PtRegs::from(frame as &TrapFrame);
+    let res = kprobe::kprobe_handler_from_debug(&mut manager, &mut pt_regs);
     frame.update_from_ptregs(pt_regs);
     res
 }

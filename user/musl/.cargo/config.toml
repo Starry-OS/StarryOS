@@ -5,3 +5,7 @@ linker = "riscv64-linux-musl-cc"
 [target.loongarch64-unknown-linux-musl]
 rustflags = ["-C", "target-feature=+crt-static"]
 linker = "loongarch64-linux-musl-cc"
+
+[target.aarch64-unknown-linux-musl]
+rustflags = ["-C", "target-feature=+crt-static"]
+linker = "aarch64-linux-musl-cc"
