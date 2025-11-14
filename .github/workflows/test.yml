@@ -7,69 +7,101 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [riscv64, loongarch64, aarch64, x86_64]
+    uses: ./.github/workflows/test-template.yml
+    with:
+      arch: ${{ matrix.arch }}
+    secrets: inherit
   harness:
     name: Harness CI (aarch64)
     runs-on: ubuntu-latest
 
     env:
       ARCH: aarch64
-      STARRYOS_REMOTE: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+      # StarryOS 的路径由 CI 直接 checkout 到 StarryOS/
+      STARRYOS_ROOT: ${{ github.workspace }}/StarryOS
+
+      # PR 使用 PR head，普通 push 使用 sha
       STARRYOS_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
       RUSTUP_TOOLCHAIN: nightly-2025-05-20
+      SKIP_STARRY_BUILD: 1   # 放在 env 顶层，避免重复设置
 
     steps:
+      # -----------------------------
+      # ① Checkout StarryOS（PR版本）
+      # -----------------------------
       - name: Checkout StarryOS (current PR)
         uses: actions/checkout@v4
         with:
           path: StarryOS
           submodules: recursive
 
+      # -----------------------------
+      # ② Checkout test harness
+      # -----------------------------
       - name: Checkout Test Harness
         uses: actions/checkout@v4
         with:
           repository: kylin-x-kernel/starry-test-harness
           path: starry-test-harness
 
+      # -----------------------------
+      # ③ Install Rust nightly
+      # -----------------------------
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
         with:
           toolchain: nightly-2025-05-20
-          components: rustfmt,clippy,llvm-tools-preview,rust-src
+          components: rustfmt, clippy, llvm-tools-preview, rust-src
           targets: aarch64-unknown-none-softfloat
 
+      # -----------------------------
+      # ④ Cache rootfs
+      # -----------------------------
       - name: Cache rootfs template
         uses: actions/cache@v3
         with:
           path: starry-test-harness/.cache/rootfs
           key: rootfs-${{ env.ARCH }}-20250917
 
-
+      # -----------------------------
+      # ⑤ Install QEMU & MUSL
+      # -----------------------------
       - name: Setup QEMU
         uses: arceos-org/setup-qemu@v1
         with:
           version: 10.1.0
           arch_list: ${{ env.ARCH }}
 
-      
       - uses: arceos-org/setup-musl@v1
         with:
           arch: ${{ env.ARCH }}
 
       - run: sudo apt-get update && sudo apt-get install -y e2fsprogs
 
+      # -----------------------------
+      # ⑥ Run test harness
+      # -----------------------------
       - name: Run test harness ci-test
         working-directory: starry-test-harness
         env:
           ARCH: ${{ env.ARCH }}
-          STARRYOS_REMOTE: ${{ env.STARRYOS_REMOTE }}
+          STARRYOS_ROOT: ${{ env.STARRYOS_ROOT }}
           STARRYOS_COMMIT: ${{ env.STARRYOS_COMMIT }}
-          STARRYOS_ROOT: ${{ github.workspace }}/starry-test-harness/.cache/StarryOS
+          SKIP_STARRY_BUILD: 1
           ROOTFS_CACHE_DIR: ${{ github.workspace }}/starry-test-harness/.cache/rootfs
-          SKIP_STARRY_BUILD: ${{ env.SKIP_STARRY_BUILD }}
           CC_aarch64_unknown_linux_musl: aarch64-linux-musl-gcc
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
         run: make ci-test run
 
+      # -----------------------------
+      # ⑦ Upload logs
+      # -----------------------------
       - name: Upload harness logs
         if: always()
         uses: actions/upload-artifact@v4
