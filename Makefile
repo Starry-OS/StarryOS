@@ -11,6 +11,7 @@ export NET := y
 export VSOCK := y
 export MEM := 1G
 export ICOUNT := n
+export SMP := 4
 
 # Generated Options
 export A := $(PWD)
