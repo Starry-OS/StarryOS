@@ -18,8 +18,8 @@ pub fn sys_execve(
 ) -> AxResult<isize> {
     let path = vm_load_string(path)?;
 
-    // Handle NULL argv (treat as empty array)
     let args = if argv.is_null() {
+        // Handle NULL argv (treat as empty array)
         Vec::new()
     } else {
         vm_load_until_nul(argv)?
@@ -28,8 +28,8 @@ pub fn sys_execve(
             .collect::<Result<Vec<_>, _>>()?
     };
 
-    // Handle NULL envp (treat as empty array)
     let envs = if envp.is_null() {
+        // Handle NULL envp (treat as empty array)
         Vec::new()
     } else {
         vm_load_until_nul(envp)?
