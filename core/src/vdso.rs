@@ -35,7 +35,7 @@ vdso_end:
     .previous
 ");
 
-/// Compute multiplier and shift to convert from timer_frequency -> `to` nanos_pre_sec.
+/// Compute multiplier and shift to convert from timer_frequency to nanos_per_sec.
 fn clocks_calc_mult_shift(from: u64, to: u64, maxsec: u32) -> (u32, u32) {
     // sftacc starts at 32 and is reduced based on the maximum conversion range
     let mut tmp = ((maxsec as u64).wrapping_mul(from)) >> 32;
@@ -309,20 +309,26 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
         )
     };
 
+
+    const VDSO_USER_ADDR_BASE: usize = 0x7f00_0000;
+
+    const VDSO_ASLR_PAGES: usize = 256;
+
+    let rnd = || {
+        let seed = (axhal::time::current_ticks() as u64) ^ (vdso_kstart as u64);
+        let stack_addr = (&vdso_kstart as *const usize as u64).wrapping_shr(4);
+        let data_addr = (core::ptr::addr_of!(VDSO_DATA) as usize as u64).wrapping_shr(4);
+        let x = seed.wrapping_add(stack_addr).wrapping_add(data_addr).wrapping_add(0x9E3779B97F4A7C15);
+        let mut z = x;
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58476D1CE4E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D049BB133111EB);
+        z ^ (z >> 31)
+    };
+    let page_off = (rnd() % (VDSO_ASLR_PAGES as u64)) as usize;
+    let vdso_user_addr = VDSO_USER_ADDR_BASE + page_off * PAGE_SIZE_4K;
     info!("vdso_kstart: {vdso_kstart}, vdso_kend: {vdso_kend}",);
+
     if vdso_kend > vdso_kstart {
-        // Typical userspace vDSO placement. Use a small ASLR offset to randomize the vDSO placement
-        const VDSO_USER_ADDR_BASE: usize = 0x7f00_0000;
-        const VDSO_ASLR_PAGES: usize = 16;
-
-        let rnd = (axhal::time::current_ticks() as usize) ^ vdso_kstart;
-        let page_off = if VDSO_ASLR_PAGES == 0 {
-            0
-        } else {
-            rnd % VDSO_ASLR_PAGES
-        };
-        let vdso_user_addr = VDSO_USER_ADDR_BASE + page_off * PAGE_SIZE_4K;
-
         let vdso_paddr = virt_to_phys(vdso_kstart.into());
         let vdso_size = (vdso_kend - vdso_kstart + PAGE_SIZE_4K - 1) & !(PAGE_SIZE_4K - 1);
 
@@ -385,26 +391,20 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
         let vvar_user_addr = vdso_user_addr - VVAR_PAGES * PAGE_SIZE_4K;
         let vvar_paddr = crate::vdso::vdso_data_paddr();
 
-        // Align physical address down to page boundary and compute offset
-        let vvar_paddr_aligned = vvar_paddr & !(PAGE_SIZE_4K - 1);
-        let vvar_offset = vvar_paddr & (PAGE_SIZE_4K - 1);
-
         uspace
             .map_linear(
                 vvar_user_addr.into(),
-                vvar_paddr_aligned.into(),
+                vvar_paddr.into(),
                 VVAR_PAGES * PAGE_SIZE_4K,
                 MappingFlags::READ | MappingFlags::USER,
             )
             .map_err(|_| AxError::InvalidExecutable)?;
 
         info!(
-            "Mapped vvar pages at user {:#x}..{:#x} -> paddr {:#x} (aligned {:#x}, offset {:#x})",
+            "Mapped vvar pages at user {:#x}..{:#x} -> paddr {:#x}",
             vvar_user_addr,
             vvar_user_addr + VVAR_PAGES * PAGE_SIZE_4K,
             vvar_paddr,
-            vvar_paddr_aligned,
-            vvar_offset
         );
 
         const AT_SYSINFO_EHDR: usize = 33;
@@ -412,8 +412,14 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
         let aux_entry: AuxEntry = unsafe { core::mem::transmute(aux_pair) };
         auxv.push(aux_entry);
 
+    } else {
+        warn!(
+            "vDSO binary is missing or invalid: vdso_kstart={:#x}, vdso_kend={:#x}. vDSO will not be loaded and AT_SYSINFO_EHDR will not be set.",
+            vdso_kstart, vdso_kend
+        );
+        return Err(AxError::InvalidExecutable);
     }
-    Ok((0, None))
+    return Ok((vdso_user_addr, None));
 }
 
 fn mapping_flags(flags: xmas_elf::program::Flags) -> MappingFlags {
