@@ -1,5 +1,8 @@
 # Starry OS
 
+- [简体中文版](./README-zh_CN.md)
+- [English Version](./README.md)
+
 ## Quick Start
 
 ### 1. Install System Dependencies
@@ -15,9 +18,10 @@ $ sudo apt install -y build-essential cmake clang qemu-system
 
 ### 2. Install Musl Toolchain
 
-1. Download files from https://github.com/arceos-org/setup-musl/releases/tag/prebuilt
-2. Extract to some path, for example `/opt/riscv64-linux-musl-cross`
+1. Download files from [musl prebuilt](https://github.com/arceos-org/setup-musl/releases/tag/prebuilt).
+2. Extract to some path, for example `/opt/riscv64-linux-musl-cross`.
 3. Add bin folder to `PATH`, for example:
+
    ```bash
    $ export PATH=/opt/riscv64-linux-musl-cross/bin:$PATH
    ```
@@ -83,6 +87,7 @@ $ make la
 ```
 
 Note:
+
 1. You don't have to rerun the build step before running. `run` will automatically rebuild it.
 2. The disk file will **not** be reset between each run. As a result, if you want to switch to another architecture, you must run `make img` with the new architecture before running `make run`.
 
@@ -95,7 +100,6 @@ You can check out the [GUI guide](./docs/gui.md) to set up a graphical environme
 TODO
 
 See [Makefile](./Makefile)
-
 
 ## License
 
