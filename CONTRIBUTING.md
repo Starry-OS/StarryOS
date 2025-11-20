@@ -94,8 +94,7 @@ Closes #123
 
 #### Maintain Linear History
 
-- **Avoid excessive rebasing**: To keep history readable, avoid frequent rebasing. We will eventually use squash merge.
-- **Sync with main branch**: When you need to sync with the main branch's progress, use `rebase` instead of `merge`:
+- **Rebasing guidance**: When you need to sync your feature branch with the main branch's progress, use `rebase` instead of `merge` (see below). However, avoid repeatedly rebasing your feature branch during active development, as excessive rebasing can make history harder to follow. We will eventually use squash merge.
 
 ```bash
 git fetch upstream  # or origin
