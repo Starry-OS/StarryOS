@@ -23,12 +23,19 @@ pub mod vfs;
 
 /// Initialize.
 pub fn init() {
+    if axconfig::plat::CPU_NUM > 1 {
+        panic!("SMP is not supported");
+    }
     info!("Initialize VFS...");
     vfs::mount_all().expect("Failed to mount vfs");
+
+    info!("Initialize vDSO data...");
+    starry_core::vdso::init_vdso_data();
 
     info!("Initialize /proc/interrupts...");
     axtask::register_timer_callback(|_| {
         time::inc_irq_cnt();
+        starry_core::vdso::update_vdso_data();
     });
 
     info!("Initialize alarm...");

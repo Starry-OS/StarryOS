@@ -18,3 +18,4 @@ pub mod shm;
 pub mod task;
 pub mod time;
 pub mod vfs;
+pub mod vdso;
