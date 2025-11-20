@@ -1,4 +1,16 @@
-# Starry OS
+<h2 align="center">Starry OS</h1>
+
+<p align="center">An ArceOS-based componentized monolithic OS</p>
+
+<div align="center">
+
+[![GitHub stars](https://img.shields.io/github/stars/Starry-OS/StarryOS?logo=github)](https://github.com/Starry-OS/StarryOS/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/Starry-OS/StarryOS?logo=github)](https://github.com/Starry-OS/StarryOS/network)
+[![license](https://img.shields.io/github/license/Starry-OS/StarryOS)](https://github.com/Starry-OS/StarryOS/blob/main/LICENSE)
+
+</div>
+
+English | [简体中文](./README-zh_CN.md)
 
 ## Quick Start
 
@@ -15,9 +27,10 @@ $ sudo apt install -y build-essential cmake clang qemu-system
 
 ### 2. Install Musl Toolchain
 
-1. Download files from https://github.com/arceos-org/setup-musl/releases/tag/prebuilt
-2. Extract to some path, for example `/opt/riscv64-linux-musl-cross`
+1. Download files from [musl prebuilt](https://github.com/arceos-org/setup-musl/releases/tag/prebuilt).
+2. Extract to some path, for example `/opt/riscv64-linux-musl-cross`.
 3. Add bin folder to `PATH`, for example:
+
    ```bash
    $ export PATH=/opt/riscv64-linux-musl-cross/bin:$PATH
    ```
@@ -83,6 +96,7 @@ $ make la
 ```
 
 Note:
+
 1. You don't have to rerun the build step before running. `run` will automatically rebuild it.
 2. The disk file will **not** be reset between each run. As a result, if you want to switch to another architecture, you must run `make img` with the new architecture before running `make run`.
 
@@ -95,8 +109,3 @@ You can check out the [GUI guide](./docs/gui.md) to set up a graphical environme
 TODO
 
 See [Makefile](./Makefile)
-
-
-## License
-
-This project is now released under the Apache License 2.0. All modifications and new contributions in our project are distributed under the same license. See the [LICENSE](./LICENSE) and [NOTICE](./NOTICE) files for details.
