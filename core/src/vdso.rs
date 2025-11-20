@@ -10,7 +10,7 @@ use axhal::{
     time::{NANOS_PER_SEC, current_ticks, monotonic_time_nanos, wall_time_nanos, nanos_to_ticks},
 };
 use axmm::AddrSpace;
-use kernel_elf_parser::AuxEntry;
+use kernel_elf_parser::{AuxEntry, AuxType};
 use memory_addr::{MemoryAddr, PAGE_SIZE_4K};
 
 /// Clock mode constants
@@ -297,7 +297,7 @@ pub fn vdso_data_paddr() -> usize {
 
 
 /// Load vDSO into the given user address space and update auxv accordingly.
-pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxResult<(usize, Option<usize>)> {
+pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxResult<()> {
     unsafe extern "C" {
         static vdso_start: usize;
         static vdso_end: usize;
@@ -407,8 +407,7 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
             vvar_paddr,
         );
 
-        const AT_SYSINFO_EHDR: usize = 33;
-        let aux_pair: (usize, usize) = (AT_SYSINFO_EHDR, vdso_user_addr);
+        let aux_pair: (AuxType, usize) = (AuxType::SYSINFO_EHDR, vdso_user_addr);
         let aux_entry: AuxEntry = unsafe { core::mem::transmute(aux_pair) };
         auxv.push(aux_entry);
 
@@ -419,7 +418,7 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
         );
         return Err(AxError::InvalidExecutable);
     }
-    return Ok((vdso_user_addr, None));
+    return Ok(());
 }
 
 fn mapping_flags(flags: xmas_elf::program::Flags) -> MappingFlags {
