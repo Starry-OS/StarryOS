@@ -326,7 +326,7 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
     };
     let page_off = (rnd() % (VDSO_ASLR_PAGES as u64)) as usize;
     let vdso_user_addr = VDSO_USER_ADDR_BASE + page_off * PAGE_SIZE_4K;
-    info!("vdso_kstart: {vdso_kstart}, vdso_kend: {vdso_kend}",);
+    info!("vdso_kstart: {vdso_kstart:#x}, vdso_kend: {vdso_kend:#x}",);
 
     if vdso_kend > vdso_kstart {
         let vdso_paddr = virt_to_phys(vdso_kstart.into());
@@ -413,12 +413,10 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
 
     } else {
         warn!(
-            "vDSO binary is missing or invalid: vdso_kstart={:#x}, vdso_kend={:#x}. vDSO will not be loaded and AT_SYSINFO_EHDR will not be set.",
-            vdso_kstart, vdso_kend
-        );
+            "vDSO binary is missing or invalid: vdso_kstart={vdso_kstart:#x}, vdso_kend={vdso_kend:#x}. vDSO will not be loaded and AT_SYSINFO_EHDR will not be set.");
         return Err(AxError::InvalidExecutable);
     }
-    return Ok(());
+    Ok(())
 }
 
 fn mapping_flags(flags: xmas_elf::program::Flags) -> MappingFlags {
