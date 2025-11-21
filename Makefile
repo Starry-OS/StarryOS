@@ -21,15 +21,6 @@ ifeq ($(MEMTRACK), y)
 	APP_FEATURES += starry-api/memtrack
 endif
 
-VDSO_URL = https://github.com/muou000/starry-vdso/releases/download/vdso
-VDSO = vdso_$(ARCH).so
-vdso:
-	@if [ ! -f $(VDSO) ]; then \
-		echo "VDSO not found, downloading..."; \
-		curl -f -L $(VDSO_URL)/$(VDSO) -O; \
-	fi
-	@cp $(VDSO) ./vdso.so
-
 IMG_URL = https://github.com/Starry-OS/rootfs/releases/download/20250917
 IMG = rootfs-$(ARCH).img
 
@@ -45,7 +36,6 @@ defconfig justrun clean:
 	@make -C arceos $@
 
 build run debug disasm: defconfig
-	@make vdso
 	@make -C arceos $@
 
 # Aliases

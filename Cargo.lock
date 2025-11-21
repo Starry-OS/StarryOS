@@ -2127,6 +2127,7 @@ dependencies = [
  "starry-core",
  "starry-process",
  "starry-signal",
+ "starry-vdso",
 ]
 
 [[package]]
@@ -2177,6 +2178,7 @@ dependencies = [
  "starry-core",
  "starry-process",
  "starry-signal",
+ "starry-vdso",
  "starry-vm",
  "syscalls",
  "x86",
@@ -2187,6 +2189,7 @@ dependencies = [
 name = "starry-core"
 version = "0.1.0"
 dependencies = [
+ "axalloc",
  "axbacktrace",
  "axconfig",
  "axerrno",
@@ -2222,6 +2225,7 @@ dependencies = [
  "spin 0.10.0",
  "starry-process",
  "starry-signal",
+ "starry-vdso",
  "starry-vm",
  "strum",
  "uluru",
@@ -2255,6 +2259,11 @@ dependencies = [
  "starry-vm",
  "strum",
 ]
+
+[[package]]
+name = "starry-vdso"
+version = "0.1.0"
+source = "git+https://github.com/muou000/starry-vdso.git?rev=bf1aeba#bf1aebae859cac70df68c2f07ff3b0e0acce1a24"
 
 [[package]]
 name = "starry-vm"

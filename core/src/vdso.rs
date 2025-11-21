@@ -12,6 +12,7 @@ use axhal::{
 use axmm::AddrSpace;
 use kernel_elf_parser::{AuxEntry, AuxType};
 use memory_addr::{MemoryAddr, PAGE_SIZE_4K};
+use axalloc::{global_allocator, UsageKind};
 
 /// Clock mode constants
 const VDSO_CLOCKMODE_NONE: i32 = 0;
@@ -20,20 +21,6 @@ const VDSO_CLOCKMODE_PVCLOCK: i32 = 2;
 
 /// Number of clock bases
 const VDSO_BASES: usize = 16;
-
-use core::arch::global_asm;
-
-global_asm!("
-    .global vdso_start, vdso_end
-    .section .data
-    .balign 4096
-vdso_start:
-    .incbin \"vdso.so\"
-    .balign 4096
-vdso_end:
-
-    .previous
-");
 
 /// Compute multiplier and shift to convert from timer_frequency to nanos_per_sec.
 fn clocks_calc_mult_shift(from: u64, to: u64, maxsec: u32) -> (u32, u32) {
@@ -68,7 +55,7 @@ fn clocks_calc_mult_shift(from: u64, to: u64, maxsec: u32) -> (u32, u32) {
 
 /// vDSO timestamp structure
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct VdsoTimestamp {
     /// Seconds
     pub sec: u64,
@@ -83,14 +70,9 @@ impl VdsoTimestamp {
     }
 }
 
-impl Default for VdsoTimestamp {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// vDSO clock data structure
 #[repr(C)]
+#[derive(Default)]
 pub struct VdsoClock {
     /// Sequence counter for lockless reads
     pub seq: AtomicU32,
@@ -139,15 +121,10 @@ impl VdsoClock {
 
 }
 
-impl Default for VdsoClock {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// Main vDSO data placed in `.data` (aligned to 4K)
 #[repr(C)]
 #[repr(align(4096))]
+#[derive(Default)]
 pub struct VdsoData {
     /// Clock data
     pub clocks: [VdsoClock; 2],
@@ -200,6 +177,9 @@ impl VdsoData {
                         if !(mult == u32::MAX && shift == 0) {
                             clk.mult = mult;
                             clk.shift = shift;
+                            clk.cycle_last.store(cycle_now, Ordering::Relaxed);
+                            clk.basetime[1].sec = mono_ns / NANOS_PER_SEC;
+                            clk.basetime[1].nsec = mono_ns % NANOS_PER_SEC;
                         } else {
                             let delta_cycles = (cycle_now.wrapping_sub(prev_cycle)) & clk.mask;
                             let delta_ns = mono_ns.saturating_sub(prev_basetime_ns);
@@ -262,12 +242,6 @@ impl VdsoData {
     }
 }
 
-impl Default for VdsoData {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// Global vDSO data instance
 #[unsafe(link_section = ".data")]
 static mut VDSO_DATA: VdsoData = VdsoData::new();
@@ -298,20 +272,14 @@ pub fn vdso_data_paddr() -> usize {
 
 /// Load vDSO into the given user address space and update auxv accordingly.
 pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxResult<()> {
-    unsafe extern "C" {
-        static vdso_start: usize;
-        static vdso_end: usize;
-    }
-    let (vdso_kstart, vdso_kend) = unsafe {
+    let (vdso_start, vdso_end) = unsafe { starry_vdso::embed::init_vdso_symbols() };
+    let (vdso_kstart, vdso_kend) =
         (
-            &vdso_start as *const usize as usize,
-            &vdso_end as *const usize as usize,
-        )
-    };
-
+            vdso_start,
+            vdso_end,
+        );
 
     const VDSO_USER_ADDR_BASE: usize = 0x7f00_0000;
-
     const VDSO_ASLR_PAGES: usize = 256;
 
     let rnd = || {
@@ -329,12 +297,35 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
     info!("vdso_kstart: {vdso_kstart:#x}, vdso_kend: {vdso_kend:#x}",);
 
     if vdso_kend > vdso_kstart {
-        let vdso_paddr = virt_to_phys(vdso_kstart.into());
-        let vdso_size = (vdso_kend - vdso_kstart + PAGE_SIZE_4K - 1) & !(PAGE_SIZE_4K - 1);
+        let orig_vdso_len = vdso_kend - vdso_kstart;
+        let orig_page_off = vdso_kstart & (PAGE_SIZE_4K - 1);
 
-        // Parse the embedded vDSO ELF and map each PT_LOAD segment with correct permissions.
-        let vdso_len = vdso_kend - vdso_kstart;
-        let vdso_bytes = unsafe { core::slice::from_raw_parts(vdso_kstart as *const u8, vdso_len) };
+        let (vdso_paddr_page, vdso_bytes, vdso_size, vdso_page_offset) = if orig_page_off == 0 {
+            // Already page aligned: use original memory region directly.
+            let vdso_paddr_page = virt_to_phys(vdso_kstart.into());
+            let vdso_size = (vdso_kend - vdso_kstart + PAGE_SIZE_4K - 1) & !(PAGE_SIZE_4K - 1);
+            let vdso_bytes = unsafe { core::slice::from_raw_parts(vdso_kstart as *const u8, orig_vdso_len) };
+            (vdso_paddr_page, vdso_bytes, vdso_size, 0usize)
+        } else {
+            // Need to allocate page-aligned kernel pages and copy the vdso there.
+            let total_size = orig_vdso_len + orig_page_off;
+            let num_pages = total_size.div_ceil(PAGE_SIZE_4K);
+            let alloc_vaddr = match global_allocator().alloc_pages(num_pages, PAGE_SIZE_4K, UsageKind::Global) {
+                Ok(a) => a,
+                Err(_) => return Err(AxError::InvalidExecutable),
+            };
+            let alloc_ptr = alloc_vaddr as *mut u8;
+            // destination start where vdso_start should reside
+            let dest = unsafe { alloc_ptr.add(orig_page_off) };
+            let src = vdso_kstart as *const u8;
+            unsafe {
+                core::ptr::copy_nonoverlapping(src, dest, orig_vdso_len);
+            }
+            let vdso_paddr_page = virt_to_phys(alloc_vaddr.into());
+            let vdso_size = num_pages * PAGE_SIZE_4K;
+            let vdso_bytes = unsafe { core::slice::from_raw_parts(dest as *const u8, orig_vdso_len) };
+            (vdso_paddr_page, vdso_bytes, vdso_size, orig_page_off)
+        };
 
         match kernel_elf_parser::ELFHeadersBuilder::new(vdso_bytes).and_then(|b| {
             let range = b.ph_range();
@@ -352,7 +343,21 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
                     let seg_align_size =
                         (ph.mem_size as usize + seg_pad + PAGE_SIZE_4K - 1) & !(PAGE_SIZE_4K - 1);
                     let seg_user_start = vdso_user_addr + vaddr.align_down_4k();
-                    let seg_paddr = vdso_paddr + vaddr.align_down_4k();
+                    let seg_paddr = vdso_paddr_page + vdso_page_offset + vaddr.align_down_4k();
+
+                    let mapping_flags = |flags: xmas_elf::program::Flags| -> MappingFlags {
+                        let mut mapping_flags = MappingFlags::USER;
+                        if flags.is_read() {
+                            mapping_flags |= MappingFlags::READ;
+                        }
+                        if flags.is_write() {
+                            mapping_flags |= MappingFlags::WRITE;
+                        }
+                        if flags.is_execute() {
+                            mapping_flags |= MappingFlags::EXECUTE;
+                        }
+                        mapping_flags
+                    };
 
                     let flags = mapping_flags(ph.flags);
                     uspace
@@ -371,25 +376,41 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
                 uspace
                     .map_linear(
                         vdso_user_addr.into(),
-                        vdso_paddr,
+                        vdso_paddr_page + vdso_page_offset,
                         vdso_size,
                         MappingFlags::READ | MappingFlags::EXECUTE | MappingFlags::USER,
                     )
                     .map_err(|_| AxError::InvalidExecutable)?;
             }
         }
-
-        #[cfg(target_arch = "riscv64")]
-        const VVAR_PAGES: usize = 2;
-        #[cfg(target_arch = "loongarch64")]
-        const VVAR_PAGES: usize = 44;
-        #[cfg(target_arch = "x86_64")]
-        const VVAR_PAGES: usize = 4;
-        #[cfg(target_arch = "aarch64")]
-        const VVAR_PAGES: usize = 5;
-
+        use crate::config::VVAR_PAGES;
         let vvar_user_addr = vdso_user_addr - VVAR_PAGES * PAGE_SIZE_4K;
-        let vvar_paddr = crate::vdso::vdso_data_paddr();
+
+        // Allocate contiguous kernel pages for VVAR and copy the in-kernel
+        // `VDSO_DATA` into the first page. Mapping a multi-page user VVAR
+        // region directly from the static `VDSO_DATA` physical address would
+        // map arbitrary subsequent physical pages (not necessarily allocated),
+        // which can lead to hangs on some architectures (observed on aarch64).
+        let vvar_paddr = if VVAR_PAGES == 1 {
+            crate::vdso::vdso_data_paddr()
+        } else {
+            let num_pages = VVAR_PAGES;
+            let alloc_vaddr = match global_allocator().alloc_pages(num_pages, PAGE_SIZE_4K, UsageKind::Global) {
+                Ok(a) => a,
+                Err(_) => return Err(AxError::InvalidExecutable),
+            };
+            let dest = alloc_vaddr as *mut u8;
+            let src = core::ptr::addr_of!(VDSO_DATA) as *const u8;
+            let copy_len = core::mem::size_of::<VdsoData>();
+            unsafe {
+                core::ptr::copy_nonoverlapping(src, dest, copy_len);
+                // Zero the rest of the allocated VVAR pages
+                if num_pages * PAGE_SIZE_4K > copy_len {
+                    core::ptr::write_bytes(dest.add(copy_len), 0u8, num_pages * PAGE_SIZE_4K - copy_len);
+                }
+            }
+            virt_to_phys(alloc_vaddr.into()).into()
+        };
 
         uspace
             .map_linear(
@@ -417,18 +438,4 @@ pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxRes
         return Err(AxError::InvalidExecutable);
     }
     Ok(())
-}
-
-fn mapping_flags(flags: xmas_elf::program::Flags) -> MappingFlags {
-    let mut mapping_flags = MappingFlags::USER;
-    if flags.is_read() {
-        mapping_flags |= MappingFlags::READ;
-    }
-    if flags.is_write() {
-        mapping_flags |= MappingFlags::WRITE;
-    }
-    if flags.is_execute() {
-        mapping_flags |= MappingFlags::EXECUTE;
-    }
-    mapping_flags
 }
