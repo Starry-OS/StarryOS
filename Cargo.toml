@@ -76,6 +76,8 @@ starry-process = "0.2"
 starry-signal = "0.2"
 starry-vm = "0.2"
 
+starry-vdso = "0.1.0"
+
 starry-core = { path = "./core" }
 starry-api = { path = "./api" }
 
@@ -139,6 +141,8 @@ starry-signal.workspace = true
 starry-core.workspace = true
 starry-api.workspace = true
 
+starry-vdso.workspace = true
+
 [dependencies.axplat-riscv64-visionfive2]
 git = "https://github.com/Starry-OS/axplat-riscv64-visionfive2.git"
 rev = "5056c1d"
@@ -160,6 +164,8 @@ page_table_multiarch = { git = "https://github.com/Starry-OS/page_table_multiarc
 starry-process = { git = "https://github.com/Starry-OS/starry-process.git", rev = "6327455" }
 starry-signal = { git = "https://github.com/Starry-OS/starry-signal.git", rev = "acdb5e9" }
 starry-vm = { git = "https://github.com/Starry-OS/starry-vm.git", rev = "4c91a6b" }
+
+starry-vdso = { git = "https://github.com/muou000/starry-vdso.git", rev = "bf1aeba"}
 
 [package.metadata.vendor-filter]
 platforms = ["riscv64gc-unknown-none-elf", "loongarch64-unknown-none-softfloat"]

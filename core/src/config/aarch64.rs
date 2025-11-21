@@ -21,3 +21,6 @@ pub const USER_INTERP_BASE: usize = 0x400_0000;
 
 /// The address of signal trampoline.
 pub const SIGNAL_TRAMPOLINE: usize = 0x4001_0000;
+
+/// The number of VVAR pages.
+pub const VVAR_PAGES: usize = 5;
