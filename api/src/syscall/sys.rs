@@ -125,6 +125,21 @@ pub fn sys_seccomp(_op: u32, _flags: u32, _args: *const ()) -> AxResult<isize> {
 }
 
 #[cfg(target_arch = "riscv64")]
+pub fn sys_riscv_hwprobe(
+    _pairs: *mut (),
+    _pair_count: usize,
+    _cpu_set: *const (),
+    _cpu_set_size: usize,
+    _flags: u64,
+) -> AxResult<isize> {
+    // riscv_hwprobe is used to query RISC-V hardware features
+    // For now, return ENOSYS to indicate it's not fully implemented
+    // Applications can fall back to other methods to detect features
+    warn!("riscv_hwprobe called but not fully implemented");
+    Err(AxError::Unsupported)
+}
+
+#[cfg(target_arch = "riscv64")]
 pub fn sys_riscv_flush_icache() -> AxResult<isize> {
     riscv::asm::fence_i();
     Ok(0)

@@ -20,12 +20,29 @@ use self::{
 };
 
 pub fn handle_syscall(uctx: &mut UserContext) {
-    // Handle RISC-V flush icache (syscall 259) which may not be in Sysno enum
+    // Handle RISC-V specific syscalls (258/259) which may not be in Sysno enum
+    // These are missing from syscalls crate since Linux v6.11 headers change
+    // See: https://github.com/jasonwhite/syscalls/issues/58
     #[cfg(target_arch = "riscv64")]
-    if uctx.sysno() == 259 {
-        let result = sys_riscv_flush_icache();
-        uctx.set_retval(result.unwrap_or_else(|err| -LinuxError::from(err).code() as _) as _);
-        return;
+    {
+        if uctx.sysno() == 258 {
+            // riscv_hwprobe
+            let result = sys_riscv_hwprobe(
+                uctx.arg0() as _,
+                uctx.arg1() as _,
+                uctx.arg2() as _,
+                uctx.arg3() as _,
+                uctx.arg4() as _,
+            );
+            uctx.set_retval(result.unwrap_or_else(|err| -LinuxError::from(err).code() as _) as _);
+            return;
+        }
+        if uctx.sysno() == 259 {
+            // riscv_flush_icache
+            let result = sys_riscv_flush_icache();
+            uctx.set_retval(result.unwrap_or_else(|err| -LinuxError::from(err).code() as _) as _);
+            return;
+        }
     }
 
     let Some(sysno) = Sysno::new(uctx.sysno()) else {
