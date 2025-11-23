@@ -47,7 +47,7 @@ try:
 
     PROMPT = "starry:~#"
 
-    s = socket.create_connection(("localhost", 4444), timeout=5)
+    s = socket.create_connection(("localhost", 4444), timeout=10)
     buffer = ""
     while True:
         try:
