@@ -109,7 +109,8 @@ dependencies = [
 [[package]]
 name = "arm-gic-driver"
 version = "0.15.8"
-source = "git+https://github.com/Starry-OS/arm-gic-driver.git?rev=2e33925#2e33925ef33a60ee5cbc4f951fa9e198b1243926"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f251a1a74133f802b55eaf5e340107b0024457aa9b2ac3c72074501bfa8509a5"
 dependencies = [
  "aarch64-cpu",
  "bitflags 2.10.0",
@@ -546,7 +547,7 @@ dependencies = [
 [[package]]
 name = "axplat"
 version = "0.3.0"
-source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#5ae3a6b23d8418dde5144d2a41a93224e7ad51ac"
+source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#78e624217e7a53bfaaeb0844e160c391093ed00b"
 dependencies = [
  "axplat-macros",
  "bitflags 2.10.0",
@@ -561,7 +562,7 @@ dependencies = [
 [[package]]
 name = "axplat-aarch64-peripherals"
 version = "0.3.0"
-source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#5ae3a6b23d8418dde5144d2a41a93224e7ad51ac"
+source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#78e624217e7a53bfaaeb0844e160c391093ed00b"
 dependencies = [
  "aarch64-cpu",
  "arm-gic-driver",
@@ -580,7 +581,7 @@ dependencies = [
 [[package]]
 name = "axplat-aarch64-qemu-virt"
 version = "0.3.0"
-source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#5ae3a6b23d8418dde5144d2a41a93224e7ad51ac"
+source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#78e624217e7a53bfaaeb0844e160c391093ed00b"
 dependencies = [
  "axconfig-macros",
  "axcpu",
@@ -593,7 +594,7 @@ dependencies = [
 [[package]]
 name = "axplat-loongarch64-qemu-virt"
 version = "0.3.0"
-source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#5ae3a6b23d8418dde5144d2a41a93224e7ad51ac"
+source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#78e624217e7a53bfaaeb0844e160c391093ed00b"
 dependencies = [
  "axconfig-macros",
  "axcpu",
@@ -610,7 +611,7 @@ dependencies = [
 [[package]]
 name = "axplat-macros"
 version = "0.1.0"
-source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#5ae3a6b23d8418dde5144d2a41a93224e7ad51ac"
+source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#78e624217e7a53bfaaeb0844e160c391093ed00b"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -620,7 +621,7 @@ dependencies = [
 [[package]]
 name = "axplat-riscv64-qemu-virt"
 version = "0.3.0"
-source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#5ae3a6b23d8418dde5144d2a41a93224e7ad51ac"
+source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#78e624217e7a53bfaaeb0844e160c391093ed00b"
 dependencies = [
  "axconfig-macros",
  "axcpu",
@@ -656,7 +657,7 @@ dependencies = [
 [[package]]
 name = "axplat-x86-pc"
 version = "0.3.0"
-source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#5ae3a6b23d8418dde5144d2a41a93224e7ad51ac"
+source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#78e624217e7a53bfaaeb0844e160c391093ed00b"
 dependencies = [
  "axconfig-macros",
  "axcpu",
