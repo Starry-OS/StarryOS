@@ -1,0 +1,8 @@
+[target.riscv64gc-unknown-linux-musl]
+linker = "/opt/musl/riscv64-linux-musl-cross/bin/riscv64-linux-musl-gcc"
+rustflags = [
+    "-C", "target-feature=+crt-static",
+    "-C", "link-self-contained=yes",
+    "-C", "relocation-model=static",
+]
+

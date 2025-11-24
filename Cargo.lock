@@ -2039,6 +2039,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
+name = "signalfd_test"
+version = "0.1.0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "simple-sdmmc"
 version = "0.1.0"
 source = "git+https://github.com/Starry-OS/simple-sdmmc.git?rev=db64be9#db64be91d8b5b0cae5c33f8e13e41a010233a306"
