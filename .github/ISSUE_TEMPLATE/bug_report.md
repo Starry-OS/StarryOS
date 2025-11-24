@@ -29,8 +29,6 @@ A clear and concise description of what actually happened.
 ## Environment
 
 - Architecture: [e.g., riscv64, loongarch64, x86_64, aarch64]
-- OS: [e.g., Linux, macOS, Windows]
-- Rust version: [e.g., 1.80.0]
 - QEMU version (if applicable): [e.g., 8.0.0]
 
 ## Logs/Error Messages
