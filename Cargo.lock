@@ -25,9 +25,9 @@ dependencies = [
 
 [[package]]
 name = "aho-corasick"
-version = "1.1.3"
+version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e60d3430d3a69478ad0993f19238d2df97c507009a52b3c10addcd7f6bcb916"
+checksum = "ddd31a130427c27518df266943a5308ed92d4b226cc639f5a8f1002816174301"
 dependencies = [
  "memchr",
 ]
@@ -281,17 +281,18 @@ dependencies = [
  "cfg-if",
  "crate_interface",
  "log",
+ "smallvec",
 ]
 
 [[package]]
 name = "axdriver_base"
 version = "0.1.2"
-source = "git+https://github.com/Starry-OS/axdriver_crates.git?rev=a263470#a2634709194f2fd595a52b660d7d43df7c32570e"
+source = "git+https://github.com/arceos-org/axdriver_crates.git?tag=dev-v01#cd0c5372cbf3964ffd8e9c398e0e6096b6bb909a"
 
 [[package]]
 name = "axdriver_block"
 version = "0.1.2"
-source = "git+https://github.com/Starry-OS/axdriver_crates.git?rev=a263470#a2634709194f2fd595a52b660d7d43df7c32570e"
+source = "git+https://github.com/arceos-org/axdriver_crates.git?tag=dev-v01#cd0c5372cbf3964ffd8e9c398e0e6096b6bb909a"
 dependencies = [
  "axdriver_base",
  "gpt_disk_io",
@@ -302,7 +303,7 @@ dependencies = [
 [[package]]
 name = "axdriver_display"
 version = "0.1.2"
-source = "git+https://github.com/Starry-OS/axdriver_crates.git?rev=a263470#a2634709194f2fd595a52b660d7d43df7c32570e"
+source = "git+https://github.com/arceos-org/axdriver_crates.git?tag=dev-v01#cd0c5372cbf3964ffd8e9c398e0e6096b6bb909a"
 dependencies = [
  "axdriver_base",
 ]
@@ -310,7 +311,7 @@ dependencies = [
 [[package]]
 name = "axdriver_input"
 version = "0.1.2"
-source = "git+https://github.com/Starry-OS/axdriver_crates.git?rev=a263470#a2634709194f2fd595a52b660d7d43df7c32570e"
+source = "git+https://github.com/arceos-org/axdriver_crates.git?tag=dev-v01#cd0c5372cbf3964ffd8e9c398e0e6096b6bb909a"
 dependencies = [
  "axdriver_base",
  "strum",
@@ -319,7 +320,7 @@ dependencies = [
 [[package]]
 name = "axdriver_net"
 version = "0.1.2"
-source = "git+https://github.com/Starry-OS/axdriver_crates.git?rev=a263470#a2634709194f2fd595a52b660d7d43df7c32570e"
+source = "git+https://github.com/arceos-org/axdriver_crates.git?tag=dev-v01#cd0c5372cbf3964ffd8e9c398e0e6096b6bb909a"
 dependencies = [
  "axdriver_base",
  "log",
@@ -329,7 +330,7 @@ dependencies = [
 [[package]]
 name = "axdriver_pci"
 version = "0.1.2"
-source = "git+https://github.com/Starry-OS/axdriver_crates.git?rev=a263470#a2634709194f2fd595a52b660d7d43df7c32570e"
+source = "git+https://github.com/arceos-org/axdriver_crates.git?tag=dev-v01#cd0c5372cbf3964ffd8e9c398e0e6096b6bb909a"
 dependencies = [
  "virtio-drivers",
 ]
@@ -337,7 +338,7 @@ dependencies = [
 [[package]]
 name = "axdriver_virtio"
 version = "0.1.2"
-source = "git+https://github.com/Starry-OS/axdriver_crates.git?rev=a263470#a2634709194f2fd595a52b660d7d43df7c32570e"
+source = "git+https://github.com/arceos-org/axdriver_crates.git?tag=dev-v01#cd0c5372cbf3964ffd8e9c398e0e6096b6bb909a"
 dependencies = [
  "axdriver_base",
  "axdriver_block",
@@ -352,7 +353,7 @@ dependencies = [
 [[package]]
 name = "axdriver_vsock"
 version = "0.1.2"
-source = "git+https://github.com/Starry-OS/axdriver_crates.git?rev=a263470#a2634709194f2fd595a52b660d7d43df7c32570e"
+source = "git+https://github.com/arceos-org/axdriver_crates.git?tag=dev-v01#cd0c5372cbf3964ffd8e9c398e0e6096b6bb909a"
 dependencies = [
  "axdriver_base",
  "log",
@@ -398,7 +399,7 @@ dependencies = [
 
 [[package]]
 name = "axfs-ng"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "axalloc",
  "axdriver",
@@ -411,7 +412,6 @@ dependencies = [
  "bitflags 2.10.0",
  "cfg-if",
  "chrono",
- "fatfs",
  "intrusive-collections",
  "kspin",
  "log",
@@ -699,7 +699,6 @@ dependencies = [
  "axdisplay",
  "axdriver",
  "axfs-ng",
- "axfs-ng-vfs",
  "axhal",
  "axinput",
  "axlog",
@@ -1192,15 +1191,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fatfs"
-version = "0.4.0"
-source = "git+https://github.com/Starry-OS/rust-fatfs.git?rev=2685439#2685439e679cc832a67fd21340258b7c018c0f33"
-dependencies = [
- "bitflags 2.10.0",
- "log",
-]
-
-[[package]]
 name = "flatten_objects"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1494,12 +1484,12 @@ checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
 
 [[package]]
 name = "libloading"
-version = "0.8.8"
+version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07033963ba89ebaf1584d767badaa2e8fcec21aedea6b8c0346d487d49c28667"
+checksum = "d7c4b02199fee7c5d21a5ae7d8cfa79a6ef5bb2fc834d6e9058e89c825efdc55"
 dependencies = [
  "cfg-if",
- "windows-targets",
+ "windows-link 0.2.1",
 ]
 
 [[package]]
@@ -1921,9 +1911,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.11.2"
+version = "1.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23d7fd106d8c02486a8d64e778353d1cffe08ce79ac2e82f540c86d0facf6912"
+checksum = "843bc0191f75f3e22651ae5f1e72939ab2f72a4bc30fa80a066bd66edefc24d4"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -1933,9 +1923,9 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.4.10"
+version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6b9458fa0bfeeac22b5ca447c63aaf45f28439a709ccd244698632f9aa6394d6"
+checksum = "5276caf25ac86c8d810222b3dbb938e512c55c6831a10f3e6ed1c93b84041f1c"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -1944,9 +1934,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.8.6"
+version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "caf4aa5b0f434c91fe5c7f1ecb6a5ece2130b02ad2a590589dda5146df959001"
+checksum = "7a2d987857b319362043e95f5353c0535c1f58eec5336fdfcf626430af7def58"
 
 [[package]]
 name = "ringbuf"
@@ -2570,6 +2560,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e6ad25900d524eaabdbbb96d20b4311e1e7ae1699af4fb28c17ae66c80d798a"
 
 [[package]]
+name = "windows-link"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5"
+
+[[package]]
 name = "windows-sys"
 version = "0.60.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2584,7 +2580,7 @@ version = "0.53.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5fe6031c4041849d7c496a8ded650796e7b6ecc19df1a431c1a363342e5dc91"
 dependencies = [
- "windows-link",
+ "windows-link 0.1.3",
  "windows_aarch64_gnullvm",
  "windows_aarch64_msvc",
  "windows_i686_gnu",
