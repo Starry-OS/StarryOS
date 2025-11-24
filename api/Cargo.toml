@@ -74,8 +74,8 @@ kernel_guard.workspace = true
 ksym.workspace = true
 
 static-keys = "0.8.2"
-tracepoint = { git = "https://github.com/Starry-OS/tracepoint.git" }
-# tracepoint = { path = "../../ax-project/tracepoint" }
+tracepoint = { git = "https://github.com/Starry-OS/tracepoint.git", package = "ktracepoint" }
+# tracepoint = { path = "../../ax-project/tracepoint",package = "ktracepoint" }
 # kbpf-basic = { path = "../../ax-project/kbpf-basic/" }
 # kprobe = { path = "../../ax-project/kprobe" }
 kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "7a93710" }

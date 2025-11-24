@@ -1317,7 +1317,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -1678,7 +1678,7 @@ dependencies = [
 [[package]]
 name = "kprobe"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kprobe#c5e419f4d4171d0ab0bc00ff5423e4c39b5a4fef"
+source = "git+https://github.com/Starry-OS/kprobe#0bcacdcad939133dd15c28b357e386951a37d4da"
 dependencies = [
  "cfg-if",
  "lock_api",
@@ -1701,6 +1701,18 @@ dependencies = [
 name = "ksym"
 version = "0.2.0"
 source = "git+https://github.com/Starry-OS/ksym?rev=8fa0df1#8fa0df12076718f84d16117f410375a2e0d87c5a"
+
+[[package]]
+name = "ktracepoint"
+version = "0.1.0"
+source = "git+https://github.com/Starry-OS/tracepoint.git#503e1fc4d19522b56e8cb5c38fad580932fa8f5c"
+dependencies = [
+ "lock_api",
+ "log",
+ "paste",
+ "static-keys",
+ "tp-lexer",
+]
 
 [[package]]
 name = "lazy_static"
@@ -2334,7 +2346,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -2547,6 +2559,7 @@ dependencies = [
  "kprobe",
  "kspin",
  "ksym",
+ "ktracepoint",
  "lazy_static",
  "lazyinit",
  "linkme",
@@ -2567,7 +2580,6 @@ dependencies = [
  "starry-vm",
  "static-keys",
  "syscalls",
- "tracepoint",
  "unwinding",
  "x86",
  "zerocopy 0.8.26",
@@ -2831,15 +2843,9 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
 
 [[package]]
-name = "tracepoint"
+name = "tp-lexer"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/tracepoint.git#545b0092cea1fa14d8348063bb73ac8d9a297e82"
-dependencies = [
- "lock_api",
- "log",
- "paste",
- "static-keys",
-]
+source = "git+https://github.com/Starry-OS/tp-lexer#065d96a2cd3bbc58db30bca3ecfe79d27264e953"
 
 [[package]]
 name = "uart_16550"

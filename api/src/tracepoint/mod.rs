@@ -141,13 +141,14 @@ fn common_trace_pipe_read(trace_buf: &mut dyn TracePipeOps, buf: &mut [u8]) -> u
     let mut peek_flag = false;
     loop {
         if let Some(record) = trace_buf.peek() {
+            // TODO: the time should be recorded when the tracepoint is hit
             let record_str = TraceEntryParser::parse::<KernelTraceAux, _>(
                 &tracepoint_map,
                 &trace_cmdline_cache,
                 record,
             );
             if copy_len + record_str.len() > buf.len() {
-                break; // Buffer is full
+                break;
             }
             let len = record_str.len();
             buf[copy_len..copy_len + len].copy_from_slice(record_str.as_bytes());
@@ -158,7 +159,7 @@ fn common_trace_pipe_read(trace_buf: &mut dyn TracePipeOps, buf: &mut [u8]) -> u
             trace_buf.pop(); // Remove the record after reading
             peek_flag = false;
         } else {
-            break; // No more records to read
+            break;
         }
     }
     copy_len
@@ -209,6 +210,14 @@ pub fn init_events(fs: Arc<SimpleFs>) -> DirMaker {
                     let event_info = event_info.clone();
                     move || Ok(event_info.id_file().read())
                 }),
+            );
+
+            event_root.add(
+                "filter",
+                DebugFsFile::new_regular(
+                    fs.clone(),
+                    event::EventFilterFile::new(event_info.clone()),
+                ),
             );
 
             subsystem_root.add(

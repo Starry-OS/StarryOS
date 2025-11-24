@@ -4,6 +4,7 @@
 #![feature(maybe_uninit_slice)]
 #![allow(missing_docs)]
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
+#![allow(clippy::non_upper_case_globals)]
 #[macro_use]
 extern crate axlog;
 

@@ -36,3 +36,37 @@ impl DebugFsFileOps for EventEnableFile {
         Ok(buf.len())
     }
 }
+
+/// File representing the "filter" attribute of a tracepoint event.
+pub struct EventFilterFile(Arc<EventInfo<KSpinNoPreempt<()>, KernelTraceAux>>);
+
+impl EventFilterFile {
+    /// Create a new `EventFilterFile` instance.
+    pub fn new(tracepoint_info: Arc<EventInfo<KSpinNoPreempt<()>, KernelTraceAux>>) -> Self {
+        EventFilterFile(tracepoint_info)
+    }
+}
+
+impl DebugFsFileOps for EventFilterFile {
+    fn read(&self, buf: &mut [u8], offset: u64) -> VfsResult<usize> {
+        let tracepoint_info = &self.0;
+        let filter_value = tracepoint_info.filter_file().read();
+        let offset = offset as usize;
+        if offset >= filter_value.len() {
+            return Ok(0);
+        }
+        let len = buf.len().min(filter_value.len() - offset);
+        buf[..len].copy_from_slice(&filter_value.as_bytes()[offset..offset + len]);
+        Ok(len)
+    }
+
+    fn write(&self, buf: &[u8], _offset: u64) -> VfsResult<usize> {
+        let tracepoint_info = &self.0;
+        let filter_str = core::str::from_utf8(buf).map_err(|_| VfsError::InvalidInput)?;
+        tracepoint_info
+            .filter_file()
+            .write(filter_str)
+            .map_err(|_| VfsError::InvalidInput)?;
+        Ok(buf.len())
+    }
+}
