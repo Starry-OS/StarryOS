@@ -24,7 +24,7 @@ jobs:
           arch: ${{ inputs.arch }}
 
       - name: Build
-        run: make ARCH=${{ inputs.arch }} build
+        run: make ARCH=${{ inputs.arch }} build MODE=debug
 
       - uses: actions/upload-artifact@v4
         with:
@@ -50,6 +50,11 @@ jobs:
         with:
           version: 10.1.0
           arch_list: ${{ inputs.arch }}
+
+      - name: Show environment info
+        run: |
+          uname -a
+          qemu-system-${{ inputs.arch }} --version
 
       - name: Download build artifact
         uses: actions/download-artifact@v4
