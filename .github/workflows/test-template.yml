@@ -51,11 +51,6 @@ jobs:
           version: 10.1.0
           arch_list: ${{ inputs.arch }}
 
-      - name: Show environment info
-        run: |
-          uname -a
-          qemu-system-${{ inputs.arch }} --version
-
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:

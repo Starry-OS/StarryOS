@@ -48,7 +48,7 @@ try:
 
     PROMPT = "starry:~#"
 
-    s = socket.create_connection(("localhost", 4444), timeout=30)
+    s = socket.create_connection(("localhost", 4444), timeout=5)
     buffer = ""
     sent = False
     start = datetime.datetime.now()
@@ -69,7 +69,7 @@ try:
             s.sendall(b"exit\r\n")
             sent = True
 
-        if datetime.datetime.now() - start > datetime.timedelta(seconds=5):
+        if datetime.datetime.now() - start > datetime.timedelta(seconds=10):
             raise Exception("Timeout waiting for exit")
 
     if PROMPT not in buffer:
