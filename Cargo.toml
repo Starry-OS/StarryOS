@@ -107,6 +107,7 @@ qemu = [
     "starry-api/vsock",
 
     "axfeat/defplat",
+    "axfeat/bus-pci",
 
     # auxilary features
     "axfeat/fs-times",
@@ -115,10 +116,6 @@ qemu = [
 smp = ["axfeat/smp", "axplat-riscv64-visionfive2?/smp"]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc-gpt"]
-
-# Stubs
-pci = ["axfeat/bus-pci"]
-mmio = ["axfeat/bus-mmio"]
 
 [dependencies]
 axdriver.workspace = true
