@@ -37,28 +37,6 @@ impl SysnoExt {
         Sysno::new(sysno).map(SysnoExt::Standard)
     }
 
-    /// Get the raw system call number
-    pub fn as_usize(self) -> usize {
-        match self {
-            SysnoExt::Standard(sysno) => sysno as usize,
-            #[cfg(target_arch = "riscv64")]
-            SysnoExt::RiscvHwprobe => 258,
-            #[cfg(target_arch = "riscv64")]
-            SysnoExt::RiscvFlushIcache => 259,
-        }
-    }
-
-    /// Get the raw system call number as u64
-    pub fn as_u64(self) -> u64 {
-        self.as_usize() as u64
-    }
-
-    /// Check if this is a RISC-V specific system call
-    #[cfg(target_arch = "riscv64")]
-    pub fn is_riscv_specific(self) -> bool {
-        matches!(self, SysnoExt::RiscvHwprobe | SysnoExt::RiscvFlushIcache)
-    }
-
     /// Convert to standard Sysno if possible
     pub fn to_standard(self) -> Option<Sysno> {
         match self {

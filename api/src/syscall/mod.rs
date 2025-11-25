@@ -59,7 +59,7 @@ pub fn handle_syscall(uctx: &mut UserContext) {
 
     // Handle standard syscalls from syscalls crate
     let Some(sysno) = sysno_ext.to_standard() else {
-        warn!("Unhandled extended syscall: {:?}", sysno_ext);
+        warn!("Unhandled extended syscall: {sysno_ext:?}");
         uctx.set_retval(-LinuxError::ENOSYS.code() as _);
         return;
     };
