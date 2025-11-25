@@ -24,7 +24,7 @@ pub enum SysnoExt {
 
 impl SysnoExt {
     /// Create a SysnoExt from a raw system call number
-    pub fn new(sysno: u64) -> Option<Self> {
+    pub fn new(sysno: usize) -> Option<Self> {
         #[cfg(target_arch = "riscv64")]
         {
             match sysno {
@@ -38,14 +38,19 @@ impl SysnoExt {
     }
 
     /// Get the raw system call number
-    pub fn as_u64(self) -> u64 {
+    pub fn as_usize(self) -> usize {
         match self {
-            SysnoExt::Standard(sysno) => sysno as u64,
+            SysnoExt::Standard(sysno) => sysno as usize,
             #[cfg(target_arch = "riscv64")]
             SysnoExt::RiscvHwprobe => 258,
             #[cfg(target_arch = "riscv64")]
             SysnoExt::RiscvFlushIcache => 259,
         }
+    }
+
+    /// Get the raw system call number as u64
+    pub fn as_u64(self) -> u64 {
+        self.as_usize() as u64
     }
 
     /// Check if this is a RISC-V specific system call
