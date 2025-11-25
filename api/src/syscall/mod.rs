@@ -7,6 +7,7 @@ mod resources;
 mod signal;
 mod sync;
 mod sys;
+mod sysno_ext;
 mod task;
 mod time;
 
@@ -18,35 +19,47 @@ use self::{
     fs::*, io_mpx::*, ipc::*, mm::*, net::*, resources::*, signal::*, sync::*, sys::*, task::*,
     time::*,
 };
+use self::sysno_ext::SysnoExt;
 
 pub fn handle_syscall(uctx: &mut UserContext) {
-    // Handle RISC-V specific syscalls (258/259) which may not be in Sysno enum
-    // These are missing from syscalls crate since Linux v6.11 headers change
+    // Use extended Sysno that includes RISC-V specific syscalls missing from syscalls crate
     // See: https://github.com/jasonwhite/syscalls/issues/58
+    // See also: docs/syscalls-riscv-issue.md
+    let Some(sysno_ext) = SysnoExt::new(uctx.sysno()) else {
+        warn!("Invalid syscall number: {}", uctx.sysno());
+        uctx.set_retval(-LinuxError::ENOSYS.code() as _);
+        return;
+    };
+
+    // Handle RISC-V specific syscalls that are not in the standard Sysno enum
     #[cfg(target_arch = "riscv64")]
     {
-        if uctx.sysno() == 258 {
-            // riscv_hwprobe
-            let result = sys_riscv_hwprobe(
-                uctx.arg0() as _,
-                uctx.arg1() as _,
-                uctx.arg2() as _,
-                uctx.arg3() as _,
-                uctx.arg4() as _,
-            );
-            uctx.set_retval(result.unwrap_or_else(|err| -LinuxError::from(err).code() as _) as _);
-            return;
-        }
-        if uctx.sysno() == 259 {
-            // riscv_flush_icache
-            let result = sys_riscv_flush_icache();
-            uctx.set_retval(result.unwrap_or_else(|err| -LinuxError::from(err).code() as _) as _);
-            return;
+        match sysno_ext {
+            SysnoExt::RiscvHwprobe => {
+                // riscv_hwprobe - query RISC-V hardware features
+                let result = sys_riscv_hwprobe(
+                    uctx.arg0() as _,
+                    uctx.arg1() as _,
+                    uctx.arg2() as _,
+                    uctx.arg3() as _,
+                    uctx.arg4() as _,
+                );
+                uctx.set_retval(result.unwrap_or_else(|err| -LinuxError::from(err).code() as _) as _);
+                return;
+            }
+            SysnoExt::RiscvFlushIcache => {
+                // riscv_flush_icache - flush instruction cache
+                let result = sys_riscv_flush_icache();
+                uctx.set_retval(result.unwrap_or_else(|err| -LinuxError::from(err).code() as _) as _);
+                return;
+            }
+            _ => {}
         }
     }
 
-    let Some(sysno) = Sysno::new(uctx.sysno()) else {
-        warn!("Invalid syscall number: {}", uctx.sysno());
+    // Handle standard syscalls from syscalls crate
+    let Some(sysno) = sysno_ext.to_standard() else {
+        warn!("Unhandled extended syscall: {:?}", sysno_ext);
         uctx.set_retval(-LinuxError::ENOSYS.code() as _);
         return;
     };
