@@ -2407,8 +2407,9 @@ dependencies = [
 
 [[package]]
 name = "syscalls"
-version = "0.6.18"
-source = "git+https://github.com/jasonwhite/syscalls.git?rev=92624de#92624de3dee33427fde46da083809d7e86a721ec"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "90db46b5b4962319605d435986c775ea45a0ad2561c09e1d5372b89afeb49cf4"
 
 [[package]]
 name = "thiserror"
