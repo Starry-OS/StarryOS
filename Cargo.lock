@@ -253,29 +253,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "axcpu"
-version = "0.3.0"
-source = "git+https://github.com/arceos-org/axcpu.git?tag=dev-v03#1dc46de5d5a0b6befba9fa25a560386e5d9e19c6"
-dependencies = [
- "aarch64-cpu",
- "axbacktrace",
- "cfg-if",
- "lazyinit",
- "linkme",
- "log",
- "loongArch64",
- "memory_addr",
- "page_table_entry",
- "page_table_multiarch",
- "percpu",
- "riscv",
- "static_assertions",
- "tock-registers 0.9.0",
- "x86",
- "x86_64",
-]
-
-[[package]]
 name = "axdisplay"
 version = "0.2.0"
 dependencies = [
@@ -455,7 +432,7 @@ dependencies = [
  "aarch64-cpu",
  "axalloc",
  "axconfig",
- "axcpu 0.2.2",
+ "axcpu",
  "axlog",
  "axplat",
  "axplat-aarch64-qemu-virt",
@@ -576,7 +553,7 @@ dependencies = [
  "arm-gic-driver",
  "arm_pl011",
  "arm_pl031",
- "axcpu 0.2.2",
+ "axcpu",
  "axplat",
  "int_ratio",
  "kspin",
@@ -592,7 +569,7 @@ version = "0.2.0"
 source = "git+https://github.com/Starry-OS/axplat_crates.git?rev=7eb392e#7eb392e1bed6bd102ed917e2b0cbf00efe065a90"
 dependencies = [
  "axconfig-macros",
- "axcpu 0.2.2",
+ "axcpu",
  "axplat",
  "axplat-aarch64-peripherals",
  "log",
@@ -605,7 +582,7 @@ version = "0.2.0"
 source = "git+https://github.com/Starry-OS/axplat_crates.git?rev=7eb392e#7eb392e1bed6bd102ed917e2b0cbf00efe065a90"
 dependencies = [
  "axconfig-macros",
- "axcpu 0.2.2",
+ "axcpu",
  "axplat",
  "chrono",
  "kspin",
@@ -633,7 +610,7 @@ version = "0.2.0"
 source = "git+https://github.com/Starry-OS/axplat_crates.git?rev=7eb392e#7eb392e1bed6bd102ed917e2b0cbf00efe065a90"
 dependencies = [
  "axconfig-macros",
- "axcpu 0.2.2",
+ "axcpu",
  "axplat",
  "kspin",
  "lazyinit",
@@ -651,7 +628,7 @@ version = "0.2.0"
 source = "git+https://github.com/Starry-OS/axplat-riscv64-visionfive2.git?rev=5056c1d#5056c1dd80eeada9578535d9f66b4500884e85c8"
 dependencies = [
  "axconfig-macros",
- "axcpu 0.2.2",
+ "axcpu",
  "axplat",
  "kspin",
  "lazyinit",
@@ -669,7 +646,7 @@ version = "0.2.0"
 source = "git+https://github.com/Starry-OS/axplat_crates.git?rev=7eb392e#7eb392e1bed6bd102ed917e2b0cbf00efe065a90"
 dependencies = [
  "axconfig-macros",
- "axcpu 0.2.2",
+ "axcpu",
  "axplat",
  "bitflags 2.10.0",
  "heapless 0.9.1",
@@ -2264,10 +2241,10 @@ dependencies = [
 
 [[package]]
 name = "starry-signal"
-version = "0.2.3"
-source = "git+https://github.com/Starry-OS/starry-signal.git?tag=dev-v02#0597c1695b7c724f6d40e0d5873eaa148679e8bd"
+version = "0.2.2"
+source = "git+https://github.com/Starry-OS/starry-signal.git?rev=acdb5e9#acdb5e9a76bc5e2244c04c4d5d842d9f3c0416a5"
 dependencies = [
- "axcpu 0.3.0",
+ "axcpu",
  "bitflags 2.10.0",
  "cfg-if",
  "derive_more",
