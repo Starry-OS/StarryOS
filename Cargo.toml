@@ -73,7 +73,7 @@ scope-local = "0.1"
 slab = { version = "0.4.9", default-features = false }
 spin = "0.10"
 starry-process = "0.2"
-starry-signal = "0.2"
+starry-signal = { version = "0.2", git = "https://github.com/Starry-OS/starry-signal.git", tag = "dev-v02" }
 starry-vm = "0.2"
 
 starry-core = { path = "./core" }
@@ -158,7 +158,6 @@ axplat-loongarch64-qemu-virt = { git = "https://github.com/Starry-OS/axplat_crat
 page_table_entry = { git = "https://github.com/Starry-OS/page_table_multiarch.git", rev = "9df46c8" }
 page_table_multiarch = { git = "https://github.com/Starry-OS/page_table_multiarch.git", rev = "9df46c8" }
 starry-process = { git = "https://github.com/Starry-OS/starry-process.git", rev = "6327455" }
-starry-signal = { git = "https://github.com/Starry-OS/starry-signal.git", rev = "acdb5e9" }
 starry-vm = { git = "https://github.com/Starry-OS/starry-vm.git", rev = "4c91a6b" }
 
 [package.metadata.vendor-filter]
