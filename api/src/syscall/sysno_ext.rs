@@ -53,3 +53,72 @@ impl From<Sysno> for SysnoExt {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_standard_syscall() {
+        // Test that standard syscalls are correctly wrapped
+        if let Some(sysno_ext) = SysnoExt::new(0) {
+            // syscall 0 should be a standard syscall (io_setup on RISC-V)
+            assert!(matches!(sysno_ext, SysnoExt::Standard(_)));
+            assert!(sysno_ext.to_standard().is_some());
+        }
+    }
+
+    #[cfg(target_arch = "riscv64")]
+    #[test]
+    fn test_new_riscv_hwprobe() {
+        // Test that syscall 258 is recognized as RiscvHwprobe
+        let sysno_ext = SysnoExt::new(258).expect("Should recognize riscv_hwprobe");
+        assert!(matches!(sysno_ext, SysnoExt::RiscvHwprobe));
+        assert!(sysno_ext.to_standard().is_none());
+    }
+
+    #[cfg(target_arch = "riscv64")]
+    #[test]
+    fn test_new_riscv_flush_icache() {
+        // Test that syscall 259 is recognized as RiscvFlushIcache
+        let sysno_ext = SysnoExt::new(259).expect("Should recognize riscv_flush_icache");
+        assert!(matches!(sysno_ext, SysnoExt::RiscvFlushIcache));
+        assert!(sysno_ext.to_standard().is_none());
+    }
+
+    #[test]
+    fn test_new_invalid_syscall() {
+        // Test that invalid syscall numbers return None
+        // Use a very large number that's unlikely to be a valid syscall
+        assert!(SysnoExt::new(999999).is_none());
+    }
+
+    #[test]
+    fn test_from_sysno() {
+        // Test From<Sysno> implementation
+        if let Some(sysno) = Sysno::new(0) {
+            let sysno_ext: SysnoExt = sysno.into();
+            assert!(matches!(sysno_ext, SysnoExt::Standard(_)));
+            assert_eq!(sysno_ext.to_standard(), Some(sysno));
+        }
+    }
+
+    #[test]
+    fn test_to_standard() {
+        // Test conversion to standard Sysno
+        if let Some(sysno) = Sysno::new(1) {
+            let sysno_ext = SysnoExt::Standard(sysno);
+            assert_eq!(sysno_ext.to_standard(), Some(sysno));
+        }
+    }
+
+    #[cfg(target_arch = "riscv64")]
+    #[test]
+    fn test_riscv_specific_to_standard() {
+        // Test that RISC-V specific syscalls cannot be converted to standard
+        let hwprobe = SysnoExt::RiscvHwprobe;
+        assert!(hwprobe.to_standard().is_none());
+
+        let flush_icache = SysnoExt::RiscvFlushIcache;
+        assert!(flush_icache.to_standard().is_none());
+    }
+}
