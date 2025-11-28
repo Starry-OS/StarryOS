@@ -17,16 +17,26 @@ use starry_process::Pid;
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct IpcPerm {
-    key: __kernel_key_t,
-    uid: __kernel_uid_t,
-    gid: __kernel_gid_t,
-    cuid: __kernel_uid_t,
-    cgid: __kernel_gid_t,
-    mode: __kernel_mode_t,
-    seq: c_ushort,
-    pad: c_ushort,
-    unused0: c_long,
-    unused1: c_long,
+    /// Key supplied to msgget(2)
+    pub key: __kernel_key_t,
+    /// Effective UID of owner
+    pub uid: __kernel_uid_t,
+    /// Effective GID of owner
+    pub gid: __kernel_gid_t,
+    /// Effective UID of creator
+    pub cuid: __kernel_uid_t,
+    /// Effective GID of creator
+    pub cgid: __kernel_gid_t,
+    /// Permissions (least significant 9 bits define access permissions)
+    pub mode: __kernel_mode_t,
+    /// Sequence number
+    pub seq: c_ushort,
+    /// Padding
+    pub pad: c_ushort,
+    /// Unused field
+    pub unused0: c_long,
+    /// Unused field
+    pub unused1: c_long,
 }
 
 /// Data structure describing a shared memory segment.
