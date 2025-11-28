@@ -21,6 +21,7 @@ use axsync::{Mutex, spin::SpinNoIrq};
 use axtask::{AxTaskRef, TaskExt, TaskInner, WeakAxTaskRef, current};
 use extern_trait::extern_trait;
 use hashbrown::HashMap;
+use kprobe::{ProbeManager, ProbePointList};
 use lazy_static::lazy_static;
 use scope_local::{ActiveScope, Scope};
 use spin::RwLock;
@@ -34,6 +35,8 @@ use weak_map::WeakMap;
 pub use self::stat::TaskStat;
 use crate::{
     futex::{FutexKey, FutexTable},
+    lock_api::KSpinNoPreempt,
+    probe_aux::KprobeAuxiliary,
     resources::Rlimits,
     time::{TimeManager, TimerState},
 };
@@ -228,7 +231,13 @@ pub struct ProcessData {
     umask: AtomicU32,
 
     /// Kretprobe instances attached to this process
-    pub kretprobe_instances: RwLock<Vec<kprobe::KretprobeInstance>>,
+    pub kretprobe_instances: RwLock<Vec<kprobe::retprobe::RetprobeInstance>>,
+
+    /// Uprobe manager for this process
+    pub uprobe_manager: KSpinNoPreempt<ProbeManager<KSpinNoPreempt<()>, KprobeAuxiliary>>,
+
+    /// Uprobe point list for this process
+    pub uprobe_point_list: KSpinNoPreempt<ProbePointList<KprobeAuxiliary>>,
 }
 
 impl ProcessData {
@@ -265,6 +274,8 @@ impl ProcessData {
 
             umask: AtomicU32::new(0o022),
             kretprobe_instances: RwLock::new(Vec::new()),
+            uprobe_manager: KSpinNoPreempt::new(ProbeManager::new()),
+            uprobe_point_list: KSpinNoPreempt::new(ProbePointList::new()),
         })
     }
 

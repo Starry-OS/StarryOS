@@ -3,6 +3,7 @@ mod kprobe;
 pub mod raw_tracepoint;
 mod tracepoint;
 
+mod uprobe;
 use alloc::{
     boxed::Box,
     sync::{Arc, Weak},
@@ -13,8 +14,8 @@ use axerrno::{AxError, AxResult};
 use axpoll::Pollable;
 use hashbrown::HashMap;
 use kbpf_basic::{
-    linux_bpf::{perf_event_attr, perf_type_id},
-    perf::{PerfEventIoc, PerfProbeArgs},
+    linux_bpf::perf_event_attr,
+    perf::{PerfEventIoc, PerfProbeArgs, PerfTypeId},
 };
 use kspin::{SpinNoPreempt, SpinNoPreemptGuard};
 use lazyinit::LazyInit;
@@ -150,22 +151,25 @@ pub fn perf_event_open(
             .unwrap();
     axlog::info!("perf_event_process: {:#?}", args);
     let event: Box<dyn PerfEventOps> = match args.type_ {
-        // Kprobe
         // See /sys/bus/event_source/devices/kprobe/type
-        perf_type_id::PERF_TYPE_MAX => {
+        PerfTypeId::PERF_TYPE_KPROBE => {
             let probe_event = kprobe::perf_event_open_kprobe(args);
             Box::new(probe_event)
         }
-        perf_type_id::PERF_TYPE_SOFTWARE => {
+        PerfTypeId::PERF_TYPE_SOFTWARE => {
             let bpf_event = bpf::perf_event_open_bpf(args);
             Box::new(bpf_event)
         }
-        perf_type_id::PERF_TYPE_TRACEPOINT => {
+        PerfTypeId::PERF_TYPE_TRACEPOINT => {
             let tracepoint_event = tracepoint::perf_event_open_tracepoint(args)?;
             Box::new(tracepoint_event)
         }
+        PerfTypeId::PERF_TYPE_UPROBE => {
+            let uprobe_event = uprobe::perf_event_open_uprobe(args);
+            Box::new(uprobe_event)
+        }
         _ => {
-            unimplemented!("perf_event_process: unknown type: {:?}", args);
+            unimplemented!("perf_event_process: unknown type: {:#?}", args);
         }
     };
     let event = Arc::new(PerfEvent::new(event)) as Arc<dyn FileLike>;

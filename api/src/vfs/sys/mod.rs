@@ -52,5 +52,20 @@ pub fn init_sysfs(fs: &FsContext) -> LinuxResult<()> {
         .open(fs, kprobe_fmt.join("retprobe"))?
         .into_file()?;
     retprobe.write_at(&mut b"config:0\n".as_ref(), 0)?;
+
+    let uprobe_path = create_dir(fs, "/sys/bus/event_source/devices/uprobe")?;
+    let uprobe_fmt = create_dir(fs, "/sys/bus/event_source/devices/uprobe/format")?;
+    let uprobe_type = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(fs, uprobe_path.join("type"))?
+        .into_file()?;
+    uprobe_type.write_at(&mut b"7\n".as_ref(), 0)?;
+    let uretprobe = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(fs, uprobe_fmt.join("retprobe"))?
+        .into_file()?;
+    uretprobe.write_at(&mut b"config:0\n".as_ref(), 0)?;
     Ok(())
 }

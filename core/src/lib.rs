@@ -12,9 +12,11 @@ extern crate axlog;
 
 pub mod config;
 pub mod futex;
+pub mod lock_api;
 pub mod mm;
 pub mod resources;
 pub mod shm;
 pub mod task;
 pub mod time;
 pub mod vfs;
+pub mod probe_aux;

@@ -4,7 +4,7 @@ use core::{any::Any, sync::atomic::AtomicU32};
 use axerrno::AxResult;
 use axpoll::Pollable;
 use kbpf_basic::perf::{PerfProbeArgs, PerfProbeConfig};
-use kprobe::{CallBackFunc, KprobeBuilder, KretprobeBuilder, PtRegs};
+use kprobe::{CallBackFunc, KretprobeBuilder, ProbeBuilder, PtRegs};
 use rbpf::EbpfVmRaw;
 
 use crate::{
@@ -15,12 +15,14 @@ use crate::{
     },
     lock_api::KSpinNoPreempt,
     perf::PerfEventOps,
+    uprobe::unregister_uprobe,
 };
 
 #[derive(Debug)]
 pub enum ProbeTy {
     Kprobe(Arc<KernelKprobe>),
     Kretprobe(Arc<KernelKretprobe>),
+    Uprobe(Arc<crate::uprobe::KernelUprobe>),
 }
 
 #[derive(Debug)]
@@ -50,6 +52,9 @@ impl Drop for ProbePerfEvent {
                 ProbeTy::Kretprobe(ref kretprobe) => {
                     kretprobe.unregister_event_callback(*callback_id);
                 }
+                ProbeTy::Uprobe(ref uprobe) => {
+                    uprobe.unregister_event_callback(*callback_id);
+                }
             }
         }
         match self.probe {
@@ -58,6 +63,9 @@ impl Drop for ProbePerfEvent {
             }
             ProbeTy::Kretprobe(ref kretprobe) => {
                 unregister_kretprobe(kretprobe.clone());
+            }
+            ProbeTy::Uprobe(ref uprobe) => {
+                unregister_uprobe(uprobe.clone());
             }
         }
     }
@@ -76,13 +84,15 @@ impl Pollable for ProbePerfEvent {
 
 impl PerfEventOps for ProbePerfEvent {
     fn enable(&mut self) -> AxResult<()> {
-        axlog::warn!("enabling kprobe/rertprobe");
         match self.probe {
             ProbeTy::Kprobe(ref kprobe) => {
                 kprobe.enable();
             }
             ProbeTy::Kretprobe(ref kretprobe) => {
                 kretprobe.kprobe().enable();
+            }
+            ProbeTy::Uprobe(ref uprobe) => {
+                uprobe.enable();
             }
         }
         Ok(())
@@ -95,6 +105,9 @@ impl PerfEventOps for ProbePerfEvent {
             }
             ProbeTy::Kretprobe(ref kretprobe) => {
                 kretprobe.kprobe().disable();
+            }
+            ProbeTy::Uprobe(ref uprobe) => {
+                uprobe.disable();
             }
         }
         Ok(())
@@ -124,6 +137,9 @@ impl PerfEventOps for ProbePerfEvent {
             }
             ProbeTy::Kretprobe(ref kretprobe) => {
                 kretprobe.register_event_callback(id, callback);
+            }
+            ProbeTy::Uprobe(ref uprobe) => {
+                uprobe.register_event_callback(id, callback);
             }
         }
         self.callback_list.push(id);
@@ -161,7 +177,7 @@ impl CallBackFunc for KprobePerfCallBack {
     }
 }
 
-fn perf_probe_arg_to_kprobe_builder(args: &PerfProbeArgs) -> KprobeBuilder<KprobeAuxiliary> {
+fn perf_probe_arg_to_kprobe_builder(args: &PerfProbeArgs) -> ProbeBuilder<KprobeAuxiliary> {
     let symbol = &args.name;
     let addr = crate::vfs::KALLSYMS
         .get()
@@ -169,7 +185,11 @@ fn perf_probe_arg_to_kprobe_builder(args: &PerfProbeArgs) -> KprobeBuilder<Kprob
         .unwrap() as usize;
     // let addr = syscall_entry as usize;
     axlog::warn!("perf_probe: symbol: {}, addr: {:#x}", symbol, addr);
-    let builder = KprobeBuilder::new(Some(symbol.clone()), addr, 0, false);
+    let builder = ProbeBuilder::new()
+        .with_symbol(symbol.clone())
+        .with_symbol_addr(addr)
+        .with_offset(0)
+        .with_enable(false);
     builder
 }
 
@@ -182,7 +202,9 @@ fn perf_probe_arg_to_kretprobe_builder(
         .and_then(|ksym| ksym.lookup_name(symbol))
         .unwrap() as usize;
     axlog::warn!("perf_probe: symbol: {}, addr: {:#x}", symbol, addr);
-    let builder = KretprobeBuilder::<KSpinNoPreempt<()>>::new(Some(symbol.clone()), addr, 10);
+    let builder = KretprobeBuilder::<KSpinNoPreempt<()>>::new(10)
+        .with_symbol(symbol.clone())
+        .with_symbol_addr(addr);
     builder
 }
 

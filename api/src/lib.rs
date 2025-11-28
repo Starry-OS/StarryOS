@@ -27,6 +27,7 @@ pub mod task;
 pub mod terminal;
 pub mod time;
 pub mod tracepoint;
+mod uprobe;
 pub mod vfs;
 
 pub struct KernelPanicHelper;

@@ -1,6 +1,6 @@
 use alloc::string::ToString;
 
-use kprobe::{KprobeBuilder, KretprobeBuilder, ProbeData, PtRegs};
+use kprobe::{KretprobeBuilder, ProbeBuilder, ProbeData, PtRegs};
 
 use crate::{
     kprobe::{register_kprobe, unregister_kprobe},
@@ -38,7 +38,10 @@ pub fn kprobe_test() {
         "[kprobe] kprobe test for [detect_func]: {:#x}",
         detect_func as usize
     );
-    let kprobe_builder = KprobeBuilder::new(None, detect_func as usize, 0, true)
+    let kprobe_builder = ProbeBuilder::new()
+        .with_symbol_addr(detect_func as usize)
+        .with_offset(0)
+        .with_enable(true)
         .with_pre_handler(pre_handler)
         .with_post_handler(post_handler);
 
@@ -50,14 +53,13 @@ pub fn kprobe_test() {
         );
     };
 
-    let builder2 = KprobeBuilder::new(
-        Some("kprobe::detect_func".to_string()),
-        detect_func as usize,
-        0,
-        true,
-    )
-    .with_pre_handler(new_pre_handler)
-    .with_post_handler(post_handler);
+    let builder2 = ProbeBuilder::new()
+        .with_symbol("kprobe::detect_func".to_string())
+        .with_symbol_addr(detect_func as usize)
+        .with_offset(0)
+        .with_enable(true)
+        .with_pre_handler(new_pre_handler)
+        .with_post_handler(post_handler);
 
     let kprobe2 = register_kprobe(builder2);
     ax_println!(
@@ -73,9 +75,10 @@ pub fn kprobe_test() {
         detect_func as usize
     );
 
-    let kretprobe_builder =
-        KretprobeBuilder::<KSpinNoPreempt<()>>::new(None, detect_func as usize, 10)
-            .with_ret_handler(kret_post_handler);
+    let kretprobe_builder = KretprobeBuilder::<KSpinNoPreempt<()>>::new(10)
+        .with_symbol_addr(detect_func as usize)
+        .with_enable(true)
+        .with_ret_handler(kret_post_handler);
 
     let kretprobe = crate::kprobe::register_kretprobe(kretprobe_builder);
     ax_println!(

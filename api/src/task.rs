@@ -69,14 +69,27 @@ pub fn new_user_task(
                                 if unsafe { uctx.emulate_unaligned() }.is_ok() {
                                     break 'exc;
                                 }
-                                Signo::SIGBUS
+                                Some(Signo::SIGBUS)
                             }
-                            ExceptionKind::Breakpoint => Signo::SIGTRAP,
-                            ExceptionKind::IllegalInstruction => Signo::SIGILL,
-                            _ => Signo::SIGTRAP,
+                            #[cfg(target_arch = "x86_64")]
+                            ExceptionKind::Debug => {
+                                crate::exception::user_debug_handler(&mut uctx);
+                                None
+                            }
+                            ExceptionKind::Breakpoint => {
+                                crate::exception::user_ebreak_handler(&mut uctx, 0);
+                                None
+                            }
+                            ExceptionKind::IllegalInstruction => Some(Signo::SIGILL),
+                            other => {
+                                axlog::error!("Unhandled exception kind: {:?}", other);
+                                Some(Signo::SIGTRAP)
+                            }
                         };
-                        raise_signal_fatal(SignalInfo::new_kernel(signo))
-                            .expect("Failed to send SIGTRAP");
+                        if let Some(signo) = signo {
+                            raise_signal_fatal(SignalInfo::new_kernel(signo))
+                                .expect("Failed to send fatal signal");
+                        }
                     }
                     r => {
                         warn!("Unexpected return reason: {r:?}");
@@ -85,8 +98,34 @@ pub fn new_user_task(
                     }
                 }
 
+                #[cfg(target_arch = "x86_64")]
+                let enable: bool;
+                #[cfg(target_arch = "x86_64")]
+                {
+                    use x86::bits64::rflags;
+
+                    let rflags = uctx.rflags;
+                    let rflags = rflags::RFlags::from_bits_truncate(rflags);
+                    enable = rflags.contains(rflags::RFlags::FLAGS_TF);
+                    // clear the trap flag
+                    let rflags = rflags - rflags::RFlags::FLAGS_TF;
+                    uctx.rflags = rflags.bits();
+                }
+
+                // WARN: the signal handler may be called if there are some pending signals,
+                // but the single step mode should not be enabled here.
                 if !unblock_next_signal() {
                     while check_signals(thr, &mut uctx, None) {}
+                }
+
+                #[cfg(target_arch = "x86_64")]
+                {
+                    if enable {
+                        use x86::bits64::rflags;
+                        let mut rflags = rflags::RFlags::from_bits_truncate(uctx.rflags);
+                        rflags |= rflags::RFlags::FLAGS_TF;
+                        uctx.rflags = rflags.bits();
+                    }
                 }
 
                 set_timer_state(&curr, TimerState::User);

@@ -47,7 +47,8 @@ BUILD_CRATES = \
 
 BUILD_EBPF_CRATES = \
 	rawtp \
-	mytrace
+	mytrace \
+	upb
 
 BUILD_EBPF_CRATES_ARCH = \
 	syscall_ebpf \

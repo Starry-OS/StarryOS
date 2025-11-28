@@ -363,7 +363,7 @@ dependencies = [
 [[package]]
 name = "axcpu"
 version = "0.2.2"
-source = "git+https://github.com/Starry-OS/axcpu.git?rev=cc00dd0#cc00dd0a1670c285bfb724955902970104831b86"
+source = "git+https://github.com/Starry-OS/axcpu.git?rev=fc3154b#fc3154ba6499c8e458301cf51607f4d883f1f2ae"
 dependencies = [
  "aarch64-cpu",
  "axbacktrace 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1317,7 +1317,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1645,7 +1645,7 @@ dependencies = [
 [[package]]
 name = "kbpf-basic"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kbpf-basic?rev=7a93710#7a93710425b651ecb0508930c2e9f1958d6f9612"
+source = "git+https://github.com/Starry-OS/kbpf-basic?rev=ab3b368#ab3b368bf4d64d514969270a1cbd023fae61f0b9"
 dependencies = [
  "bitflags 2.10.0",
  "int-enum",
@@ -1678,7 +1678,7 @@ dependencies = [
 [[package]]
 name = "kprobe"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kprobe#0bcacdcad939133dd15c28b357e386951a37d4da"
+source = "git+https://github.com/Starry-OS/kprobe#985e06a8b66e78400dfa55d2faa3813619aa0dcf"
 dependencies = [
  "cfg-if",
  "lock_api",
@@ -2346,7 +2346,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
