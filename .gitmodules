@@ -2,3 +2,11 @@
 	path = arceos
 	url = https://github.com/Starry-OS/arceos
 	branch = main
+[submodule "local_crates/starry-signal"]
+	path = local_crates/starry-signal
+	url = https://github.com/TomGoh/starry-signal.git
+	branch = feat/sigstop-cont
+[submodule "local_crates/starry-process"]
+	path = local_crates/starry-process
+	url = https://github.com/TomGoh/starry-process.git
+	branch = feat/state-machine
