@@ -38,7 +38,7 @@ $ make img
 $ make run ARCH=riscv64
 ```
 
-**Note:** QEMU networking may require additional configuration when running in Docker. For running QEMU, you may need to use `--privileged` flag or configure proper networking.
+**Note:** QEMU networking may require additional configuration when running in Docker. For running QEMU, it is usually sufficient to add `--device /dev/kvm` for hardware acceleration and `--cap-add=NET_ADMIN` for networking. Avoid using the `--privileged` flag unless absolutely necessary, as it poses significant security risks. If you encounter issues, consult the QEMU and Docker documentation for more specific configuration options.
 
 ### Option B: Native Installation
 
