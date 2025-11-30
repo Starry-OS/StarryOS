@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+.gitmodules
+
+# Build artifacts
+target/
+*.bin
+*.elf
+*.img
+*.img.xz
+arceos/disk.img
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (optional, can be included if needed)
+# docs/
+
+# CI/CD (optional)
+.github/
+

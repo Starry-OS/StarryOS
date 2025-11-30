@@ -2,6 +2,46 @@
 
 ## Quick Start
 
+### Option A: Using Docker (Recommended for macOS and Windows)
+
+If you're on macOS or Windows, or want a consistent build environment, you can use Docker:
+
+```bash
+# Clone the repository
+$ git clone --recursive https://github.com/Starry-OS/StarryOS.git
+$ cd StarryOS
+
+# Build and start the Docker container
+$ docker-compose up -d
+
+# Enter the container
+$ docker-compose exec starryos bash
+
+# Inside the container, you can now build and run StarryOS
+$ make build
+$ make img
+$ make run ARCH=riscv64
+```
+
+Or use Docker directly:
+
+```bash
+# Build the Docker image
+$ docker build -t starryos:latest .
+
+# Run the container
+$ docker run -it --rm -v $(pwd):/workspace -w /workspace starryos:latest bash
+
+# Inside the container
+$ make build
+$ make img
+$ make run ARCH=riscv64
+```
+
+**Note:** QEMU networking may require additional configuration when running in Docker. For running QEMU, you may need to use `--privileged` flag or configure proper networking.
+
+### Option B: Native Installation
+
 ### 1. Install System Dependencies
 
 This step may vary depending on your operating system. Here is an example based on Debian:
@@ -83,6 +123,7 @@ $ make la
 ```
 
 Note:
+
 1. You don't have to rerun the build step before running. `run` will automatically rebuild it.
 2. The disk file will **not** be reset between each run. As a result, if you want to switch to another architecture, you must run `make img` with the new architecture before running `make run`.
 
@@ -94,10 +135,17 @@ If you're interested in contributing to the project, please see our [Contributin
 
 ## Other Options
 
-TODO
+### Docker Support
+
+Docker support is available to provide a consistent build environment across different operating systems. This is particularly useful for:
+
+- **macOS users**: Avoids issues with hardcoded compiler names in dependencies like `lwext4_rust`
+- **Windows users**: Provides a Linux build environment without WSL
+- **CI/CD**: Ensures consistent builds across different environments
+
+See the [Dockerfile](./Dockerfile) and [docker-compose.yml](./docker-compose.yml) for details.
 
 See [Makefile](./Makefile)
-
 
 ## License
 

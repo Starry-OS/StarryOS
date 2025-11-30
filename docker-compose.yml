@@ -1,0 +1,25 @@
+services:
+  starryos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: starryos:latest
+    container_name: starryos-build
+    volumes:
+      # Mount the project directory
+      - .:/workspace
+      # Cache Rust dependencies
+      - cargo-cache:/usr/local/cargo/registry
+      - cargo-git-cache:/usr/local/cargo/git
+    working_dir: /workspace
+    environment:
+      - RUSTUP_DIST_SERVER=
+    # Keep container running
+    stdin_open: true
+    tty: true
+    # Use host network for QEMU (if needed)
+    network_mode: host
+
+volumes:
+  cargo-cache:
+  cargo-git-cache:
