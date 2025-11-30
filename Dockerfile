@@ -58,7 +58,7 @@ ENV PATH="/opt/toolchains/riscv64-linux-musl-cross/bin:/opt/toolchains/loongarch
 # Create entrypoint script to fix line endings
 RUN printf '#!/bin/bash\n\
 # Fix line endings for shell scripts\n\
-find /workspace -type f -name "*.sh" -exec dos2unix {} + 2>/dev/null || true\n\
+find /workspace -type f -name "*.sh" -exec dos2unix {} + || true\n\
 # Execute the command passed to the container\n\
 exec "$@"\n' > /entrypoint.sh && \
     chmod +x /entrypoint.sh
