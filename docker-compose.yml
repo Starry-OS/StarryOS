@@ -13,7 +13,6 @@ services:
       - cargo-git-cache:/usr/local/cargo/git
     working_dir: /workspace
     environment:
-      - RUSTUP_DIST_SERVER=
     # Keep container running
     stdin_open: true
     tty: true
