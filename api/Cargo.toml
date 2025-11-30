@@ -60,7 +60,7 @@ spin.workspace = true
 starry-process.workspace = true
 starry-signal.workspace = true
 starry-vm.workspace = true
-syscalls = { git = "https://github.com/jasonwhite/syscalls.git", rev = "92624de", default-features = false }
+syscalls = { git = "https://github.com/Starry-OS/syscalls.git", rev = "efac241add625e84379607e5da643bbe34b28190", default-features = false }
 zerocopy = { version = "0.8.26", features = ["derive"] }
 
 starry-core.workspace = true
