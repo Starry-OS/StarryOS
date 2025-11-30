@@ -51,7 +51,6 @@ RUN cargo install cargo-binutils
 
 # Set environment variables
 ENV PATH="/opt/toolchains/riscv64-linux-musl-cross/bin:/opt/toolchains/loongarch64-linux-musl-cross/bin:$PATH"
-ENV RUSTUP_DIST_SERVER=""
 
 # Create entrypoint script to fix line endings
 RUN printf '#!/bin/bash\n\
