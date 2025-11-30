@@ -27,10 +27,13 @@ RUN mkdir -p /opt/toolchains && \
 
 # Install Musl toolchain for LoongArch64 (optional, for LoongArch support)
 RUN cd /opt/toolchains && \
-    curl -f -L https://github.com/LoongsonLab/oscomp-toolchains-for-oskernel/releases/download/loongarch64-linux-musl-cross-gcc-13.2.0/loongarch64-linux-musl-cross.tgz -o loongarch64-linux-musl-cross.tgz && \
-    tar -xzf loongarch64-linux-musl-cross.tgz && \
-    rm loongarch64-linux-musl-cross.tgz || echo "LoongArch toolchain download failed, continuing without it"
-
+    if curl -f -L https://github.com/LoongsonLab/oscomp-toolchains-for-oskernel/releases/download/loongarch64-linux-musl-cross-gcc-13.2.0/loongarch64-linux-musl-cross.tgz -o loongarch64-linux-musl-cross.tgz && \
+       tar -xzf loongarch64-linux-musl-cross.tgz && \
+       rm loongarch64-linux-musl-cross.tgz; then \
+        echo "LoongArch toolchain installed successfully."; \
+    else \
+        echo "WARNING: LoongArch toolchain download or extraction failed. LoongArch support will NOT be available."; \
+    fi
 # Set up Rust toolchain
 # Copy rust-toolchain.toml first - rustup will automatically use it
 WORKDIR /workspace
