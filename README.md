@@ -29,9 +29,11 @@ Or use Docker directly:
 # Build the Docker image
 $ docker build -t starryos:latest .
 
-# Run the container
-$ docker run -it --rm -v $(pwd):/workspace -w /workspace starryos:latest bash
+# Run the container (Unix/macOS/Linux/Windows PowerShell)
+$ docker run -it --rm -v ${PWD}:/workspace -w /workspace starryos:latest bash
 
+# For Windows Command Prompt, use:
+> docker run -it --rm -v %cd%:/workspace -w /workspace starryos:latest bash
 # Inside the container
 $ make build
 $ make img
