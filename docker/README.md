@@ -1,0 +1,54 @@
+# Docker Build Environment
+
+This directory contains Docker-related files for building StarryOS in a consistent Linux environment.
+
+## Files
+
+- `Dockerfile` - Main Docker image definition
+- `entrypoint.sh` - Entrypoint script that fixes line endings for shell scripts
+- `docker-compose.yml` - Optional Docker Compose configuration (for convenience)
+
+## Usage
+
+### Using Docker directly (Recommended)
+
+From the project root:
+
+```bash
+# Build the Docker image
+$ docker build -t starryos:latest -f docker/Dockerfile .
+
+# Run the container (Unix/macOS/Linux/Windows PowerShell)
+$ docker run -it --rm -v ${PWD}:/workspace -w /workspace starryos:latest bash
+
+# For Windows Command Prompt:
+> docker run -it --rm -v %cd%:/workspace -w /workspace starryos:latest bash
+```
+
+### Using Docker Compose (Optional)
+
+Docker Compose is provided as an optional convenience tool. From the project root:
+
+```bash
+# Build and start the container
+$ docker-compose -f docker/docker-compose.yml up -d
+
+# Enter the container
+$ docker-compose -f docker/docker-compose.yml exec starryos bash
+
+# Stop the container
+$ docker-compose -f docker/docker-compose.yml down
+```
+
+**Note:** Docker Compose is primarily designed for deploying applications. For development environments, using Docker commands directly is recommended and more straightforward.
+
+## Inside the Container
+
+Once inside the container, you can build and run StarryOS:
+
+```bash
+$ make build
+$ make img
+$ make run ARCH=riscv64
+```
+

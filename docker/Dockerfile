@@ -2,7 +2,8 @@
 # Provides a consistent Linux build environment for StarryOS
 # This solves the issue where macOS builds fail due to hardcoded compiler names in lwext4_rust
 
-FROM rust:1.80-slim
+# Use a lighter base image since we install a specific Rust version anyway
+FROM debian:bookworm-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,7 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     make \
     dos2unix \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Rust using rustup
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install Musl toolchain for RISC-V
 # Using musl.cc which provides pre-built cross-compilers
@@ -55,13 +61,9 @@ RUN cargo install cargo-binutils
 # Set environment variables
 ENV PATH="/opt/toolchains/riscv64-linux-musl-cross/bin:/opt/toolchains/loongarch64-linux-musl-cross/bin:$PATH"
 
-# Create entrypoint script to fix line endings
-RUN printf '#!/bin/bash\n\
-# Fix line endings for shell scripts\n\
-find /workspace -type f -name "*.sh" -exec dos2unix {} + || true\n\
-# Execute the command passed to the container\n\
-exec "$@"\n' > /entrypoint.sh && \
-    chmod +x /entrypoint.sh
+# Copy and set up entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Set working directory
 WORKDIR /workspace

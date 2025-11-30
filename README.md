@@ -11,34 +11,26 @@ If you're on macOS or Windows, or want a consistent build environment, you can u
 $ git clone --recursive https://github.com/Starry-OS/StarryOS.git
 $ cd StarryOS
 
-# Build and start the Docker container
-$ docker-compose up -d
-
-# Enter the container
-$ docker-compose exec starryos bash
-
-# Inside the container, you can now build and run StarryOS
-$ make build
-$ make img
-$ make run ARCH=riscv64
-```
-
-Or use Docker directly:
-
-```bash
 # Build the Docker image
-$ docker build -t starryos:latest .
+$ docker build -t starryos:latest -f docker/Dockerfile .
 
 # Run the container (Unix/macOS/Linux/Windows PowerShell)
 $ docker run -it --rm -v ${PWD}:/workspace -w /workspace starryos:latest bash
 
-# For Windows Command Prompt, use:
+# For Windows Command Prompt:
 > docker run -it --rm -v %cd%:/workspace -w /workspace starryos:latest bash
-# Inside the container
+```
+
+# Inside the container, you can now build and run StarryOS
+
+```bash
 $ make build
 $ make img
 $ make run ARCH=riscv64
+
 ```
+
+**Note:** Docker Compose is available as an optional convenience tool. See [docker/README.md](docker/README.md) for details. However, using Docker commands directly is recommended for development environments.
 
 **Note:** QEMU networking may require additional configuration when running in Docker. For running QEMU, it is usually sufficient to add `--device /dev/kvm` for hardware acceleration and `--cap-add=NET_ADMIN` for networking. Avoid using the `--privileged` flag unless absolutely necessary, as it poses significant security risks. If you encounter issues, consult the QEMU and Docker documentation for more specific configuration options.
 

@@ -1,23 +1,26 @@
+# Docker Compose configuration for StarryOS development
+# Note: This is an optional convenience tool for development.
+# You can also use Docker commands directly (see README.md)
+
 services:
   starryos:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     image: starryos:latest
     container_name: starryos-build
     volumes:
       # Mount the project directory
-      - .:/workspace
+      - ..:/workspace
       # Cache Rust dependencies
       - cargo-cache:/usr/local/cargo/registry
       - cargo-git-cache:/usr/local/cargo/git
     working_dir: /workspace
-    environment:
     # Keep container running
     stdin_open: true
     tty: true
-    # Use host network for QEMU (if needed)
 
 volumes:
   cargo-cache:
   cargo-git-cache:
+
