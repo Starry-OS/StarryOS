@@ -1,8 +1,8 @@
-use core::{ffi::c_long, sync::atomic::Ordering};
+use core::{ffi::c_long, future::poll_fn, sync::atomic::Ordering, task::Poll};
 
 use axerrno::{AxError, AxResult};
 use axhal::uspace::{ExceptionKind, ReturnReason, UserContext};
-use axtask::{TaskInner, current};
+use axtask::{CurrentTask, TaskInner, current, future::block_on};
 use bytemuck::AnyBitPattern;
 use linux_raw_sys::general::ROBUST_LIST_LIMIT;
 use starry_core::{
@@ -10,8 +10,8 @@ use starry_core::{
     mm::access_user_memory,
     shm::SHM_MANAGER,
     task::{
-        AsThread, get_process_data, get_task, send_signal_to_process, send_signal_to_thread,
-        set_timer_state,
+        AsThread, Thread, get_process_data, get_task, send_signal_to_process,
+        send_signal_to_thread, set_timer_state,
     },
     time::TimerState,
 };
@@ -85,6 +85,20 @@ pub fn new_user_task(
                     }
                 }
 
+                // Check for a potential stop signal
+                if !unblock_next_signal() {
+                    while check_signals(thr, &mut uctx, None) {}
+                }
+
+                // Handle the stop signal if any
+                handle_stopped_state(&curr, thr);
+
+                // Check for potential continue or kill signal
+                // after a `Ready` result is returned from the helper
+                // function handling the potential stopped state.
+                // This time, the state of the process may be
+                // set to be `Running` if it was previously stopped
+                // in the `do_continue` function within `check_signals`.
                 if !unblock_next_signal() {
                     while check_signals(thr, &mut uctx, None) {}
                 }
@@ -224,4 +238,181 @@ pub fn raise_signal_fatal(sig: SignalInfo) -> AxResult<()> {
     }
 
     Ok(())
+}
+
+/// Handle the potential stopped state of the current process,
+/// actually performing the stoppage.
+///
+/// The procedure is as follows:
+/// 1. Check if the process is stopped.
+/// 2. If the process is not stopped, return.
+/// 3. If the process is stopped, block until continued.
+///
+/// How this
+fn handle_stopped_state(curr: &CurrentTask, thr: &Thread) {
+    // Check if process is stopped and block until continued.
+    // If the process is not in the stopped state, return.
+    // The stopped state should have already been set
+    // if there is a signal that requests to stop the process
+    // in the previous `check_signals` function call with
+    // `do_stop` function in the stopped branch.
+    if !thr.proc_data.proc.is_stopped() {
+        return;
+    }
+
+    info!(
+        "Task {} blocked (process {} stopped)",
+        curr.id().as_u64(),
+        thr.proc_data.proc.pid()
+    );
+
+    // Deploy an async event for actually stopping the process
+    block_on(poll_fn(|cx| {
+        // Only return `Ready` when the stopped state has been updated to other states
+        if !thr.proc_data.proc.is_stopped() {
+            Poll::Ready(())
+        } else {
+            // This won't got executed when process is stopped until a
+            // SIGCONT or SIGKILL arrives, which would change the process state
+            info!(
+                "Task {} blocked (process {} stopped), checking signals",
+                curr.id().as_u64(),
+                thr.proc_data.proc.pid()
+            );
+            if thr.signal.has_signal(Signo::SIGCONT)
+                || thr.signal.has_signal(Signo::SIGKILL)
+                || thr.proc_data.signal.has_signal(Signo::SIGCONT)
+                || thr.proc_data.signal.has_signal(Signo::SIGKILL)
+            {
+                info!(
+                    "Task {} blocked (process {} stopped), signal received",
+                    curr.id().as_u64(),
+                    thr.proc_data.proc.pid()
+                );
+                return Poll::Ready(());
+            }
+
+            info!(
+                "Task {} blocked (process {} stopped), waiting for signal",
+                curr.id().as_u64(),
+                thr.proc_data.proc.pid()
+            );
+
+            // Register the waker for a `stop_event`
+            thr.proc_data.stop_event.register(cx.waker());
+            Poll::Pending
+        }
+    }));
+
+    info!(
+        "Task {} resumed (process {} continued)",
+        curr.id().as_u64(),
+        thr.proc_data.proc.pid()
+    );
+}
+/// Stop the current process per a stopping signal.
+///
+/// Several procedures are involved in this function:
+/// 1. Remove all SIGCONT signals pending in the process's queue.
+/// 2. Remove all SIGCONT signals pending in each thread's queue.
+/// 3. Record the stop signal in `ProcessData`.
+/// 4. Change the state of current process to `STOPPED`.
+/// 5. Notify parent process for this stoppage state change.
+///
+/// # Arguments
+///
+/// * `stop_signal` - The signal that causes the process to stop.
+pub(crate) fn do_stop(stop_signal: Signo) {
+    let curr = current();
+    let curr_thread = curr.as_thread();
+    let curr_process = &curr_thread.proc_data.proc;
+
+    // If current process is not running, do nothing.
+    if !curr_process.is_running() {
+        warn!("Process {} is not running", curr_process.pid());
+        return;
+    }
+
+    info!(
+        "Process {} stopping due to signal {}",
+        curr_process.pid(),
+        stop_signal as u8
+    );
+
+    // remove all SIGCONT signals pending in the process's queue
+    curr_thread.proc_data.signal.remove_signal(Signo::SIGCONT);
+
+    // remove all SIGCONT signals pending in each thread's queue
+    curr_process.threads().iter().for_each(|tid| {
+        if let Ok(thread) = get_task(*tid) {
+            thread.as_thread().signal.remove_signal(Signo::SIGCONT);
+        }
+    });
+
+    // record the stop signal in `ProcessData`
+    *curr_thread.proc_data.stop_signal.write() = Some(stop_signal);
+
+    // change the state of current process to `STOPPED`
+    curr_process.transition_to_stopped();
+
+    // notify parent process for this stoppage state change
+    if let Some(parent) = curr_process.parent()
+        && let Ok(parent_data) = get_process_data(parent.pid())
+    {
+        parent_data.child_exit_event.wake();
+
+        // POSIX: Send SIGCHLD to parent when child stops (unless SA_NOCLDSTOP set)
+        // TODO: Check SA_NOCLDSTOP flag when implemented
+        let siginfo = SignalInfo::new_kernel(Signo::SIGCHLD);
+        let _ = send_signal_to_process(parent.pid(), Some(siginfo));
+    }
+}
+
+/// Continue the current process per a `SIGCONT` signal.
+///
+/// The procedure is as follows:
+/// 1. Remove all stopping signals pending in the process's queue.
+/// 2. Remove all stopping signals pending in each thread's queue.
+/// 3. Change the state of current process to `RUNNING`.
+/// 4. Resume all threads in the process.
+/// 5. Notify parent process for this stoppage state change.
+pub(crate) fn do_continue() {
+    let curr = current();
+    let curr_thread = curr.as_thread();
+    let curr_proc = &curr_thread.proc_data.proc;
+
+    // If current process is not stopped, do nothing.
+    if !curr_proc.is_stopped() {
+        warn!("Process {} is not stopped", curr_proc.pid());
+        return;
+    }
+
+    info!("Process {} continuing due to signal", curr_proc.pid());
+
+    // remove all stopping signals pending in the process's queue
+    curr_thread.proc_data.signal.flush_stop_signals();
+
+    // remove all stopping signals pending in each thread's queue
+    for thread_pid in curr_proc.threads().iter() {
+        if let Ok(thread) = get_task(*thread_pid) {
+            thread.as_thread().signal.flush_stop_signals();
+        }
+    }
+
+    // change the state of current process to `RUNNING`
+    curr_proc.transition_to_running();
+
+    // wake up all threads
+    for thread_pid in curr_proc.threads().iter() {
+        if let Ok(thread) = get_task(*thread_pid) {
+            thread.interrupt();
+        }
+    }
+
+    // Notify parent process for this continuation state change
+    if let Some(parent) = curr_proc.parent()
+        && let Ok(parent_data) = get_process_data(parent.pid())
+    {
+        parent_data.child_exit_event.wake();
+    }
 }

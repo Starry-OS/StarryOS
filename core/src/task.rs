@@ -215,8 +215,12 @@ pub struct ProcessData {
     pub child_exit_event: Arc<PollSet>,
     /// Self exit event
     pub exit_event: Arc<PollSet>,
+    /// Self stop event
+    pub stop_event: Arc<PollSet>,
     /// The exit signal of the thread
     pub exit_signal: Option<Signo>,
+    /// The stop signal of the thread
+    pub stop_signal: RwLock<Option<Signo>>,
 
     /// The process signal manager
     pub signal: Arc<ProcessSignalManager>,
@@ -237,6 +241,7 @@ impl ProcessData {
         aspace: Arc<Mutex<AddrSpace>>,
         signal_actions: Arc<SpinNoIrq<SignalActions>>,
         exit_signal: Option<Signo>,
+        stop_signal: Option<Signo>,
     ) -> Arc<Self> {
         Arc::new(Self {
             proc,
@@ -251,7 +256,9 @@ impl ProcessData {
 
             child_exit_event: Arc::default(),
             exit_event: Arc::default(),
+            stop_event: Arc::default(),
             exit_signal,
+            stop_signal: RwLock::new(stop_signal),
 
             signal: Arc::new(ProcessSignalManager::new(
                 signal_actions,
@@ -498,6 +505,13 @@ pub fn send_signal_to_process(pid: Pid, sig: Option<SignalInfo>) -> AxResult<()>
     if let Some(sig) = sig {
         let signo = sig.signo();
         info!("Send signal {signo:?} to process {pid}");
+
+        // Wake the process up, if it is stopped, i.e. blocked on the `stop_event`,
+        // when a SIGCONT or a SIGKILL arrives
+        if signo == Signo::SIGCONT || signo == Signo::SIGKILL {
+            proc_data.stop_event.wake();
+        }
+
         if let Some(tid) = proc_data.signal.send_signal(sig)
             && let Ok(task) = get_task(tid)
         {
