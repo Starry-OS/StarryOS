@@ -2,6 +2,8 @@
 
 This directory contains Docker-related files for building StarryOS in a consistent Linux environment.
 
+- **Tip**: When running QEMU inside Docker, you may need extra options for hardware acceleration and networking (for example, `--device /dev/kvm` and `--cap-add=NET_ADMIN`). For more details, please refer to the official QEMU / Docker documentation.
+
 ## Files
 
 - `Dockerfile` - Main Docker image definition
@@ -51,4 +53,3 @@ $ make build
 $ make img
 $ make run ARCH=riscv64
 ```
-

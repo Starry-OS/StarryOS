@@ -19,27 +19,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Musl toolchains for all supported architectures
+# Download prebuilt toolchains from arceos-org/setup-musl (prebuilt release)
+RUN mkdir -p /opt/toolchains && \
+    cd /opt/toolchains && \
+    for arch in x86_64 aarch64 riscv64 loongarch64; do \
+    curl -f -L "https://github.com/arceos-org/setup-musl/releases/download/prebuilt/${arch}-linux-musl-cross.tgz" -o "${arch}-linux-musl-cross.tgz" && \
+    tar -xzf "${arch}-linux-musl-cross.tgz" && \
+    rm "${arch}-linux-musl-cross.tgz"; \
+    done
+
+# Make Musl toolchains available in PATH
+ENV PATH="/opt/toolchains/x86_64-linux-musl-cross/bin:/opt/toolchains/aarch64-linux-musl-cross/bin:/opt/toolchains/riscv64-linux-musl-cross/bin:/opt/toolchains/loongarch64-linux-musl-cross/bin:$PATH"
+
 # Install Rust using rustup
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none
 ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Install Musl toolchain for RISC-V
-# Using musl.cc which provides pre-built cross-compilers
-RUN mkdir -p /opt/toolchains && \
-    cd /opt/toolchains && \
-    curl -f -L https://musl.cc/riscv64-linux-musl-cross.tgz -o riscv64-linux-musl-cross.tgz && \
-    tar -xzf riscv64-linux-musl-cross.tgz && \
-    rm riscv64-linux-musl-cross.tgz
-
-# Install Musl toolchain for LoongArch64 (optional, for LoongArch support)
-RUN cd /opt/toolchains && \
-    if curl -f -L https://github.com/LoongsonLab/oscomp-toolchains-for-oskernel/releases/download/loongarch64-linux-musl-cross-gcc-13.2.0/loongarch64-linux-musl-cross.tgz -o loongarch64-linux-musl-cross.tgz && \
-       tar -xzf loongarch64-linux-musl-cross.tgz && \
-       rm loongarch64-linux-musl-cross.tgz; then \
-        echo "LoongArch toolchain installed successfully."; \
-    else \
-        echo "WARNING: LoongArch toolchain download or extraction failed. LoongArch support will NOT be available."; \
-    fi
 # Set up Rust toolchain
 # Copy rust-toolchain.toml first - rustup will automatically use it
 WORKDIR /workspace
@@ -47,19 +42,15 @@ WORKDIR /workspace
 # Copy rust-toolchain.toml - rustup will detect and use it
 COPY rust-toolchain.toml /workspace/rust-toolchain.toml
 
-# Install the toolchain specified in rust-toolchain.toml
-# rustup will automatically read the file when we change to the directory
+# Install the Rust toolchain specified in rust-toolchain.toml
+# Simply entering the directory and invoking Cargo will let rustup
+# read rust-toolchain.toml and install the correct toolchain,
+# components, and targets automatically.
 RUN cd /workspace && \
-    rustup toolchain install nightly-2025-05-20 && \
-    rustup default nightly-2025-05-20 && \
-    rustup component add rust-src llvm-tools rustfmt clippy && \
-    rustup target add x86_64-unknown-none riscv64gc-unknown-none-elf aarch64-unknown-none-softfloat loongarch64-unknown-none-softfloat
+    cargo -V
 
 # Install cargo tools
-RUN cargo install cargo-binutils
-
-# Set environment variables
-ENV PATH="/opt/toolchains/riscv64-linux-musl-cross/bin:/opt/toolchains/loongarch64-linux-musl-cross/bin:$PATH"
+RUN cargo install cargo-binutils axconfig-gen cargo-axplat
 
 # Copy and set up entrypoint script
 COPY docker/entrypoint.sh /entrypoint.sh

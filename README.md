@@ -4,35 +4,7 @@
 
 ### Option A: Using Docker (Recommended for macOS and Windows)
 
-If you're on macOS or Windows, or want a consistent build environment, you can use Docker:
-
-```bash
-# Clone the repository
-$ git clone --recursive https://github.com/Starry-OS/StarryOS.git
-$ cd StarryOS
-
-# Build the Docker image
-$ docker build -t starryos:latest -f docker/Dockerfile .
-
-# Run the container (Unix/macOS/Linux/Windows PowerShell)
-$ docker run -it --rm -v ${PWD}:/workspace -w /workspace starryos:latest bash
-
-# For Windows Command Prompt:
-> docker run -it --rm -v %cd%:/workspace -w /workspace starryos:latest bash
-```
-
-# Inside the container, you can now build and run StarryOS
-
-```bash
-$ make build
-$ make img
-$ make run ARCH=riscv64
-
-```
-
-**Note:** Docker Compose is available as an optional convenience tool. See [docker/README.md](docker/README.md) for details. However, using Docker commands directly is recommended for development environments.
-
-**Note:** QEMU networking may require additional configuration when running in Docker. For running QEMU, it is usually sufficient to add `--device /dev/kvm` for hardware acceleration and `--cap-add=NET_ADMIN` for networking. Avoid using the `--privileged` flag unless absolutely necessary, as it poses significant security risks. If you encounter issues, consult the QEMU and Docker documentation for more specific configuration options.
+For using Docker to build and run StarryOS, see [`docker/README.md`](docker/README.md).
 
 ### Option B: Native Installation
 
@@ -128,16 +100,6 @@ You can check out the [GUI guide](./docs/gui.md) to set up a graphical environme
 If you're interested in contributing to the project, please see our [Contributing Guide](./CONTRIBUTING.md).
 
 ## Other Options
-
-### Docker Support
-
-Docker support is available to provide a consistent build environment across different operating systems. This is particularly useful for:
-
-- **macOS users**: Avoids issues with hardcoded compiler names in dependencies like `lwext4_rust`
-- **Windows users**: Provides a Linux build environment without WSL
-- **CI/CD**: Ensures consistent builds across different environments
-
-See the [Dockerfile](./Dockerfile) and [docker-compose.yml](./docker-compose.yml) for details.
 
 See [Makefile](./Makefile)
 
