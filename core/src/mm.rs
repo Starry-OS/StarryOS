@@ -247,9 +247,11 @@ impl ElfLoader {
             ldso.as_ref()
                 .map_or_else(|| elf.entry(), |ldso| ldso.entry()),
         );
-        let auxv = elf
+        let mut auxv = elf
             .aux_vector(PAGE_SIZE_4K, ldso.map(|elf| elf.base()))
             .collect::<Vec<_>>();
+
+        crate::vdso::load_vdso_data(&mut auxv, uspace)?;
 
         Ok(Ok((entry, auxv)))
     }
