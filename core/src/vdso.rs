@@ -14,7 +14,7 @@ use starry_vdso::vdso::{VdsoAllocGuard, prepare_vdso_pages, vdso_data_paddr};
 /// Load vDSO into the given user address space and update auxv accordingly.
 pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxResult<()> {
     let (vdso_kstart, vdso_kend) = unsafe { starry_vdso::embed::init_vdso_symbols() };
-    info!("vdso_kstart: {vdso_kstart:#x}, vdso_kend: {vdso_kend:#x}",);
+    info!("vdso_kstart: {vdso_kstart:#x}, vdso_kend: {vdso_kend:#x}");
 
     if vdso_kend <= vdso_kstart {
         warn!(
