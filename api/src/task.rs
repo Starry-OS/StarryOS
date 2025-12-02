@@ -244,11 +244,36 @@ pub fn raise_signal_fatal(sig: SignalInfo) -> AxResult<()> {
 /// actually performing the stoppage.
 ///
 /// The procedure is as follows:
-/// 1. Check if the process is stopped.
-/// 2. If the process is not stopped, return.
-/// 3. If the process is stopped, block until continued.
+/// 1. Check if the process is stopped. If not, return immediately.
+/// 2. If the process is stopped, block the current task on the `stop_event`.
+/// 3. The task will be woken when a `SIGCONT` or `SIGKILL` signal arrives.
 ///
-/// How this
+/// # Implementation Details
+///
+/// How this function implements the process stop:
+/// - Using a `block_on` function to block the current task on a future that
+///   will not be ready unless the process is continued.
+/// - The future is created by a `poll_fn` function, which will poll the stopped
+///   state of the process.
+/// - The stopped state is checked in the `poll_fn` function, and the future
+///   will be ready when the stopped state is changed to other states.
+///
+/// This blocking future is registered in the `stop_event` of the process
+/// declared in the `ProcessData` struct. It will be woken
+/// if and only if a `SIGKILL` or a `SIGCONT` signal is sent to the process.
+/// When a `SIGKILL` or a `SIGCONT` signal is sent to the process (see
+/// `send_signal_to_process` in `core/src/task.rs`), the `stop_event` will wake
+/// up this blocked future. The future then checks:
+/// 1. If the process state has changed to non-stopped, return `Ready`
+///    immediately.
+/// 2. Otherwise, check if `SIGCONT` or `SIGKILL` is pending via `has_signal()`.
+///    If found, return `Ready` to allow signal processing to continue/kill the
+///    process.
+///
+/// # Arguments
+///
+/// * `curr` - The current task.
+/// * `thr` - The current thread.
 fn handle_stopped_state(curr: &CurrentTask, thr: &Thread) {
     // Check if process is stopped and block until continued.
     // If the process is not in the stopped state, return.
@@ -268,7 +293,11 @@ fn handle_stopped_state(curr: &CurrentTask, thr: &Thread) {
 
     // Deploy an async event for actually stopping the process
     block_on(poll_fn(|cx| {
-        // Only return `Ready` when the stopped state has been updated to other states
+        // Fast route: only directly return `Ready` when the process's stopped state has
+        // been updated to other states.
+        // This check is essential for multi-threading setting, can prevent the task
+        // from being blocked when the process is already continued by some other
+        // threads within the same process.
         if !thr.proc_data.proc.is_stopped() {
             Poll::Ready(())
         } else {

@@ -477,6 +477,14 @@ pub fn set_timer_state(task: &TaskInner, state: TimerState) {
 }
 
 fn send_signal_thread_inner(task: &TaskInner, thr: &Thread, sig: SignalInfo) {
+    let signo = sig.signo();
+
+    // Wake the process up, if it is stopped, i.e. blocked on the `stop_event`,
+    // when a SIGCONT or a SIGKILL arrives
+    if signo == Signo::SIGCONT || signo == Signo::SIGKILL {
+        thr.proc_data.stop_event.wake();
+    }
+
     if thr.signal.send_signal(sig) {
         task.interrupt();
     }

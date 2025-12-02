@@ -8,6 +8,36 @@ use starry_signal::{SignalOSAction, SignalSet, Signo};
 
 use crate::task::{do_continue, do_exit, do_stop};
 
+/// Check, and handle non-customized signals for a thread.
+///
+/// This function checks the signals for a thread and handles them if any are
+/// pending. The procedure of signal handling is as follows:
+/// 1. Do a pre-check for `SIGCONT`, if there is a `SIGCONT` and current process
+///    is stopped, continue the process no matter the signal is blocked/ignored
+///    or not.
+/// 2. Check the signal queue for the thread and handle the signal if any is
+///    pending. If the signal is unblocked, it would be removed from the thread-
+///    level signal queue and the signal would be handled following.
+/// 3. An early-return for a special case of `SIGCONT` where its corresponding
+///    disposition is set to be `SIG_IGN` (ignored). Since the process has
+///    already been continued in step 1, we return `true` without further
+///    processing.
+/// 4. Handle an unexpected case where a signal has no OS action (should not
+///    happen for normal signals). Log a warning and return `false`.
+/// 5. Handle the signal's OS-level action: Terminate, CoreDump, Stop, Continue,
+///    or Handler (which has already set up the user context for handler
+///    execution).
+///
+/// # Arguments
+///
+/// * `thr` - The thread to check signals for.
+/// * `uctx` - The user context to use for signal delivery.
+/// * `restore_blocked` - The signal set to restore after signal delivery.
+///
+/// # Returns
+///
+/// * `true` - If the signal is handled.
+/// * `false` - If the signal is not handled.
 pub fn check_signals(
     thr: &Thread,
     uctx: &mut UserContext,
