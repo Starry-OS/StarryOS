@@ -84,7 +84,7 @@ fn map_vvar_and_push_aux(
         .map_linear(
             vvar_user_addr.into(),
             vvar_paddr.into(),
-            2 * PAGE_SIZE_4K,
+            VVAR_PAGES * PAGE_SIZE_4K,
             MappingFlags::READ | MappingFlags::USER,
         )
         .map_err(|_| AxError::InvalidExecutable)?;
