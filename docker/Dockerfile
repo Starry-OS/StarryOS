@@ -52,14 +52,9 @@ RUN cd /workspace && \
 # Install cargo tools
 RUN cargo install cargo-binutils axconfig-gen cargo-axplat
 
-# Copy and set up entrypoint script
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-
 # Set working directory
 WORKDIR /workspace
 
-# Use entrypoint to fix line endings before running commands
-ENTRYPOINT ["/entrypoint.sh"]
+# Default command
 CMD ["/bin/bash"]
 

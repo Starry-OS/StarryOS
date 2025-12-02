@@ -7,7 +7,6 @@ This directory contains Docker-related files for building StarryOS in a consiste
 ## Files
 
 - `Dockerfile` - Main Docker image definition
-- `entrypoint.sh` - Entrypoint script that fixes line endings for shell scripts
 - `docker-compose.yml` - Optional Docker Compose configuration (for convenience)
 
 ## Usage

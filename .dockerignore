@@ -1,30 +1,39 @@
-# Git
-.git
-.gitignore
-.gitmodules
+# Docker build context for StarryOS
+#
+# Design:
+# - Ignore everything by default
+# - Then whitelist only what the Docker build actually needs
+# This keeps the file short and avoids duplicating .gitignore.
 
-# Build artifacts
-target/
-*.bin
-*.elf
-*.img
-*.img.xz
-arceos/disk.img
+# Ignore everything
+*
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# ---- Keep minimal metadata ----
+!.gitignore
+!.gitmodules
 
-# OS
-.DS_Store
-Thumbs.db
+# ---- Keep Docker-related files ----
+!docker/
+!docker/**
 
-# Documentation (optional, can be included if needed)
-# docs/
+# ---- Keep Rust toolchain and workspace manifests ----
+!rust-toolchain.toml
+!Cargo.toml
+!Cargo.lock
 
-# CI/CD (optional)
-.github/
+# ---- Keep source crates ----
+!api/
+!api/**
+!core/
+!core/**
+!arceos/
+!arceos/**
+
+# ---- Keep top-level docs that are referenced in README / useful in container ----
+!README.md
+!LICENSE
+!NOTICE
+!docs/
+!docs/**
+
 
