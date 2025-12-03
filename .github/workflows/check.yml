@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
+      with:
+        submodules: "recursive"
     - name: Install Rust
       uses: dtolnay/rust-toolchain@master
       with:
@@ -28,5 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
+      with:
+        submodules: "recursive"
     - name: Run Clippy
       run: cargo clippy --all-targets --all-features -- -D warnings
