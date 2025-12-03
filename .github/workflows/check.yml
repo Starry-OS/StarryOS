@@ -23,16 +23,17 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     fail-fast: false
-    matrix:
-      include:
-      - arch: riscv64
-        target: riscv64gc-unknown-none-elf
-      - arch: loongarch64
-        target: loongarch64-unknown-none-softfloat
-      - arch: aarch64
-        target: aarch64-unknown-none-softfloat
-      - arch: x86_64
-        target: x86_64-unknown-none
+    strategy:
+      matrix:
+        include:
+        - arch: riscv64
+          target: riscv64gc-unknown-none-elf
+        - arch: loongarch64
+          target: loongarch64-unknown-none-softfloat
+        - arch: aarch64
+          target: aarch64-unknown-none-softfloat
+        - arch: x86_64
+          target: x86_64-unknown-none
     steps:
     - uses: actions/checkout@v6
       with:
