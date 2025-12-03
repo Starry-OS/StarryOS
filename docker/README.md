@@ -17,13 +17,10 @@ From the project root:
 
 ```bash
 # Build the Docker image
-$ docker build -t starryos:latest -f docker/Dockerfile .
+$ docker build -t localhost/starry-env -f docker/Dockerfile .
 
-# Run the container (Unix/macOS/Linux/Windows PowerShell)
-$ docker run -it --rm -v ${PWD}:/workspace -w /workspace starryos:latest bash
-
-# For Windows Command Prompt:
-> docker run -it --rm -v %cd%:/workspace -w /workspace starryos:latest bash
+# Run the container
+$ docker run -it --rm -v .:/workspace localhost/starry-env
 ```
 
 ### Using Docker Compose (Optional)

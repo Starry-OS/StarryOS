@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     xz-utils \
     git \
     make \
+    python3 \
     dos2unix \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*

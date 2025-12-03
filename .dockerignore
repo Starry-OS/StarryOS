@@ -3,37 +3,18 @@
 # Design:
 # - Ignore everything by default
 # - Then whitelist only what the Docker build actually needs
-# This keeps the file short and avoids duplicating .gitignore.
+# The Docker build only needs:
+# 1. docker/ folder (contains Dockerfile)
+# 2. rust-toolchain.toml (needed to install Rust toolchain in Docker image)
+# All other files are mounted via volume at runtime, so they don't need to be in build context.
 
 # Ignore everything
 *
-
-# ---- Keep minimal metadata ----
-!.gitignore
-!.gitmodules
 
 # ---- Keep Docker-related files ----
 !docker/
 !docker/**
 
-# ---- Keep Rust toolchain and workspace manifests ----
+# ---- Keep Rust toolchain config (needed for Docker image build) ----
 !rust-toolchain.toml
-!Cargo.toml
-!Cargo.lock
-
-# ---- Keep source crates ----
-!api/
-!api/**
-!core/
-!core/**
-!arceos/
-!arceos/**
-
-# ---- Keep top-level docs that are referenced in README / useful in container ----
-!README.md
-!LICENSE
-!NOTICE
-!docs/
-!docs/**
-
 

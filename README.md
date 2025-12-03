@@ -2,13 +2,15 @@
 
 ## Quick Start
 
-### Option A: Using Docker (Recommended for macOS and Windows)
+### Docker
+
+**Recommended for macOS and Windows**
 
 For using Docker to build and run StarryOS, see [`docker/README.md`](docker/README.md).
 
-### Option B: Native Installation
+### Native
 
-### 1. Install System Dependencies
+#### 1. Install System Dependencies
 
 This step may vary depending on your operating system. Here is an example based on Debian:
 
@@ -19,7 +21,7 @@ $ sudo apt install -y build-essential cmake clang qemu-system
 
 **Note:** Running on LoongArch64 requires QEMU 10. If the QEMU version in your Linux distribution is too old (e.g. Ubuntu), consider installing QEMU from [source](https://www.qemu.org/download/).
 
-### 2. Install Musl Toolchain
+#### 2. Install Musl Toolchain
 
 1. Download files from https://github.com/arceos-org/setup-musl/releases/tag/prebuilt
 2. Extract to some path, for example `/opt/riscv64-linux-musl-cross`
@@ -28,7 +30,7 @@ $ sudo apt install -y build-essential cmake clang qemu-system
    $ export PATH=/opt/riscv64-linux-musl-cross/bin:$PATH
    ```
 
-### 3. Clone repo
+#### 3. Clone repo
 
 ```bash
 $ git clone --recursive https://github.com/Starry-OS/StarryOS.git
@@ -42,7 +44,7 @@ $ cd StarryOS
 $ git submodule update --init --recursive
 ```
 
-### 4. Setup Rust toolchain
+#### 4. Setup Rust toolchain
 
 ```bash
 # Install rustup from https://rustup.rs or using your system package manager
@@ -55,7 +57,7 @@ $ cd StarryOS
 $ rustup target list --installed
 ```
 
-### 5. Build
+#### 5. Build
 
 ```bash
 # Default target: riscv64
@@ -67,7 +69,7 @@ $ make ARCH=loongarch64 build
 
 This should also download required binary dependencies like [cargo-binutils](https://github.com/rust-embedded/cargo-binutils).
 
-### 6. Prepare rootfs
+#### 6. Prepare rootfs
 
 ```bash
 $ make img
@@ -77,7 +79,7 @@ $ make img ARCH=loongarch64
 
 This will download rootfs image from [GitHub Releases](https://github.com/Starry-OS/StarryOS/releases) and setup the disk file for running on QEMU.
 
-### 7. Run on QEMU
+#### 7. Run on QEMU
 
 ```bash
 $ make run ARCH=riscv64

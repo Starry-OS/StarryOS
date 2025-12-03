@@ -7,15 +7,13 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: starryos:latest
-    container_name: starryos-build
+    image: localhost/starry-env
     volumes:
       # Mount the project directory
       - ..:/workspace
       # Cache Rust dependencies
       - cargo-cache:/usr/local/cargo/registry
       - cargo-git-cache:/usr/local/cargo/git
-    working_dir: /workspace
     # Keep container running
     stdin_open: true
     tty: true
@@ -23,4 +21,3 @@ services:
 volumes:
   cargo-cache:
   cargo-git-cache:
-
