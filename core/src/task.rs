@@ -217,10 +217,13 @@ pub struct ProcessData {
     pub exit_event: Arc<PollSet>,
     /// Self stop event
     pub stop_event: Arc<PollSet>,
-    /// The exit signal of the thread
+    /// The signal to be sent to the parent process when this task terminates.
+    ///
+    /// - For normal processes (fork), this is usually `SIGCHLD`.
+    /// - For threads (clone with CLONE_THREAD), this is usually `None` (0).
+    ///
+    /// NOTE: This is NOT the signal that caused the task to exit.
     pub exit_signal: Option<Signo>,
-    /// The stop signal of the thread
-    pub stop_signal: RwLock<Option<Signo>>,
 
     /// The process signal manager
     pub signal: Arc<ProcessSignalManager>,
@@ -241,7 +244,6 @@ impl ProcessData {
         aspace: Arc<Mutex<AddrSpace>>,
         signal_actions: Arc<SpinNoIrq<SignalActions>>,
         exit_signal: Option<Signo>,
-        stop_signal: Option<Signo>,
     ) -> Arc<Self> {
         Arc::new(Self {
             proc,
@@ -258,7 +260,6 @@ impl ProcessData {
             exit_event: Arc::default(),
             stop_event: Arc::default(),
             exit_signal,
-            stop_signal: RwLock::new(stop_signal),
 
             signal: Arc::new(ProcessSignalManager::new(
                 signal_actions,

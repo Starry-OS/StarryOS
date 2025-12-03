@@ -180,7 +180,6 @@ pub fn sys_clone(
             aspace,
             signal_actions,
             exit_signal,
-            None,
         );
         proc_data.set_umask(old_proc_data.umask());
 

@@ -198,6 +198,14 @@ pub fn do_exit(exit_code: i32, group_exit: bool) {
 
     let process = &thr.proc_data.proc;
     if process.exit_thread(curr.id().as_u64() as Pid, exit_code) {
+        // Transition the process to ZOMBIE state before reparenting children.
+        //
+        // Rationale for this ordering:
+        // 1. Ensures the parent's wait() sees the `ZOMBIE` state immediately upon
+        //    wakeup (via Release-Acquire memory ordering with `is_zombie()`).
+        // 2. Maintains single responsibility: `Process::exit()` only handles child
+        //    reparenting, while state transitions remain explicit at the API layer.
+        process.transition_to_zombie();
         process.exit();
         if let Some(parent) = process.parent() {
             if let Some(signo) = thr.proc_data.exit_signal {
@@ -378,8 +386,8 @@ pub(crate) fn do_stop(stop_signal: Signo) {
         }
     });
 
-    // record the stop signal in `ProcessData`
-    *curr_thread.proc_data.stop_signal.write() = Some(stop_signal);
+    // record the stop signal in the `ProcessSignalManager`
+    curr_thread.proc_data.signal.set_stop_signal(stop_signal);
 
     // change the state of current process to `STOPPED`
     curr_process.transition_to_stopped();
@@ -427,6 +435,9 @@ pub(crate) fn do_continue() {
             thread.as_thread().signal.flush_stop_signals();
         }
     }
+
+    // record the continue event in the `ProcessSignalManager`
+    curr_thread.proc_data.signal.set_cont_signal();
 
     // change the state of current process to `RUNNING`
     curr_proc.transition_to_running();

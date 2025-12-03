@@ -52,7 +52,6 @@ pub fn run_initproc(args: &[String], envs: &[String]) -> i32 {
         Arc::new(Mutex::new(uspace)),
         Arc::default(),
         None,
-        None,
     );
     {
         let mut scope = proc_data.scope.write();
