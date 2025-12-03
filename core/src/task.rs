@@ -198,7 +198,14 @@ pub struct ProcessData {
     pub child_exit_event: Arc<PollSet>,
     /// Self exit event
     pub exit_event: Arc<PollSet>,
-    /// The exit signal of the thread
+    /// Self stop event
+    pub stop_event: Arc<PollSet>,
+    /// The signal to be sent to the parent process when this task terminates.
+    ///
+    /// - For normal processes (fork), this is usually `SIGCHLD`.
+    /// - For threads (clone with CLONE_THREAD), this is usually `None` (0).
+    ///
+    /// NOTE: This is NOT the signal that caused the task to exit.
     pub exit_signal: Option<Signo>,
 
     /// The process signal manager
@@ -234,6 +241,7 @@ impl ProcessData {
 
             child_exit_event: Arc::default(),
             exit_event: Arc::default(),
+            stop_event: Arc::default(),
             exit_signal,
 
             signal: Arc::new(ProcessSignalManager::new(
@@ -453,6 +461,14 @@ pub fn set_timer_state(task: &TaskInner, state: TimerState) {
 }
 
 fn send_signal_thread_inner(task: &TaskInner, thr: &Thread, sig: SignalInfo) {
+    let signo = sig.signo();
+
+    // Wake the process up, if it is stopped, i.e. blocked on the `stop_event`,
+    // when a SIGCONT or a SIGKILL arrives
+    if signo == Signo::SIGCONT || signo == Signo::SIGKILL {
+        thr.proc_data.stop_event.wake();
+    }
+
     if thr.signal.send_signal(sig) {
         task.interrupt();
     }
@@ -481,6 +497,13 @@ pub fn send_signal_to_process(pid: Pid, sig: Option<SignalInfo>) -> AxResult<()>
     if let Some(sig) = sig {
         let signo = sig.signo();
         info!("Send signal {signo:?} to process {pid}");
+
+        // Wake the process up, if it is stopped, i.e. blocked on the `stop_event`,
+        // when a SIGCONT or a SIGKILL arrives
+        if signo == Signo::SIGCONT || signo == Signo::SIGKILL {
+            proc_data.stop_event.wake();
+        }
+
         if let Some(tid) = proc_data.signal.send_signal(sig)
             && let Ok(task) = get_task(tid)
         {
