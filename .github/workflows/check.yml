@@ -22,8 +22,8 @@ jobs:
       run: cargo fmt --all -- --check
   clippy:
     runs-on: ubuntu-latest
-    fail-fast: false
     strategy:
+      fail-fast: false
       matrix:
         include:
         - arch: riscv64
