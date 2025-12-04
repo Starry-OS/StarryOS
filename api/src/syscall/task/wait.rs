@@ -90,13 +90,16 @@ pub fn sys_waitpid(pid: i32, exit_code: *mut i32, options: u32) -> AxResult<isiz
 
     let check_children = || {
         if let Some(child) = children.iter().find(|child| child.is_zombie()) {
+            let child_pid = child.pid();
+            let wait_status = child.exit_code();
+            
             if !options.contains(WaitOptions::WNOWAIT) {
                 child.free();
             }
-            if let Some(exit_code) = exit_code.nullable() {
-                exit_code.vm_write(child.exit_code())?;
+            if let Some(exit_code_ptr) = exit_code.nullable() {
+                exit_code_ptr.vm_write(wait_status)?;
             }
-            Ok(Some(child.pid() as _))
+            Ok(Some(child_pid as _))
         } else if options.contains(WaitOptions::WNOHANG) {
             Ok(Some(0))
         } else {

@@ -24,6 +24,23 @@ use crate::{
     syscall::handle_syscall,
 };
 
+/// Encode a normal exit code into the Linux wait status format.
+pub fn encode_exit_status(exit_code: u8) -> i32 {
+    ((exit_code as i32) & 0xff) << 8
+}
+
+/// Encode a signal termination into the Linux wait status format.
+///
+/// The lower 7 bits store the signal number; bit 7 is set when a core was
+/// dumped.
+pub fn encode_signal_status(signo: u8, core_dumped: bool) -> i32 {
+    let mut status = (signo as i32) & 0x7f;
+    if core_dumped {
+        status |= 1 << 7;
+    }
+    status
+}
+
 /// Create a new user task.
 pub fn new_user_task(
     name: &str,
@@ -159,11 +176,11 @@ pub fn exit_robust_list(head: *const RobustListHead) -> AxResult<()> {
     Ok(())
 }
 
-pub fn do_exit(exit_code: i32, group_exit: bool) {
+pub fn do_exit(wait_status: i32, group_exit: bool) {
     let curr = current();
     let thr = curr.as_thread();
 
-    info!("{} exit with code: {}", curr.id_name(), exit_code);
+    info!("{} exit with wait status: {}", curr.id_name(), wait_status);
 
     let clear_child_tid = thr.clear_child_tid() as *mut u32;
     if clear_child_tid.vm_write(0).is_ok() {
@@ -183,7 +200,7 @@ pub fn do_exit(exit_code: i32, group_exit: bool) {
     }
 
     let process = &thr.proc_data.proc;
-    if process.exit_thread(curr.id().as_u64() as Pid, exit_code) {
+    if process.exit_thread(curr.id().as_u64() as Pid, wait_status) {
         process.exit();
         if let Some(parent) = process.parent() {
             if let Some(signo) = thr.proc_data.exit_signal {
@@ -220,7 +237,7 @@ pub fn raise_signal_fatal(sig: SignalInfo) -> AxResult<()> {
         task.interrupt();
     } else {
         // No task wants to handle the signal, abort the task
-        do_exit(signo as i32, true);
+        do_exit(encode_signal_status(signo as u8, false), true);
     }
 
     Ok(())
