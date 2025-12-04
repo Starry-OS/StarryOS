@@ -8,10 +8,14 @@ use core::{
 };
 
 use axerrno::{AxError, AxResult, LinuxError};
+#[cfg(feature = "netlink")]
+use axnet::netlink::{GroupIdSet, NetlinkSocketAddr};
 #[cfg(feature = "vsock")]
 use axnet::vsock::VsockAddr;
 use axnet::{SocketAddrEx, unix::UnixSocketAddr};
 use linux_raw_sys::net::*;
+#[cfg(feature = "netlink")]
+use linux_raw_sys::netlink::sockaddr_nl;
 
 use crate::mm::{UserConstPtr, UserPtr};
 
@@ -241,11 +245,45 @@ impl SocketAddrExt for VsockAddr {
     }
 }
 
+#[cfg(feature = "netlink")]
+impl SocketAddrExt for NetlinkSocketAddr {
+    fn read_from_user(addr: UserConstPtr<sockaddr>, addrlen: socklen_t) -> AxResult<Self> {
+        if addrlen != size_of::<sockaddr_nl>() as socklen_t {
+            return Err(AxError::InvalidInput);
+        }
+        let addr_nl = addr.cast::<sockaddr_nl>().get_as_ref()?;
+        if addr_nl.nl_family as u32 != AF_NETLINK {
+            return Err(AxError::from(LinuxError::EAFNOSUPPORT));
+        }
+
+        Ok(NetlinkSocketAddr::new(
+            addr_nl.nl_pid,
+            GroupIdSet::new(addr_nl.nl_groups),
+        ))
+    }
+
+    fn write_to_user(&self, addr: UserPtr<sockaddr>, addrlen: &mut socklen_t) -> AxResult<()> {
+        let socknl_addr = sockaddr_nl {
+            nl_family: AF_NETLINK as _,
+            nl_pad: 0,
+            nl_pid: self.port(),
+            nl_groups: self.groups().as_u32(),
+        };
+        fill_addr(addr, addrlen, unsafe { cast_to_slice(&socknl_addr) })
+    }
+
+    fn family(&self) -> u16 {
+        AF_NETLINK as u16
+    }
+}
+
 impl SocketAddrExt for SocketAddrEx {
     fn read_from_user(addr: UserConstPtr<sockaddr>, addrlen: socklen_t) -> AxResult<Self> {
         match read_family(addr, addrlen)? as u32 {
             AF_INET | AF_INET6 => SocketAddr::read_from_user(addr, addrlen).map(Self::Ip),
             AF_UNIX => UnixSocketAddr::read_from_user(addr, addrlen).map(Self::Unix),
+            #[cfg(feature = "netlink")]
+            AF_NETLINK => NetlinkSocketAddr::read_from_user(addr, addrlen).map(Self::Netlink),
             #[cfg(feature = "vsock")]
             AF_VSOCK => VsockAddr::read_from_user(addr, addrlen).map(Self::Vsock),
             _ => Err(AxError::from(LinuxError::EAFNOSUPPORT)),
@@ -256,6 +294,8 @@ impl SocketAddrExt for SocketAddrEx {
         match self {
             SocketAddrEx::Ip(ip_addr) => ip_addr.write_to_user(addr, addrlen),
             SocketAddrEx::Unix(unix_addr) => unix_addr.write_to_user(addr, addrlen),
+            #[cfg(feature = "netlink")]
+            SocketAddrEx::Netlink(netlink_addr) => netlink_addr.write_to_user(addr, addrlen),
             #[cfg(feature = "vsock")]
             SocketAddrEx::Vsock(vsock_addr) => vsock_addr.write_to_user(addr, addrlen),
         }
