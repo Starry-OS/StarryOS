@@ -281,6 +281,8 @@ pub fn sys_rt_sigsuspend(
     let set = unsafe { set.vm_read_uninit()?.assume_init() };
     let old_blocked = thr.signal.set_blocked(set);
 
+    // sigsuspend always returns -EINTR when a signal is caught
+    // We set this in uctx before check_signals so it's saved in SignalFrame
     uctx.set_retval(-LinuxError::EINTR.code() as usize);
 
     block_on(poll_fn(|context| {
@@ -291,7 +293,9 @@ pub fn sys_rt_sigsuspend(
         Poll::Pending
     }));
 
-    Ok(0)
+    // Return -EINTR to match Linux behavior
+    // sigsuspend always returns -1 with errno=EINTR after handling a signal
+    Err(AxError::Interrupted)
 }
 
 pub fn sys_sigaltstack(ss: *const SignalStack, old_ss: *mut SignalStack) -> AxResult<isize> {

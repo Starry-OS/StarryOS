@@ -381,21 +381,24 @@ pub fn add_task_to_table(task: &AxTaskRef) {
     let proc = &proc_data.proc;
     let pid = proc.pid();
     let mut proc_table = PROCESS_TABLE.write();
-    if proc_table.contains_key(&pid) {
+    // Use get() instead of contains_key() to properly handle expired Weak references
+    if proc_table.get(&pid).is_some() {
         return;
     }
     proc_table.insert(pid, proc_data);
 
     let pg = proc.group();
     let mut pg_table = PROCESS_GROUP_TABLE.write();
-    if pg_table.contains_key(&pg.pgid()) {
+    // Use get() instead of contains_key() to properly handle expired Weak references
+    if pg_table.get(&pg.pgid()).is_some() {
         return;
     }
     pg_table.insert(pg.pgid(), &pg);
 
     let session = pg.session();
     let mut session_table = SESSION_TABLE.write();
-    if session_table.contains_key(&session.sid()) {
+    // Use get() instead of contains_key() to properly handle expired Weak references
+    if session_table.get(&session.sid()).is_some() {
         return;
     }
     session_table.insert(session.sid(), &session);
