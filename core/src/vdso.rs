@@ -9,11 +9,23 @@ use axhal::paging::MappingFlags;
 use axmm::AddrSpace;
 use kernel_elf_parser::{AuxEntry, AuxType};
 use memory_addr::{MemoryAddr, PAGE_SIZE_4K};
-use starry_vdso::vdso::{VdsoAllocGuard, prepare_vdso_pages, vdso_data_paddr};
+use starry_vdso::{
+    guard::VdsoAllocGuard,
+    vdso::{prepare_vdso_pages, vdso_data_paddr},
+};
 
 /// Load vDSO into the given user address space and update auxv accordingly.
 pub fn load_vdso_data(auxv: &mut Vec<AuxEntry>, uspace: &mut AddrSpace) -> AxResult<()> {
-    let (vdso_kstart, vdso_kend) = unsafe { starry_vdso::embed::init_vdso_symbols() };
+    unsafe extern "C" {
+        static vdso_start: u8;
+        static vdso_end: u8;
+    }
+    let (vdso_kstart, vdso_kend) = unsafe {
+        (
+            &vdso_start as *const u8 as usize,
+            &vdso_end as *const u8 as usize,
+        )
+    };
     info!("vdso_kstart: {vdso_kstart:#x}, vdso_kend: {vdso_kend:#x}");
 
     if vdso_kend <= vdso_kstart {
