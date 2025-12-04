@@ -10,7 +10,7 @@
 ## Supported Architectures
 
 - [x] RISC-V 64
-- [x] LoongArch 64
+- [x] LoongArch64
 - [x] AArch64
 - [ ] x86_64 (work in progress)
 
@@ -98,7 +98,7 @@ $ make ARCH=riscv64 rootfs
 $ make ARCH=loongarch64 rootfs
 ```
 
-This will download rootfs image from [Starry-OS/rootfs](https://github.com/Starry-OS/rootfs/releases) and setup the disk file for running on QEMU.
+This will download rootfs image from [Starry-OS/rootfs](https://github.com/Starry-OS/rootfs/releases) and set up the disk file for running on QEMU.
 
 ### 4. Build and run on QEMU
 
