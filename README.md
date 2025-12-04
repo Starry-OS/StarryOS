@@ -91,7 +91,9 @@ $ cargo -V
 ### 3. Prepare rootfs
 
 ```bash
+# Default target: riscv64
 $ make rootfs
+# Explicit target
 $ make ARCH=riscv64 rootfs
 $ make ARCH=loongarch64 rootfs
 ```
@@ -115,7 +117,7 @@ $ make ARCH=loongarch64 run
 Note:
 1. Binary dependencies will be automatically built while `make build`.
 2. You don't have to rerun `build` every time. `run` automatically rebuilds if necessary.
-3. The disk file will **not** be reset between each run. As a result, if you want to switch to another architecture, you must run `make img` with the new architecture before `make run`.
+3. The disk file will **not** be reset between each run. As a result, if you want to switch to another architecture, you must run `make rootfs` with the new architecture before `make run`.
 
 ## What next?
 
