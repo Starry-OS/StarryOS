@@ -37,7 +37,7 @@ jobs:
       - name: Install nightly toolchain
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: nightly
+          toolchain: nightly-2025-05-05
           components: clippy
           targets: ${{ matrix.target }}
 
