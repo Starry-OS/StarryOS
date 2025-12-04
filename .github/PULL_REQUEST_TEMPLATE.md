@@ -4,17 +4,17 @@ the requirements below.
 
 Contributing guide: https://github.com/Starry-OS/StarryOS?tab=contributing-ov-file#contributing-guide
 
-Before submitting the PR, please ensure that your PR satisfy these requirements:
+Before submitting the PR, please ensure that your PR satisfies these requirements:
 - Code formatted with `cargo fmt`
 - Passed `cargo clippy` checks
-- PR title follow [Conventional Commits](https://www.conventionalcommits.org/)
+- PR title follows [Conventional Commits](https://www.conventionalcommits.org/)
 - Updated relevant documentation (if applicable)
 -->
 
 <!--
 Related issues (if applicable)
 
-If you PR solves one or more specific issues, you may link them here.
+If your PR solves one or more specific issues, you may link them here.
 -->
 
 ## Description
