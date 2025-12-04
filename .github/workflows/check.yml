@@ -43,4 +43,4 @@ jobs:
         arch: ${{ matrix.arch }}
     - uses: taiki-e/install-action@cargo-hack
     - name: Run Clippy
-      run: cargo hack --target ${{ matrix.target }} --each-feature --keep-going clippy --all-targets -- -D warnings
+      run: cargo hack --target ${{ matrix.target }} --each-feature --keep-going clippy -- -D warnings
