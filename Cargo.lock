@@ -2332,7 +2332,7 @@ dependencies = [
 [[package]]
 name = "starry-vdso"
 version = "0.1.1"
-source = "git+https://github.com/Starry-OS/starry-vdso.git?rev=06fa83e#06fa83e2a07a87f6db905d2ad9d92a9b642d1404"
+source = "git+https://github.com/Starry-OS/starry-vdso.git?rev=699c0e0#699c0e09bfb40703fd285159da4bf0bf7f27c701"
 dependencies = [
  "axerrno 0.1.0",
  "axplat 0.2.0",
