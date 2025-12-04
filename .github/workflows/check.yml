@@ -41,5 +41,6 @@ jobs:
     - uses: arceos-org/setup-musl@v1
       with:
         arch: ${{ matrix.arch }}
+    - uses: taiki-e/install-action@cargo-hack
     - name: Run Clippy
-      run: cargo clippy --all-targets --target ${{ matrix.target }} --all-features -- -D warnings
+      run: cargo hack --target ${{ matrix.target }} --each-feature --keep-going clippy --all-targets -- -D warnings
