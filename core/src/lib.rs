@@ -13,6 +13,7 @@ extern crate axlog;
 pub mod config;
 pub mod futex;
 pub mod mm;
+pub mod msg;
 pub mod resources;
 pub mod shm;
 pub mod task;
