@@ -1,13 +1,12 @@
 name: Check
+
 on:
   push:
     branches:
-    - main
+      - main
   pull_request:
     branches:
-    - main
-  workflow_dispatch:
-
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
@@ -17,41 +16,42 @@ jobs:
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@nightly
-      with:
-        components: rustfmt
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
 
-    - name: Check formatting
-      run: cargo fmt --all --check
+      - name: Check formatting
+        run: cargo fmt --all --check
+
   clippy:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
-        - arch: riscv64
-          target: riscv64gc-unknown-none-elf
-        - arch: loongarch64
-          target: loongarch64-unknown-none-softfloat
-        - arch: aarch64
-          target: aarch64-unknown-none-softfloat
-        - arch: x86_64
-          target: x86_64-unknown-none
+          - arch: riscv64
+            target: riscv64gc-unknown-none-elf
+          - arch: loongarch64
+            target: loongarch64-unknown-none-softfloat
+          - arch: aarch64
+            target: aarch64-unknown-none-softfloat
+          - arch: x86_64
+            target: x86_64-unknown-none
     steps:
-    - uses: actions/checkout@v6
-      with:
-        submodules: "recursive"
+      - uses: actions/checkout@v6
+        with:
+          submodules: "recursive"
 
-    - uses: Swatinem/rust-cache@v2
-      with:
-        key: ${{ matrix.arch }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.arch }}
 
-    - uses: arceos-org/setup-musl@v1
-      with:
-        arch: ${{ matrix.arch }}
+      - uses: arceos-org/setup-musl@v1
+        with:
+          arch: ${{ matrix.arch }}
 
-    - name: Clippy
-      run: cargo clippy --target ${{ matrix.target }} -F qemu -- -D warnings
+      - name: Clippy
+        run: cargo clippy --target ${{ matrix.target }} -F qemu -- -D warnings
