@@ -1,6 +1,7 @@
 pub mod epoll;
 pub mod event;
 mod fs;
+mod inotify;
 mod net;
 mod pidfd;
 mod pipe;
@@ -23,6 +24,7 @@ use starry_core::{resources::AX_FILE_LIMIT, task::AsThread};
 
 pub use self::{
     fs::{Directory, File, ResolveAtResult, metadata_to_kstat, resolve_at, with_fs},
+    inotify::{InotifyFlags, InotifyInstance},
     net::Socket,
     pidfd::PidFd,
     pipe::Pipe,
