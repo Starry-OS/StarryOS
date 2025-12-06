@@ -284,6 +284,13 @@ pub fn handle_syscall(uctx: &mut UserContext) {
         // event
         Sysno::eventfd2 => sys_eventfd2(uctx.arg0() as _, uctx.arg1() as _),
 
+        // inotify
+        Sysno::inotify_init1 => sys_inotify_init1(uctx.arg0() as _),
+        Sysno::inotify_add_watch => {
+            sys_inotify_add_watch(uctx.arg0() as _, uctx.arg1() as _, uctx.arg2() as _)
+        }
+        Sysno::inotify_rm_watch => sys_inotify_rm_watch(uctx.arg0() as _, uctx.arg1() as _),
+
         // pidfd
         Sysno::pidfd_open => sys_pidfd_open(uctx.arg0() as _, uctx.arg1() as _),
         Sysno::pidfd_getfd => sys_pidfd_getfd(uctx.arg0() as _, uctx.arg1() as _, uctx.arg2() as _),
@@ -593,7 +600,6 @@ pub fn handle_syscall(uctx: &mut UserContext) {
         // dummy fds
         Sysno::timerfd_create
         | Sysno::fanotify_init
-        | Sysno::inotify_init1
         | Sysno::userfaultfd
         | Sysno::perf_event_open
         | Sysno::io_uring_setup
