@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use axerrno::{AxError, AxResult};
 use axhal::time::TimeValue;
 use axpoll::IoEvents;
-use axtask::future::Poller;
+use axtask::future::{self, block_on, poll_io};
 use linux_raw_sys::general::{POLLNVAL, pollfd, timespec};
 use starry_signal::SignalSet;
 
@@ -53,9 +53,9 @@ fn do_poll(
     let fds = FdPollSet(fds);
 
     with_replacen_blocked(sigmask, || {
-        match Poller::new(&fds, IoEvents::empty())
-            .timeout(timeout)
-            .poll(|| {
+        match block_on(future::timeout(
+            timeout,
+            poll_io(&fds, IoEvents::empty(), false, || {
                 let mut res = 0usize;
                 for ((fd, events), revents) in fds.0.iter().zip(revents.iter_mut()) {
                     let mut result = fd.poll();
@@ -77,9 +77,10 @@ fn do_poll(
                 } else {
                     Err(AxError::WouldBlock)
                 }
-            }) {
-            Err(AxError::TimedOut) => Ok(0),
-            other => other,
+            }),
+        )) {
+            Ok(r) => r,
+            Err(_) => Ok(0),
         }
     })
 }
@@ -90,6 +91,9 @@ pub fn sys_poll(fds: UserPtr<pollfd>, nfds: u32, timeout: i32) -> AxResult<isize
     let timeout = if timeout < 0 {
         None
     } else {
+        if timeout == 0 {
+            return Ok(0);
+        }
         Some(TimeValue::from_millis(timeout as u64))
     };
     do_poll(fds, timeout, None)
@@ -104,6 +108,12 @@ pub fn sys_ppoll(
 ) -> AxResult<isize> {
     check_sigset_size(sigsetsize)?;
     let fds = fds.get_as_mut_slice(nfds.try_into().map_err(|_| AxError::InvalidInput)?)?;
+    // Fast path: timeout is exactly zero -> return immediately per POSIX.
+    if let Some(ts) = nullable!(timeout.get_as_ref())? {
+        if ts.tv_sec == 0 && ts.tv_nsec == 0 {
+            return Ok(0);
+        }
+    }
     let timeout = nullable!(timeout.get_as_ref())?
         .map(|ts| ts.try_into_time_value())
         .transpose()?;
