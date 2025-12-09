@@ -91,6 +91,9 @@ pub fn sys_poll(fds: UserPtr<pollfd>, nfds: u32, timeout: i32) -> AxResult<isize
     let timeout = if timeout < 0 {
         None
     } else {
+        if timeout == 0 {
+            return Ok(0);
+        }
         Some(TimeValue::from_millis(timeout as u64))
     };
     do_poll(fds, timeout, None)
@@ -105,6 +108,12 @@ pub fn sys_ppoll(
 ) -> AxResult<isize> {
     check_sigset_size(sigsetsize)?;
     let fds = fds.get_as_mut_slice(nfds.try_into().map_err(|_| AxError::InvalidInput)?)?;
+    // Fast path: timeout is exactly zero -> return immediately per POSIX.
+    if let Some(ts) = nullable!(timeout.get_as_ref())? {
+        if ts.tv_sec == 0 && ts.tv_nsec == 0 {
+            return Ok(0);
+        }
+    }
     let timeout = nullable!(timeout.get_as_ref())?
         .map(|ts| ts.try_into_time_value())
         .transpose()?;
