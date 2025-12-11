@@ -591,7 +591,7 @@ dependencies = [
 [[package]]
 name = "axplat-loongarch64-2k1000la"
 version = "0.3.0"
-source = "git+https://github.com/Starry-OS/axplat-loongarch64-2k1000la.git?tag=dev-v03#b2fe423f0b9bc85db17f734c2f26aad8abc042df"
+source = "git+https://github.com/Starry-OS/axplat-loongarch64-2k1000la.git?tag=dev-v03#1e825df2b88b6f79885d7a0a314b183a07aee7b8"
 dependencies = [
  "axconfig-macros",
  "axcpu",
