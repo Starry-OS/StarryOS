@@ -293,8 +293,7 @@ pub fn sys_rt_sigsuspend(
         Poll::Pending
     }));
 
-    // Return -EINTR to match Linux behavior
-    // sigsuspend always returns -1 with errno=EINTR after handling a signal
+    // sigsuspend always returns -EINTR
     Err(AxError::Interrupted)
 }
 
