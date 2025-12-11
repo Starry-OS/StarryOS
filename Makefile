@@ -54,4 +54,7 @@ la:
 vf2:
 	$(MAKE) ARCH=riscv64 APP_FEATURES=vf2 MYPLAT=axplat-riscv64-visionfive2 BUS=mmio build
 
+2k1000la:
+	RUSTFLAGS="-C target-feature=-ual" $(MAKE) ARCH=loongarch64 APP_FEATURES=2k1000la MYPLAT=axplat-loongarch64-2k1000la BUS=mmio build
+
 .PHONY: build run justrun debug disasm clean
