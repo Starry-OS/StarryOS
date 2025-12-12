@@ -71,13 +71,13 @@ sudo apt install -y build-essential cmake clang qemu-system
 
 ##### ii. Install Musl Toolchain
 
-1. Download files from [prebuilt](https://github.com/arceos-org/setup-musl/releases/tag/prebuilt)
+1. Download files from [setup-musl releases](https://github.com/arceos-org/setup-musl/releases/tag/prebuilt)
 2. Extract to some path, for example `/opt/riscv64-linux-musl-cross`
 3. Add bin folder to `PATH`, for example:
 
-    ```bash
-    export PATH=/opt/riscv64-linux-musl-cross/bin:$PATH
-    ```
+   ```bash
+   export PATH=/opt/riscv64-linux-musl-cross/bin:$PATH
+   ```
 
 ##### iii. Setup Rust toolchain
 
