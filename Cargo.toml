@@ -105,9 +105,14 @@ qemu = [
     "axfeat/fs-times",
     "starry-api/dev-log",
 ]
-smp = ["axfeat/smp", "axplat-riscv64-visionfive2?/smp"]
+smp = [
+    "axfeat/smp",
+    "axplat-riscv64-visionfive2?/smp",
+    "axplat-loongarch64-2k1000la?/smp",
+]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc"]
+2k1000la = ["dep:axplat-loongarch64-2k1000la", "axfeat/driver-ahci"]
 
 [dependencies]
 axdriver.workspace = true
@@ -129,8 +134,13 @@ starry-core.workspace = true
 starry-api.workspace = true
 
 [dependencies.axplat-riscv64-visionfive2]
-version = "0.3"
 git = "https://github.com/Starry-OS/axplat-riscv64-visionfive2.git"
+tag = "dev-v03"
+features = ["fp-simd", "irq", "rtc"]
+optional = true
+
+[dependencies.axplat-loongarch64-2k1000la]
+git = "https://github.com/Starry-OS/axplat-loongarch64-2k1000la.git"
 tag = "dev-v03"
 features = ["fp-simd", "irq", "rtc"]
 optional = true
