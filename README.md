@@ -27,7 +27,7 @@ git clone --recursive https://github.com/Starry-OS/StarryOS.git
 cd StarryOS
 ```
 
-Or if you have already cloned it with out `--recursive` option:
+Or if you have already cloned it without `--recursive` option:
 
 ```bash
 cd StarryOS
