@@ -34,14 +34,19 @@ img: build
 		curl -f -L $(IMG_URL)/$(IMG).xz -O; \
 		xz -d $(IMG).xz; \
 	fi
-	@cp $(IMG) arceos/disk.img
+	@if [ ! -f arceos/disk_$(ARCH).img ]; then \
+		echo "Copying image to arceos/disk.img..."; \
+		cp $(IMG) arceos/disk_$(ARCH).img; \
+	fi
 	@-mkdir ./disk
-	@-sudo mount arceos/disk.img ./disk
+	@-sudo mount arceos/disk_$(ARCH).img ./disk
 	@-sudo cp kallsyms ./disk/root/kallsyms
 	@-sudo mkdir -p $(DISK_PATH)/musl
 	@make -C user/musl all
 	@sudo umount ./disk
 	@rmdir ./disk
+	@rm -f arceos/disk.img
+	@ln -s $(abspath arceos/disk_$(ARCH).img) arceos/disk.img
 	@rm kallsyms
 
 defconfig justrun clean:
@@ -63,4 +68,4 @@ la:
 vf2:
 	$(MAKE) ARCH=riscv64 APP_FEATURES=vf2 MYPLAT=axplat-riscv64-visionfive2 BUS=dummy build
 
-.PHONY: build run justrun debug disasm clean img
+.PHONY: build run justrun debug disasm clean img kmod

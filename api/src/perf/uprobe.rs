@@ -1,3 +1,4 @@
+use axfs_ng::{CachedFile, FS_CONTEXT};
 use kbpf_basic::perf::{PerfProbeArgs, PerfProbeConfig};
 use kprobe::ProbeBuilder;
 use starry_core::task::{AsThread, get_task};
@@ -11,13 +12,24 @@ fn perf_probe_arg_to_uprobe_builder(args: &PerfProbeArgs) -> ProbeBuilder<Kprobe
     let elf = &args.name;
     let offset = args.offset as usize;
     let pid = args.pid;
-    assert!(pid >= 0, "uprobe only supports pid >= 0 for now");
-    axlog::trace!(
+
+    axlog::error!(
         "perf_probe->uprobe pid: [{}], ELF: {}, offset: {:#x}",
         pid,
         elf,
         offset
     );
+
+    if pid == -1 {
+        // pid == -1 means for all processes(dyn lib, such as libc.so), which is not
+        // supported for uprobe
+        let loc = FS_CONTEXT
+            .lock()
+            .resolve(elf)
+            .expect("Failed to resolve ELF(dyn lib)");
+        let _lib = CachedFile::get_or_create(loc);
+        panic!("uprobe for all processes is not supported");
+    }
 
     let task = get_task(pid as _).expect("Failed to get task for uprobe");
     let mm = task.as_thread().proc_data.aspace.lock();
@@ -42,7 +54,8 @@ fn perf_probe_arg_to_uprobe_builder(args: &PerfProbeArgs) -> ProbeBuilder<Kprobe
     );
     let virt_base = virt_base.unwrap();
     let virt_addr = offset + virt_base.as_usize();
-    axlog::trace!(
+
+    axlog::error!(
         "Found mapped ELF {} at virtual address: {:#x}, offset's virtual address: {:#x}",
         elf,
         virt_base.as_usize(),

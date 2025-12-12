@@ -12,7 +12,7 @@ use axmm::{
 };
 use axtask::current_may_uninit;
 use kprobe::{KprobeAuxiliaryOps, retprobe::RetprobeInstance};
-use memory_addr::{PAGE_SIZE_4K, VirtAddr, VirtAddrRange, align_down_4k, align_up_4k};
+use memory_addr::{MemoryAddr, PAGE_SIZE_4K, VirtAddr, VirtAddrRange, align_down_4k, align_up_4k};
 
 use crate::{
     lock_api::KSpinNoPreempt,
@@ -34,15 +34,35 @@ impl KprobeAuxiliary {
         action: F,
     ) {
         let address = VirtAddr::from_usize(address);
-
         let task = get_task(pid as _).expect("Failed to get task for uprobe");
-        let mm = task.as_thread().proc_data.aspace.lock();
-        let (phy_addr, ..) = mm.page_table().query(address).unwrap();
+        let mut mm = task.as_thread().proc_data.aspace.lock();
+        let flags = mm.memoryset().find(address).unwrap().flags();
+        axlog::error!("Original flags for address {address:#x}: {flags:?}");
 
+        // make text section writeable tmply
+        mm.memoryset_mut()
+            .find_mut(address)
+            .expect("Failed to find memory area for uprobe")
+            .set_flags(flags | MappingFlags::WRITE);
+
+        // we use the page fault handler to trigger the COW handling.
+        let res = mm.handle_page_fault(address, MappingFlags::WRITE);
+        assert!(res);
+
+        // restore the original permissions
+        mm.protect(address.align_down_4k(), PAGE_SIZE_4K, flags)
+            .unwrap();
+
+        mm.memoryset_mut()
+            .find_mut(address)
+            .unwrap()
+            .set_flags(flags);
+
+        let (phy_addr, ..) = mm.page_table().query(address).unwrap();
         let kernel_virt_addr = axhal::mem::phys_to_virt(phy_addr);
         // in kernel space, the address is already mapped and writable
         action(kernel_virt_addr.as_mut_ptr());
-
+        // action(address.as_mut_ptr());
         flush_tlb(Some(address));
     }
 
