@@ -25,10 +25,6 @@ pub fn init() {
     info!("Initialize VFS...");
     vfs::mount_all().expect("Failed to mount vfs");
 
-    // Enable user-space access to timer counter registers on aarch64
-    #[cfg(target_arch = "aarch64")]
-    starry_vdso::vdso::enable_cntvct_access();
-
     info!("Initialize vDSO data...");
     starry_vdso::vdso::init_vdso_data();
 
