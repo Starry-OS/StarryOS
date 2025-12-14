@@ -365,7 +365,7 @@ pub fn do_clone<P: CloneParamProvider>(uctx: &UserContext, params: &P) -> AxResu
 /// Note: In clone(), the parent_tid parameter serves dual purpose:
 /// - If CLONE_PIDFD: receives the pidfd
 /// - If CLONE_PARENT_SETTID: receives the child TID
-/// These two flags are mutually exclusive in clone().
+///   These two flags are mutually exclusive in clone().
 pub struct CloneParams {
     flags: u32,
     stack: usize,
