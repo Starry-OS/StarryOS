@@ -360,14 +360,6 @@ dependencies = [
 
 [[package]]
 name = "axerrno"
-version = "0.1.0"
-source = "git+https://github.com/Starry-OS/axerrno.git?rev=f1e2bca#f1e2bcac2c016fefb568c8af62b8c893aab9fba5"
-dependencies = [
- "log",
-]
-
-[[package]]
-name = "axerrno"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a88b1fa2ce97a6ff4ce31ba9fda3065730ca4d77a1ba50dec000fc04f1fb686"
@@ -2332,12 +2324,14 @@ dependencies = [
 [[package]]
 name = "starry-vdso"
 version = "0.1.1"
-source = "git+https://github.com/Starry-OS/starry-vdso.git?rev=8f1ab42#8f1ab423f9f6d7f612aae3f6fd85e164ccb0c5a6"
+source = "git+https://github.com/Starry-OS/starry-vdso.git?rev=cf2d4a6#cf2d4a6a2245b0aa8caa15d5faa8cce305f4e9d8"
 dependencies = [
- "axerrno 0.1.0",
+ "axerrno 0.2.2",
  "axplat 0.2.0",
  "cfg-if",
+ "kernel-elf-parser",
  "log",
+ "memory_addr",
  "rand_core 0.6.4",
  "rand_pcg",
  "xmas-elf",

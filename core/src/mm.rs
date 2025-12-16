@@ -251,7 +251,50 @@ impl ElfLoader {
             .aux_vector(PAGE_SIZE_4K, ldso.map(|elf| elf.base()))
             .collect::<Vec<_>>();
 
-        crate::vdso::load_vdso_data(&mut auxv, uspace)?;
+        {
+            let uspace = core::cell::RefCell::new(&mut *uspace);
+            starry_vdso::vdso::load_vdso_data(
+                &mut auxv,
+                |map_user_start, vdso_paddr_page, vdso_size| {
+                    uspace
+                        .borrow_mut()
+                        .map_linear(
+                            map_user_start.into(),
+                            vdso_paddr_page,
+                            vdso_size,
+                            MappingFlags::READ | MappingFlags::EXECUTE | MappingFlags::USER,
+                        )
+                        .map_err(|_| AxError::InvalidExecutable)
+                },
+                |vvar_user_addr, vvar_paddr| {
+                    uspace
+                        .borrow_mut()
+                        .map_linear(
+                            vvar_user_addr.into(),
+                            vvar_paddr.into(),
+                            starry_vdso::config::VVAR_PAGES * PAGE_SIZE_4K,
+                            MappingFlags::READ | MappingFlags::USER,
+                        )
+                        .map_err(|_| AxError::InvalidExecutable)
+                },
+                |seg_user_start, seg_paddr, seg_align_size, ph| {
+                    let mut flags = MappingFlags::USER;
+                    if ph.flags.is_read() {
+                        flags |= MappingFlags::READ;
+                    }
+                    if ph.flags.is_write() {
+                        flags |= MappingFlags::WRITE;
+                    }
+                    if ph.flags.is_execute() {
+                        flags |= MappingFlags::EXECUTE;
+                    }
+                    uspace
+                        .borrow_mut()
+                        .map_linear(seg_user_start.into(), seg_paddr, seg_align_size, flags)
+                        .map_err(|_| AxError::InvalidExecutable)
+                },
+            )?;
+        }
 
         Ok(Ok((entry, auxv)))
     }

@@ -17,5 +17,4 @@ pub mod resources;
 pub mod shm;
 pub mod task;
 pub mod time;
-pub mod vdso;
 pub mod vfs;
