@@ -69,6 +69,18 @@ sudo apt install -y build-essential cmake clang qemu-system
 
 **Note:** Running on LoongArch64 requires QEMU 10. If the QEMU version in your Linux distribution is too old (e.g. Ubuntu), consider building QEMU from [source](https://www.qemu.org/download/).
 
+To build QEMU from source (using QEMU 10.1.3 as an example):
+
+```shell
+sudo apt install python3-venv ninja-build pkg-config libglib2.0-dev meson flex bison libslirp-dev
+wget https://download.qemu.org/qemu-10.1.3.tar.xz
+tar xvJf qemu-10.1.3.tar.xz
+cd qemu-10.1.3/
+./configure --enable-slirp
+make
+sudo make install
+```
+
 ##### ii. Install Musl Toolchain
 
 1. Download files from [setup-musl releases](https://github.com/arceos-org/setup-musl/releases/tag/prebuilt)
