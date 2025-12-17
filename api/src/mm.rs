@@ -330,6 +330,20 @@ impl Write for VmBytesMut {
     /// Writes bytes from the provided buffer into the VM's memory.
     fn write(&mut self, buf: &[u8]) -> axio::Result<usize> {
         let len = self.len.min(buf.len());
+        if len == 0 {
+            return Ok(0);
+        }
+        
+        let start_addr = VirtAddr::from_ptr_of(self.ptr);
+        // Ensure pages are allocated (for lazy-allocated stack/heap regions)
+        if let Err(_) = check_region(
+            start_addr,
+            Layout::from_size_align(len, 1).unwrap(),
+            MappingFlags::READ | MappingFlags::WRITE | MappingFlags::USER,
+        ) {
+            return Err(axio::Error::InvalidData);
+        }
+        
         vm_write_slice(self.ptr, &buf[..len])?;
         self.ptr = self.ptr.wrapping_add(len);
         self.len -= len;
