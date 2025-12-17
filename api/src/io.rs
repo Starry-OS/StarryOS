@@ -1,8 +1,11 @@
 use core::mem::{self, MaybeUninit};
 
 use axerrno::{AxError, AxResult};
+use axhal::paging::MappingFlags;
 use axio::{Buf, BufMut, Read, Write};
 use bytemuck::AnyBitPattern;
+use memory_addr::{MemoryAddr, VirtAddr};
+use starry_core::task::AsThread;
 use starry_vm::{VmPtr, vm_read_slice, vm_write_slice};
 
 #[repr(C)]
@@ -145,8 +148,26 @@ impl Write for IoVectorBufIo {
             if len == 0 {
                 break;
             }
+            
+            // Pre-populate pages to support lazy allocation
+            let dst_ptr = iov.iov_base.wrapping_add(self.offset);
+            let start_addr = VirtAddr::from_ptr_of(dst_ptr);
+            {
+                let curr = axtask::current();
+                let mut aspace = curr.as_thread().proc_data.aspace.lock();
+                let page_start = start_addr.align_down_4k();
+                let page_end = (start_addr + len).align_up_4k();
+                if let Err(_) = aspace.populate_area(
+                    page_start,
+                    page_end - page_start,
+                    MappingFlags::READ | MappingFlags::WRITE | MappingFlags::USER,
+                ) {
+                    return Err(AxError::BadAddress);
+                }
+            }
+            
             vm_write_slice(
-                iov.iov_base.wrapping_add(self.offset),
+                dst_ptr,
                 &buf[count..count + len],
             )?;
             self.offset += len;
