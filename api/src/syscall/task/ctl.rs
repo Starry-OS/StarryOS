@@ -99,12 +99,26 @@ pub fn sys_prctl(
         }
         PR_SET_SECCOMP => {}
         PR_MCE_KILL => {}
-        PR_SET_MM_START_CODE
-        | PR_SET_MM_END_CODE
-        | PR_SET_MM_START_DATA
-        | PR_SET_MM_END_DATA
-        | PR_SET_MM_START_BRK
-        | PR_SET_MM_START_STACK => {}
+        PR_SET_MM => match arg2 as u32 {
+            PR_SET_MM_START_CODE
+            | PR_SET_MM_END_CODE
+            | PR_SET_MM_START_DATA
+            | PR_SET_MM_END_DATA
+            | PR_SET_MM_START_BRK
+            | PR_SET_MM_BRK
+            | PR_SET_MM_START_STACK
+            | PR_SET_MM_ARG_START
+            | PR_SET_MM_ARG_END
+            | PR_SET_MM_ENV_START
+            | PR_SET_MM_ENV_END
+            | PR_SET_MM_AUXV
+            | PR_SET_MM_EXE_FILE
+            | PR_SET_MM_MAP => {}
+            _ => {
+                warn!("sys_prctl: unsupported PR_SET_MM sub-option {:#x}", arg2);
+                return Err(AxError::InvalidInput);
+            }
+        },
         _ => {
             warn!("sys_prctl: unsupported option {option}");
             return Err(AxError::InvalidInput);
