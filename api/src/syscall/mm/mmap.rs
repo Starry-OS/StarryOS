@@ -335,3 +335,9 @@ pub fn sys_mlock(addr: usize, length: usize) -> AxResult<isize> {
 pub fn sys_mlock2(_addr: usize, _length: usize, _flags: u32) -> AxResult<isize> {
     Ok(0)
 }
+
+/// Check whether pages are resident in memory.
+/// Returns ENOSYS (Unsupported) to let programs use fallback logic.
+pub fn sys_mincore(_addr: usize, _length: usize, _vec: usize) -> AxResult<isize> {
+    Err(AxError::Unsupported)
+}

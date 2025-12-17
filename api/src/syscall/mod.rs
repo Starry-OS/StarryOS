@@ -357,6 +357,7 @@ pub fn handle_syscall(uctx: &mut UserContext) {
         Sysno::msync => sys_msync(uctx.arg0(), uctx.arg1() as _, uctx.arg2() as _),
         Sysno::mlock => sys_mlock(uctx.arg0(), uctx.arg1() as _),
         Sysno::mlock2 => sys_mlock2(uctx.arg0(), uctx.arg1() as _, uctx.arg2() as _),
+        Sysno::mincore => sys_mincore(uctx.arg0(), uctx.arg1() as _, uctx.arg2()),
 
         // task info
         Sysno::getpid => sys_getpid(),
