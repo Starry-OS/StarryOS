@@ -5,9 +5,9 @@ use axhal::uspace::{ExceptionKind, ReturnReason, UserContext};
 use axtask::{TaskInner, current};
 use bytemuck::AnyBitPattern;
 use linux_raw_sys::general::ROBUST_LIST_LIMIT;
+use memory_addr::VirtAddr;
 use starry_core::{
     futex::FutexKey,
-    mm::access_user_memory,
     shm::SHM_MANAGER,
     task::{
         AsThread, get_process_data, get_task, send_signal_to_process, send_signal_to_thread,
@@ -28,16 +28,26 @@ use crate::{
 pub fn new_user_task(
     name: &str,
     mut uctx: UserContext,
-    set_child_tid: Option<&'static mut Pid>,
+    set_child_tid: Option<usize>,  // Pass address instead of pointer
 ) -> TaskInner {
     TaskInner::new(
         move || {
             let curr = axtask::current();
-            access_user_memory(|| {
-                if let Some(tid) = set_child_tid {
-                    *tid = curr.id().as_u64() as Pid;
+            
+            // Write set_child_tid in child task's context
+            if let Some(tid_addr) = set_child_tid {
+                if tid_addr != 0 {
+                    let thr = curr.as_thread();
+                    let aspace = thr.proc_data.aspace.lock();
+                    let tid_value = curr.id().as_u64() as u32;
+                    let tid_bytes = tid_value.to_ne_bytes();
+                    // Use address space's write method to directly write to user memory
+                    if let Err(e) = aspace.write(VirtAddr::from_usize(tid_addr), &tid_bytes) {
+                        warn!("Failed to write set_child_tid at {:#x}: {:?}", tid_addr, e);
+                    }
+                    drop(aspace);
                 }
-            });
+            }
 
             info!("Enter user space: ip={:#x}, sp={:#x}", uctx.ip(), uctx.sp());
 
@@ -52,8 +62,8 @@ pub fn new_user_task(
                     ReturnReason::PageFault(addr, flags) => {
                         if !thr.proc_data.aspace.lock().handle_page_fault(addr, flags) {
                             info!(
-                                "{:?}: segmentation fault at {:#x} {:?}",
-                                thr.proc_data.proc, addr, flags
+                                "{:?}: segmentation fault at {:#x} {:?}, ip={:#x}, sp={:#x}",
+                                thr.proc_data.proc, addr, flags, uctx.ip(), uctx.sp()
                             );
                             raise_signal_fatal(SignalInfo::new_kernel(Signo::SIGSEGV))
                                 .expect("Failed to send SIGSEGV");
@@ -164,15 +174,25 @@ pub fn do_exit(exit_code: i32, group_exit: bool) {
 
     info!("{} exit with code: {}", curr.id_name(), exit_code);
 
-    let clear_child_tid = thr.clear_child_tid() as *mut u32;
-    if clear_child_tid.vm_write(0).is_ok() {
-        let key = FutexKey::new_current(clear_child_tid as usize);
-        let table = thr.proc_data.futex_table_for(&key);
-        let guard = table.get(&key);
-        if let Some(futex) = guard {
-            futex.wq.wake(1, u32::MAX);
+    let clear_child_tid = thr.clear_child_tid() as usize;
+    // Try to write clear_child_tid, but first check if address is in valid address space.
+    if clear_child_tid != 0 {
+        let aspace = thr.proc_data.aspace.lock();
+        // Check if address is in a valid area
+        let addr_valid = aspace.contains_range(VirtAddr::from_usize(clear_child_tid), 4);
+        drop(aspace);
+        
+        if addr_valid {
+            if let Ok(()) = (clear_child_tid as *mut u32).vm_write(0) {
+                let key = FutexKey::new_current(clear_child_tid);
+                let table = thr.proc_data.futex_table_for(&key);
+                let guard = table.get(&key);
+                if let Some(futex) = guard {
+                    futex.wq.wake(1, u32::MAX);
+                }
+                axtask::yield_now();
+            }
         }
-        axtask::yield_now();
     }
     let head = thr.robust_list_head() as *const RobustListHead;
     if !head.is_null()

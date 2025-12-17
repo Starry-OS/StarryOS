@@ -127,8 +127,10 @@ pub fn sys_clone(
     }
     new_uctx.set_retval(0);
 
-    let set_child_tid = if flags.contains(CloneFlags::CHILD_SETTID) {
-        Some(UserPtr::<u32>::from(child_tid).get_as_mut()?)
+    // Pass child_tid address instead of pointer reference
+    // Check both the flag and whether the address is non-NULL
+    let set_child_tid = if flags.contains(CloneFlags::CHILD_SETTID) && child_tid != 0 {
+        Some(child_tid)
     } else {
         None
     };
@@ -182,6 +184,9 @@ pub fn sys_clone(
             exit_signal,
         );
         proc_data.set_umask(old_proc_data.umask());
+        // Inherit heap pointers from parent to ensure child's heap state is consistent after fork
+        proc_data.set_heap_bottom(old_proc_data.get_heap_bottom());
+        proc_data.set_heap_top(old_proc_data.get_heap_top());
 
         {
             let mut scope = proc_data.scope.write();
@@ -215,7 +220,7 @@ pub fn sys_clone(
     }
 
     let thr = Thread::new(tid, new_proc_data);
-    if flags.contains(CloneFlags::CHILD_CLEARTID) {
+    if flags.contains(CloneFlags::CHILD_CLEARTID) && child_tid != 0 {
         thr.set_clear_child_tid(child_tid);
     }
     *new_task.task_ext_mut() = Some(unsafe { AxTaskExt::from_impl(thr) });
