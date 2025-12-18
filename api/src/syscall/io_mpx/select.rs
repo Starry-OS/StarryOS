@@ -114,26 +114,23 @@ fn do_select(
                 let mut res = 0usize;
                 for ((fd, interested), index) in fds.0.iter().zip(fd_indices.iter().copied()) {
                     let events = fd.poll() & *interested;
-                    match (events.contains(IoEvents::IN), readfds.as_deref_mut()) {
-                        (true, Some(set)) => {
-                            res += 1;
-                            unsafe { FD_SET(index as _, set) };
-                        }
-                        _ => {}
+                    if let (true, Some(set)) =
+                        (events.contains(IoEvents::IN), readfds.as_deref_mut())
+                    {
+                        res += 1;
+                        unsafe { FD_SET(index as _, set) };
                     }
-                    match (events.contains(IoEvents::OUT), writefds.as_deref_mut()) {
-                        (true, Some(set)) => {
-                            res += 1;
-                            unsafe { FD_SET(index as _, set) };
-                        }
-                        _ => {}
+                    if let (true, Some(set)) =
+                        (events.contains(IoEvents::OUT), writefds.as_deref_mut())
+                    {
+                        res += 1;
+                        unsafe { FD_SET(index as _, set) };
                     }
-                    match (events.contains(IoEvents::ERR), exceptfds.as_deref_mut()) {
-                        (true, Some(set)) => {
-                            res += 1;
-                            unsafe { FD_SET(index as _, set) };
-                        }
-                        _ => {}
+                    if let (true, Some(set)) =
+                        (events.contains(IoEvents::ERR), exceptfds.as_deref_mut())
+                    {
+                        res += 1;
+                        unsafe { FD_SET(index as _, set) };
                     }
                 }
                 if res > 0 {
