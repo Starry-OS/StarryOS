@@ -148,7 +148,7 @@ impl Write for IoVectorBufIo {
             if len == 0 {
                 break;
             }
-            
+
             // Pre-populate pages to support lazy allocation
             let dst_ptr = iov.iov_base.wrapping_add(self.offset);
             let start_addr = VirtAddr::from_ptr_of(dst_ptr);
@@ -168,11 +168,8 @@ impl Write for IoVectorBufIo {
                     return Err(AxError::BadAddress);
                 }
             }
-            
-            vm_write_slice(
-                dst_ptr,
-                &buf[count..count + len],
-            )?;
+
+            vm_write_slice(dst_ptr, &buf[count..count + len])?;
             self.offset += len;
             self.inner.len -= len;
             count += len;

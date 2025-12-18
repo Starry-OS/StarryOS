@@ -28,8 +28,10 @@ use ouroboros::self_referencing;
 use starry_vm::{VmError, VmIo, VmResult};
 use uluru::LRUCache;
 
-use crate::config::{USER_SPACE_BASE, USER_SPACE_SIZE};
-use crate::task::AsThread;
+use crate::{
+    config::{USER_SPACE_BASE, USER_SPACE_SIZE},
+    task::AsThread,
+};
 
 /// Creates a new empty user address space.
 pub fn new_user_aspace_empty() -> AxResult<AddrSpace> {
@@ -124,14 +126,14 @@ fn map_elf<'a>(
             ph.offset,
             Some(ph.offset + ph.file_size),
         );
-        
+
         let seg_flags = mapping_flags(ph.flags);
-        
+
         uspace.map(
             seg_start.align_down_4k(),
             seg_align_size,
             seg_flags,
-            true,  // Populate ELF segments immediately
+            true, // Populate ELF segments immediately
             backend,
         )?;
 
@@ -241,16 +243,15 @@ impl ElfLoader {
         }
 
         let elf = unsafe { map_elf(uspace, crate::config::USER_SPACE_BASE, &*entry_ptr)? };
-        let ldso =
-            if let (Some(ldso_entry_ptr), Some(_ldso_path)) = (ldso_entry_ptr, ldso_path.as_ref()) {
-                Some(map_elf(
-                    uspace,
-                    crate::config::USER_INTERP_BASE,
-                    unsafe { &*ldso_entry_ptr },
-                )?)
-            } else {
-                None
-            };
+        let ldso = if let (Some(ldso_entry_ptr), Some(_ldso_path)) =
+            (ldso_entry_ptr, ldso_path.as_ref())
+        {
+            Some(map_elf(uspace, crate::config::USER_INTERP_BASE, unsafe {
+                &*ldso_entry_ptr
+            })?)
+        } else {
+            None
+        };
 
         let entry = VirtAddr::from_usize(
             ldso.as_ref()
@@ -397,25 +398,25 @@ unsafe impl VmIo for Vm {
 
     fn read(&mut self, start: usize, buf: &mut [MaybeUninit<u8>]) -> VmResult {
         check_access(start, buf.len())?;
-        
+
         // First attempt to read
         let failed_at = access_user_memory(|| unsafe {
             user_copy(buf.as_mut_ptr() as *mut _, start as _, buf.len())
         });
-        
+
         if likely(failed_at == 0) {
             return Ok(());
         }
-        
+
         // Read failed, try to populate pages and retry
         let fail_offset = buf.len() - failed_at;
         let fail_addr = VirtAddr::from(start + fail_offset);
-        
+
         if let Some(thr) = current().try_as_thread() {
             let page_start = fail_addr.align_down_4k();
             let page_end = VirtAddr::from(start + buf.len()).align_up_4k();
             let populate_size = page_end - page_start;
-            
+
             let populate_result = {
                 let mut aspace = thr.proc_data.aspace.lock();
                 aspace.populate_area(
@@ -424,43 +425,43 @@ unsafe impl VmIo for Vm {
                     MappingFlags::READ | MappingFlags::USER,
                 )
             };
-            
+
             if populate_result.is_ok() {
                 // Retry read
                 let failed_at2 = access_user_memory(|| unsafe {
                     user_copy(buf.as_mut_ptr() as *mut _, start as _, buf.len())
                 });
-                
+
                 if failed_at2 == 0 {
                     return Ok(());
                 }
             }
         }
-        
+
         Err(VmError::AccessDenied)
     }
 
     fn write(&mut self, start: usize, buf: &[u8]) -> VmResult {
         check_access(start, buf.len())?;
-        
+
         // First attempt to write
         let failed_at = access_user_memory(|| unsafe {
             user_copy(start as _, buf.as_ptr() as *const _, buf.len())
         });
-        
+
         if likely(failed_at == 0) {
             return Ok(());
         }
-        
+
         // Write failed, try to populate pages and retry
         let fail_offset = buf.len() - failed_at;
         let fail_addr = VirtAddr::from(start + fail_offset);
-        
+
         if let Some(thr) = current().try_as_thread() {
             let page_start = fail_addr.align_down_4k();
             let page_end = VirtAddr::from(start + buf.len()).align_up_4k();
             let populate_size = page_end - page_start;
-            
+
             let populate_result = {
                 let mut aspace = thr.proc_data.aspace.lock();
                 aspace.populate_area(
@@ -469,19 +470,19 @@ unsafe impl VmIo for Vm {
                     MappingFlags::READ | MappingFlags::WRITE | MappingFlags::USER,
                 )
             };
-            
+
             if populate_result.is_ok() {
                 // Retry write
                 let failed_at2 = access_user_memory(|| unsafe {
                     user_copy(start as _, buf.as_ptr() as *const _, buf.len())
                 });
-                
+
                 if failed_at2 == 0 {
                     return Ok(());
                 }
             }
         }
-        
+
         Err(VmError::AccessDenied)
     }
 }
