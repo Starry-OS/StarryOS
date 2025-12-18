@@ -157,11 +157,14 @@ impl Write for IoVectorBufIo {
                 let mut aspace = curr.as_thread().proc_data.aspace.lock();
                 let page_start = start_addr.align_down_4k();
                 let page_end = (start_addr + len).align_up_4k();
-                if let Err(_) = aspace.populate_area(
-                    page_start,
-                    page_end - page_start,
-                    MappingFlags::READ | MappingFlags::WRITE | MappingFlags::USER,
-                ) {
+                if aspace
+                    .populate_area(
+                        page_start,
+                        page_end - page_start,
+                        MappingFlags::READ | MappingFlags::WRITE | MappingFlags::USER,
+                    )
+                    .is_err()
+                {
                     return Err(AxError::BadAddress);
                 }
             }

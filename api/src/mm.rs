@@ -336,11 +336,13 @@ impl Write for VmBytesMut {
         
         let start_addr = VirtAddr::from_ptr_of(self.ptr);
         // Ensure pages are allocated (for lazy-allocated stack/heap regions)
-        if let Err(_) = check_region(
+        if check_region(
             start_addr,
             Layout::from_size_align(len, 1).unwrap(),
             MappingFlags::READ | MappingFlags::WRITE | MappingFlags::USER,
-        ) {
+        )
+        .is_err()
+        {
             return Err(axio::Error::InvalidData);
         }
         
