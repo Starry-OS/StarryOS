@@ -408,10 +408,9 @@ pub fn sys_splice(
             }
             has_pipe = true;
         }
-        if let Ok(file) = File::from_fd(fd_in) {
-            if file.inner().is_path() {
-                return Err(AxError::InvalidInput);
-            }
+        match File::from_fd(fd_in) {
+            Ok(file) if file.inner().is_path() => return Err(AxError::InvalidInput),
+            _ => {}
         }
         SendFile::Direct(get_file_like(fd_in)?)
     };
@@ -428,10 +427,11 @@ pub fn sys_splice(
             }
             has_pipe = true;
         }
-        if let Ok(file) = File::from_fd(fd_out) {
-            if file.inner().access(FileFlags::APPEND).is_ok() {
+        match File::from_fd(fd_out) {
+            Ok(file) if file.inner().access(FileFlags::APPEND).is_ok() => {
                 return Err(AxError::InvalidInput);
             }
+            _ => {}
         }
         let f = get_file_like(fd_out)?;
         f.write(&mut b"".as_slice().into())?;

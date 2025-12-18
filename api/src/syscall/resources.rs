@@ -105,13 +105,11 @@ pub fn sys_getrusage(who: i32, usage: *mut rusage) -> AxResult<isize> {
                 .proc
                 .threads()
                 .into_iter()
-                .fold(Rusage::default(), |acc, child| {
-                    if let Ok(task) = get_task(child) {
-                        if !curr.ptr_eq(&task) {
-                            return acc.collate(Rusage::from_thread(task.as_thread()));
-                        }
+                .fold(Rusage::default(), |acc, child| match get_task(child) {
+                    Ok(task) if !curr.ptr_eq(&task) => {
+                        acc.collate(Rusage::from_thread(task.as_thread()))
                     }
-                    acc
+                    _ => acc,
                 })
         }
         RUSAGE_THREAD => Rusage::from_thread(thr),
