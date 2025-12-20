@@ -63,7 +63,8 @@ pub fn new_user_task(
                     #[allow(unused_labels)]
                     ReturnReason::Exception(exc_info) => 'exc: {
                         // TODO: detailed handling
-                        let signo = match exc_info.kind() {
+                        let exc_kind = exc_info.kind();
+                        let signo = match exc_kind {
                             ExceptionKind::Misaligned => {
                                 #[cfg(target_arch = "loongarch64")]
                                 if unsafe { uctx.emulate_unaligned() }.is_ok() {
@@ -71,9 +72,40 @@ pub fn new_user_task(
                                 }
                                 Signo::SIGBUS
                             }
-                            ExceptionKind::Breakpoint => Signo::SIGTRAP,
+                            ExceptionKind::Breakpoint => {
+                                // On aarch64, skip breakpoint instructions (brk) to match Linux behavior.
+                                // When a process is not being debugged, breakpoint instructions are ignored.
+                                #[cfg(target_arch = "aarch64")]
+                                {
+                                    // brk instruction is 4 bytes on aarch64
+                                    let current_pc = uctx.ip();
+                                    let next_pc = current_pc + 4;
+                                    debug!("Skipping breakpoint instruction at {:#x}, setting PC to {:#x}", current_pc, next_pc);
+                                    uctx.set_ip(next_pc);
+                                    break 'exc;
+                                }
+                                #[cfg(not(target_arch = "aarch64"))]
+                                Signo::SIGTRAP
+                            }
                             ExceptionKind::IllegalInstruction => Signo::SIGILL,
-                            _ => Signo::SIGTRAP,
+                            _ => {
+                                // On aarch64, some breakpoint-related exceptions (like brk) may be reported
+                                // as "Other" instead of "Breakpoint". Try to skip the instruction to match
+                                // Linux behavior where breakpoint instructions are ignored when not debugged.
+                                #[cfg(target_arch = "aarch64")]
+                                {
+                                    let current_pc = uctx.ip();
+                                    let next_pc = current_pc + 4;
+                                    debug!("Attempting to skip exception type {:?} at PC {:#x}, setting PC to {:#x}", exc_kind, current_pc, next_pc);
+                                    uctx.set_ip(next_pc);
+                                    break 'exc;
+                                }
+                                #[cfg(not(target_arch = "aarch64"))]
+                                {
+                                    warn!("Unhandled exception type: {:?} at PC {:#x}", exc_kind, uctx.ip());
+                                    Signo::SIGTRAP
+                                }
+                            }
                         };
                         raise_signal_fatal(SignalInfo::new_kernel(signo))
                             .expect("Failed to send SIGTRAP");
