@@ -80,7 +80,11 @@ pub fn new_user_task(
                                     // brk instruction is 4 bytes on aarch64
                                     let current_pc = uctx.ip();
                                     let next_pc = current_pc + 4;
-                                    debug!("Skipping breakpoint instruction at {:#x}, setting PC to {:#x}", current_pc, next_pc);
+                                    debug!(
+                                        "Skipping breakpoint instruction at {:#x}, setting PC to \
+                                         {:#x}",
+                                        current_pc, next_pc
+                                    );
                                     uctx.set_ip(next_pc);
                                     break 'exc;
                                 }
@@ -96,13 +100,21 @@ pub fn new_user_task(
                                 {
                                     let current_pc = uctx.ip();
                                     let next_pc = current_pc + 4;
-                                    debug!("Attempting to skip exception type {:?} at PC {:#x}, setting PC to {:#x}", exc_kind, current_pc, next_pc);
+                                    debug!(
+                                        "Attempting to skip exception type {:?} at PC {:#x}, \
+                                         setting PC to {:#x}",
+                                        exc_kind, current_pc, next_pc
+                                    );
                                     uctx.set_ip(next_pc);
                                     break 'exc;
                                 }
                                 #[cfg(not(target_arch = "aarch64"))]
                                 {
-                                    warn!("Unhandled exception type: {:?} at PC {:#x}", exc_kind, uctx.ip());
+                                    warn!(
+                                        "Unhandled exception type: {:?} at PC {:#x}",
+                                        exc_kind,
+                                        uctx.ip()
+                                    );
                                     Signo::SIGTRAP
                                 }
                             }
