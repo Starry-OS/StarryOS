@@ -220,6 +220,7 @@ impl ProcessData {
         aspace: Arc<Mutex<AddrSpace>>,
         signal_actions: Arc<SpinNoIrq<SignalActions>>,
         exit_signal: Option<Signo>,
+        trampoline: usize,
     ) -> Arc<Self> {
         Arc::new(Self {
             proc,
@@ -238,7 +239,7 @@ impl ProcessData {
 
             signal: Arc::new(ProcessSignalManager::new(
                 signal_actions,
-                crate::config::SIGNAL_TRAMPOLINE,
+                trampoline,
             )),
 
             futex_table: Arc::new(FutexTable::new()),

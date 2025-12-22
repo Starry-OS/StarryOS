@@ -325,7 +325,7 @@ pub fn load_user_app(
     path: Option<&str>,
     args: &[String],
     envs: &[String],
-) -> AxResult<(VirtAddr, VirtAddr)> {
+) -> AxResult<(VirtAddr, VirtAddr, Vec<AuxEntry>)> {
     let path = path
         .or_else(|| args.first().map(String::as_str))
         .ok_or(AxError::InvalidInput)?;
@@ -392,7 +392,7 @@ pub fn load_user_app(
         Backend::new_alloc(heap_start, PageSize::Size4K),
     )?;
 
-    Ok((entry, user_sp))
+    Ok((entry, user_sp, auxv))
 }
 
 static ACCESSING_USER_MEM: AtomicBool = AtomicBool::new(false);

@@ -1,3 +1,5 @@
+use core::sync::atomic::Ordering;
+
 use alloc::sync::Arc;
 
 use axerrno::{AxError, AxResult};
@@ -180,6 +182,7 @@ pub fn sys_clone(
             aspace,
             signal_actions,
             exit_signal,
+            old_proc_data.signal.default_restorer.load(Ordering::Relaxed),
         );
         proc_data.set_umask(old_proc_data.umask());
 
