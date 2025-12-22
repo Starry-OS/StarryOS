@@ -214,18 +214,11 @@ pub fn raise_signal_fatal(sig: SignalInfo) -> AxResult<()> {
 
     let signo = sig.signo();
     info!("Send fatal signal {signo:?} to the current process");
-    let handled = if let Some(tid) = proc_data.signal.send_signal(sig) {
-        if let Ok(task) = get_task(tid) {
-            task.interrupt();
-            true
-        } else {
-            false
-        }
+    if let Some(tid) = proc_data.signal.send_signal(sig)
+        && let Ok(task) = get_task(tid)
+    {
+        task.interrupt();
     } else {
-        false
-    };
-
-    if !handled {
         // No task wants to handle the signal, abort the task
         do_exit(signo as i32, true);
     }
