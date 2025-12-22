@@ -127,10 +127,8 @@ pub fn sys_clone(
     }
     new_uctx.set_retval(0);
 
-    // Pass child_tid address instead of pointer reference
-    // Check both the flag and whether the address is non-NULL
-    let set_child_tid = if flags.contains(CloneFlags::CHILD_SETTID) && child_tid != 0 {
-        Some(child_tid)
+    let set_child_tid = if flags.contains(CloneFlags::CHILD_SETTID) {
+        Some(UserPtr::<u32>::from(child_tid).get_as_mut()?)
     } else {
         None
     };
@@ -220,7 +218,7 @@ pub fn sys_clone(
     }
 
     let thr = Thread::new(tid, new_proc_data);
-    if flags.contains(CloneFlags::CHILD_CLEARTID) && child_tid != 0 {
+    if flags.contains(CloneFlags::CHILD_CLEARTID) {
         thr.set_clear_child_tid(child_tid);
     }
     *new_task.task_ext_mut() = Some(unsafe { AxTaskExt::from_impl(thr) });
