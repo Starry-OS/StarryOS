@@ -320,6 +320,22 @@ pub fn close_file_like(fd: c_int) -> AxResult {
     Ok(())
 }
 
+pub fn get_cloexec(fd: c_int) -> AxResult<bool> {
+    FD_TABLE
+        .read()
+        .get(fd as usize)
+        .ok_or(AxError::BadFileDescriptor)
+        .map(|fd| fd.cloexec)
+}
+
+pub fn set_cloexec(fd: c_int, cloexec: bool) -> AxResult {
+    FD_TABLE
+        .write()
+        .get_mut(fd as usize)
+        .ok_or(AxError::BadFileDescriptor)
+        .map(|fd| fd.cloexec = cloexec)
+}
+
 pub fn add_stdio(fd_table: &mut FlattenObjects<FileDescriptor, AX_FILE_LIMIT>) -> AxResult<()> {
     assert_eq!(fd_table.count(), 0);
     let cx = FS_CONTEXT.lock();
