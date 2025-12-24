@@ -63,19 +63,19 @@ impl LoopDevice {
 }
 
 impl DeviceOps for LoopDevice {
-    fn read_at(&self, mut buf: &mut [u8], offset: u64) -> VfsResult<usize> {
+    fn read_at(&self, buf: &mut [u8], offset: u64) -> VfsResult<usize> {
         let file = self.file.lock().clone();
         file.ok_or(AxError::OperationNotPermitted)?
-            .read_at(&mut buf, offset)
+            .read_at(buf, offset)
     }
 
-    fn write_at(&self, mut buf: &[u8], offset: u64) -> VfsResult<usize> {
+    fn write_at(&self, buf: &[u8], offset: u64) -> VfsResult<usize> {
         if self.ro.load(Ordering::Relaxed) {
             return Err(AxError::ReadOnlyFilesystem);
         }
         let file = self.file.lock().clone();
         file.ok_or(AxError::OperationNotPermitted)?
-            .write_at(&mut buf, offset)
+            .write_at(buf, offset)
     }
 
     fn ioctl(&self, cmd: u32, arg: usize) -> VfsResult<usize> {

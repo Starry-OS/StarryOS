@@ -16,7 +16,7 @@ use axtask::future::{block_on, poll_io};
 use linux_raw_sys::general::{AT_EMPTY_PATH, AT_FDCWD, AT_SYMLINK_NOFOLLOW};
 
 use super::{FileLike, Kstat, get_file_like};
-use crate::file::{SealedBuf, SealedBufMut};
+use crate::file::{ReadBuf, WriteBuf};
 
 pub fn with_fs<R>(dirfd: c_int, f: impl FnOnce(&mut FsContext) -> AxResult<R>) -> AxResult<R> {
     let mut fs = FS_CONTEXT.lock();
@@ -126,24 +126,24 @@ fn path_for(loc: &Location) -> Cow<'static, str> {
 }
 
 impl FileLike for File {
-    fn read(&self, dst: &mut SealedBufMut) -> AxResult<usize> {
+    fn read(&self, dst: &mut dyn ReadBuf) -> AxResult<usize> {
         let inner = self.inner();
         if likely(self.is_blocking()) {
             inner.read(dst)
         } else {
             block_on(poll_io(self, IoEvents::IN, self.nonblocking(), || {
-                inner.read(dst)
+                inner.read(&mut *dst)
             }))
         }
     }
 
-    fn write(&self, src: &mut SealedBuf) -> AxResult<usize> {
+    fn write(&self, src: &mut dyn WriteBuf) -> AxResult<usize> {
         let inner = self.inner();
         if likely(self.is_blocking()) {
             inner.write(src)
         } else {
             block_on(poll_io(self, IoEvents::OUT, self.nonblocking(), || {
-                inner.write(src)
+                inner.write(&mut *src)
             }))
         }
     }
@@ -219,11 +219,11 @@ impl Directory {
 }
 
 impl FileLike for Directory {
-    fn read(&self, _dst: &mut SealedBufMut) -> AxResult<usize> {
+    fn read(&self, _dst: &mut dyn ReadBuf) -> AxResult<usize> {
         Err(AxError::BadFileDescriptor)
     }
 
-    fn write(&self, _src: &mut SealedBuf) -> AxResult<usize> {
+    fn write(&self, _src: &mut dyn WriteBuf) -> AxResult<usize> {
         Err(AxError::BadFileDescriptor)
     }
 

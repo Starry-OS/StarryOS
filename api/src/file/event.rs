@@ -6,11 +6,10 @@ use core::{
 };
 
 use axerrno::AxError;
-use axio::{Buf, BufMut, Read, Write};
 use axpoll::{IoEvents, PollSet, Pollable};
 use axtask::future::{block_on, poll_io};
 
-use crate::file::{FileLike, Kstat, SealedBuf, SealedBufMut};
+use crate::file::{FileLike, ReadBuf, WriteBuf};
 
 pub struct EventFd {
     count: AtomicU64,
@@ -35,8 +34,8 @@ impl EventFd {
 }
 
 impl FileLike for EventFd {
-    fn read(&self, dst: &mut SealedBufMut) -> axio::Result<usize> {
-        if dst.remaining_mut() < size_of::<u64>() {
+    fn read(&self, dst: &mut dyn ReadBuf) -> axio::Result<usize> {
+        if dst.remaining() < size_of::<u64>() {
             return Err(AxError::InvalidInput);
         }
 
@@ -62,7 +61,7 @@ impl FileLike for EventFd {
         }))
     }
 
-    fn write(&self, src: &mut SealedBuf) -> axio::Result<usize> {
+    fn write(&self, src: &mut dyn WriteBuf) -> axio::Result<usize> {
         if src.remaining() < size_of::<u64>() {
             return Err(AxError::InvalidInput);
         }
@@ -92,10 +91,6 @@ impl FileLike for EventFd {
                 Err(_) => Err(AxError::WouldBlock),
             }
         }))
-    }
-
-    fn stat(&self) -> axio::Result<Kstat> {
-        Ok(Kstat::default())
     }
 
     fn nonblocking(&self) -> bool {

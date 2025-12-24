@@ -10,7 +10,7 @@ use axpoll::{IoEvents, Pollable};
 use linux_raw_sys::general::S_IFSOCK;
 
 use super::{FileLike, Kstat};
-use crate::file::{SealedBuf, SealedBufMut, get_file_like};
+use crate::file::{ReadBuf, WriteBuf, get_file_like};
 
 pub struct Socket(pub axnet::Socket);
 
@@ -23,11 +23,11 @@ impl Deref for Socket {
 }
 
 impl FileLike for Socket {
-    fn read(&self, dst: &mut SealedBufMut) -> AxResult<usize> {
+    fn read(&self, dst: &mut dyn ReadBuf) -> AxResult<usize> {
         self.recv(dst, axnet::RecvOptions::default())
     }
 
-    fn write(&self, src: &mut SealedBuf) -> AxResult<usize> {
+    fn write(&self, src: &mut dyn WriteBuf) -> AxResult<usize> {
         self.send(src, axnet::SendOptions::default())
     }
 

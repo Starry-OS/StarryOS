@@ -475,10 +475,14 @@ dependencies = [
 
 [[package]]
 name = "axio"
-version = "0.2.0"
-source = "git+https://github.com/arceos-org/axio.git?tag=dev-v02#68ece8ea2a547d0efab89996592920e084f00a1b"
+version = "0.3.0-pre.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3979eb9afff91ef6d24e8a5d30ce8db4109511296351230ffba2e58230da36b8"
 dependencies = [
+ "autocfg",
  "axerrno 0.2.2",
+ "heapless 0.9.2",
+ "memchr",
 ]
 
 [[package]]

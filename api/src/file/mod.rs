@@ -12,11 +12,10 @@ use core::{any::Any, ffi::c_int, time::Duration};
 use axerrno::{AxError, AxResult};
 use axfs::{FS_CONTEXT, OpenOptions};
 use axfs_ng_vfs::DeviceId;
-use axio::{Buf, BufMut, Read, Write};
+use axio::{IoBuf, Read, Write};
 use axpoll::Pollable;
 use axtask::current;
 use flatten_objects::FlattenObjects;
-use inherit_methods_macro::inherit_methods;
 use linux_raw_sys::general::{RLIMIT_NOFILE, stat, statx, statx_timestamp};
 use spin::RwLock;
 use starry_core::{resources::AX_FILE_LIMIT, task::AsThread};
@@ -26,10 +25,6 @@ pub use self::{
     net::Socket,
     pidfd::PidFd,
     pipe::Pipe,
-};
-use crate::{
-    io::IoVectorBufIo,
-    mm::{VmBytes, VmBytesMut},
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -129,126 +124,30 @@ impl From<Kstat> for statx {
     }
 }
 
-pub enum SealedBuf<'a> {
-    Slice(&'a [u8]),
-    Bytes(VmBytes),
-    IoVec(IoVectorBufIo),
-}
+pub trait ReadBuf: Write + IoBuf {}
+impl<T: Write + IoBuf> ReadBuf for T {}
 
-impl<'a> From<&'a [u8]> for SealedBuf<'a> {
-    fn from(value: &'a [u8]) -> Self {
-        Self::Slice(value)
-    }
-}
-
-impl<'a> From<VmBytes> for SealedBuf<'a> {
-    fn from(value: VmBytes) -> Self {
-        Self::Bytes(value)
-    }
-}
-
-impl<'a> From<IoVectorBufIo> for SealedBuf<'a> {
-    fn from(value: IoVectorBufIo) -> Self {
-        Self::IoVec(value)
-    }
-}
-
-#[inherit_methods]
-impl Read for SealedBuf<'_> {
-    fn read(&mut self, buf: &mut [u8]) -> AxResult<usize> {
-        match self {
-            SealedBuf::Slice(slice) => slice.read(buf),
-            SealedBuf::Bytes(bytes) => bytes.read(buf),
-            SealedBuf::IoVec(io_vec) => io_vec.read(buf),
-        }
-    }
-}
-
-impl Buf for SealedBuf<'_> {
-    fn remaining(&self) -> usize {
-        match self {
-            SealedBuf::Slice(slice) => slice.remaining(),
-            SealedBuf::Bytes(bytes) => bytes.remaining(),
-            SealedBuf::IoVec(io_vec) => io_vec.remaining(),
-        }
-    }
-
-    fn consume(&mut self, f: impl FnMut(&[u8]) -> AxResult<usize>) -> AxResult<usize> {
-        match self {
-            SealedBuf::Slice(slice) => slice.consume(f),
-            SealedBuf::Bytes(bytes) => bytes.consume(f),
-            SealedBuf::IoVec(io_vec) => io_vec.consume(f),
-        }
-    }
-}
-
-pub enum SealedBufMut<'a> {
-    Slice(&'a mut [u8]),
-    Bytes(VmBytesMut),
-    IoVec(IoVectorBufIo),
-}
-
-impl<'a> From<&'a mut [u8]> for SealedBufMut<'a> {
-    fn from(value: &'a mut [u8]) -> Self {
-        Self::Slice(value)
-    }
-}
-
-impl<'a> From<VmBytesMut> for SealedBufMut<'a> {
-    fn from(value: VmBytesMut) -> Self {
-        Self::Bytes(value)
-    }
-}
-
-impl<'a> From<IoVectorBufIo> for SealedBufMut<'a> {
-    fn from(value: IoVectorBufIo) -> Self {
-        Self::IoVec(value)
-    }
-}
-
-impl Write for SealedBufMut<'_> {
-    fn write(&mut self, buf: &[u8]) -> AxResult<usize> {
-        match self {
-            SealedBufMut::Slice(slice) => slice.write(buf),
-            SealedBufMut::Bytes(bytes) => bytes.write(buf),
-            SealedBufMut::IoVec(io_vec) => io_vec.write(buf),
-        }
-    }
-
-    fn flush(&mut self) -> AxResult<()> {
-        match self {
-            SealedBufMut::Slice(slice) => slice.flush(),
-            SealedBufMut::Bytes(bytes) => bytes.flush(),
-            SealedBufMut::IoVec(io_vec) => io_vec.flush(),
-        }
-    }
-}
-
-impl BufMut for SealedBufMut<'_> {
-    fn remaining_mut(&self) -> usize {
-        match self {
-            SealedBufMut::Slice(slice) => slice.remaining_mut(),
-            SealedBufMut::Bytes(bytes) => bytes.remaining_mut(),
-            SealedBufMut::IoVec(io_vec) => io_vec.remaining_mut(),
-        }
-    }
-
-    fn fill(&mut self, f: impl FnMut(&mut [u8]) -> AxResult<usize>) -> AxResult<usize> {
-        match self {
-            SealedBufMut::Slice(slice) => slice.fill(f),
-            SealedBufMut::Bytes(bytes) => bytes.fill(f),
-            SealedBufMut::IoVec(io_vec) => io_vec.fill(f),
-        }
-    }
-}
+pub trait WriteBuf: Read + IoBuf {}
+impl<T: Read + IoBuf> WriteBuf for T {}
 
 #[allow(dead_code)]
 pub trait FileLike: Pollable + Send + Sync {
-    fn read(&self, dst: &mut SealedBufMut) -> AxResult<usize>;
-    fn write(&self, src: &mut SealedBuf) -> AxResult<usize>;
-    fn stat(&self) -> AxResult<Kstat>;
+    fn read(&self, _dst: &mut dyn ReadBuf) -> AxResult<usize> {
+        Err(AxError::InvalidInput)
+    }
+
+    fn write(&self, _src: &mut dyn WriteBuf) -> AxResult<usize> {
+        Err(AxError::InvalidInput)
+    }
+
+    fn stat(&self) -> AxResult<Kstat> {
+        Ok(Kstat::default())
+    }
+
     fn into_any(self: Arc<Self>) -> Arc<dyn Any + Send + Sync>;
+
     fn path(&self) -> Cow<'_, str>;
+
     fn ioctl(&self, _cmd: u32, _arg: usize) -> AxResult<usize> {
         Err(AxError::NotATty)
     }
