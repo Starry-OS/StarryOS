@@ -126,14 +126,11 @@ fn map_elf<'a>(
             ph.offset,
             Some(ph.offset + ph.file_size),
         );
-
-        let seg_flags = mapping_flags(ph.flags);
-
         uspace.map(
             seg_start.align_down_4k(),
             seg_align_size,
-            seg_flags,
-            true, // Populate ELF segments immediately
+            mapping_flags(ph.flags),
+            false,
             backend,
         )?;
 
@@ -208,50 +205,47 @@ impl ElfLoader {
         uspace.clear();
         map_trampoline(uspace)?;
 
-        let mut ldso_path = None;
-        let entry_ptr = {
-            let entry = self.0.front().unwrap();
-            if let Some(header) = entry
-                .borrow_elf()
-                .ph
-                .iter()
-                .find(|ph| ph.get_type() == Ok(xmas_elf::program::Type::Interp))
-            {
-                let cache = entry.borrow_cache();
-                let mut data = vec![0; header.file_size as usize];
-                let read = cache.read_at(&mut data.as_mut_slice(), header.offset)?;
-                assert_eq!(data.len(), read);
+        let entry = self.0.front().unwrap();
+        let ldso = if let Some(header) = entry
+            .borrow_elf()
+            .ph
+            .iter()
+            .find(|ph| ph.get_type() == Ok(xmas_elf::program::Type::Interp))
+        {
+            let cache = entry.borrow_cache();
+            let mut data = vec![0; header.file_size as usize];
+            let read = cache.read_at(&mut data.as_mut_slice(), header.offset)?;
+            assert_eq!(data.len(), read);
 
-                let ldso = CStr::from_bytes_with_nul(&data)
-                    .ok()
-                    .and_then(|cstr| cstr.to_str().ok())
-                    .ok_or(AxError::InvalidInput)?;
-                debug!("Loading dynamic linker: {ldso}");
-                ldso_path = Some(ldso.to_owned());
-            }
-            entry as *const ElfCacheEntry
+            let ldso = CStr::from_bytes_with_nul(&data)
+                .ok()
+                .and_then(|cstr| cstr.to_str().ok())
+                .ok_or(AxError::InvalidInput)?;
+            debug!("Loading dynamic linker: {ldso}");
+            Some(ldso.to_owned())
+        } else {
+            None
         };
 
-        let mut ldso_entry_ptr = None;
-        if let Some(ldso) = ldso_path.as_ref() {
+        let (elf, ldso) = if let Some(ldso) = ldso {
             let loc = FS_CONTEXT.lock().resolve(ldso)?;
             if !self.0.touch(|e| e.borrow_cache().location().ptr_eq(&loc)) {
                 let e = ElfCacheEntry::load(loc)?.map_err(|_| AxError::InvalidInput)?;
                 self.0.insert(e);
             }
-            ldso_entry_ptr = Some(self.0.front().unwrap() as *const ElfCacheEntry);
-        }
 
-        let elf = unsafe { map_elf(uspace, crate::config::USER_SPACE_BASE, &*entry_ptr)? };
-        let ldso = if let (Some(ldso_entry_ptr), Some(_ldso_path)) =
-            (ldso_entry_ptr, ldso_path.as_ref())
-        {
-            Some(map_elf(uspace, crate::config::USER_INTERP_BASE, unsafe {
-                &*ldso_entry_ptr
-            })?)
+            let mut iter = self.0.iter();
+            let ldso = iter.next().unwrap();
+            let elf = iter.next().unwrap();
+            (elf, Some(ldso))
         } else {
-            None
+            (entry, None)
         };
+
+        let elf = map_elf(uspace, crate::config::USER_SPACE_BASE, elf)?;
+        let ldso = ldso
+            .map(|elf| map_elf(uspace, crate::config::USER_INTERP_BASE, elf))
+            .transpose()?;
 
         let entry = VirtAddr::from_usize(
             ldso.as_ref()
