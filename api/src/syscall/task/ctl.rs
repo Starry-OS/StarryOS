@@ -77,10 +77,9 @@ pub fn sys_get_mempolicy(
 /// prctl() is called with a first argument describing what to do, and further
 /// arguments with a significance depending on the first one.
 /// The first argument can be:
-/// - PR_SET_NAME: set the name of the calling thread, using the value pointed to by arg2 (a
-/// char[16])
+/// - PR_SET_NAME: set the name of the calling thread, using the value pointed to by `arg2`
 /// - PR_GET_NAME: get the name of the calling
-/// - PR_SET_SECCOMP: enable seccomp mode, with the mode specified in arg2
+/// - PR_SET_SECCOMP: enable seccomp mode, with the mode specified in `arg2`
 /// - PR_MCE_KILL: set the machine check exception policy
 /// - PR_SET_MM options: set various memory management options (start/end code/data/brk/stack)
 pub fn sys_prctl(

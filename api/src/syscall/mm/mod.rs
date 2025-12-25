@@ -1,5 +1,5 @@
 mod brk;
-mod mmap;
 mod mincore;
+mod mmap;
 
-pub use self::{brk::*, mmap::*, mincore::*};
+pub use self::{brk::*, mincore::*, mmap::*};
