@@ -21,5 +21,5 @@ pub const USER_HEAP_SIZE_MAX: usize = 0x2000_0000;  // 512MB
 /// The base address for user interpreter.
 pub const USER_INTERP_BASE: usize = 0x400_0000;
 
-/// The address of signal trampoline.
-pub const SIGNAL_TRAMPOLINE: usize = USER_STACK_TOP - USER_STACK_SIZE - 0x1000;
+/// The address of signal trampoline (placed at top of user space).
+pub const SIGNAL_TRAMPOLINE: usize = USER_SPACE_BASE + USER_SPACE_SIZE - 0x1000;
