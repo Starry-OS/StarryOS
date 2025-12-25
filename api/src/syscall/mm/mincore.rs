@@ -7,6 +7,7 @@
 // This file has been modified by KylinSoft on 2025.
 
 use alloc::vec;
+
 use axerrno::{AxError, AxResult, LinuxError};
 use axtask::current;
 use axhal::paging::MappingFlags;
@@ -44,9 +45,11 @@ use starry_vm::vm_write_slice;
 pub fn sys_mincore(addr: usize, length: usize, vec: *mut u8) -> AxResult<isize> {
     debug!("sys_mincore <= addr: {addr:#x}, length: {length:#x}, vec: {vec:?}");
 
-    // EINVAL: addr must be a multiple of the page size
     // TODO: Arceos should support unified PAGE_SIZE constant
-    if !addr.is_multiple_of(PAGE_SIZE_4K) {
+    let page_size = PAGE_SIZE_4K;
+
+    // EINVAL: addr must be a multiple of the page size
+    if !addr.is_multiple_of(page_size) {
         return Err(AxError::InvalidInput);
     }
 
@@ -55,23 +58,23 @@ pub fn sys_mincore(addr: usize, length: usize, vec: *mut u8) -> AxResult<isize> 
         return Err(AxError::BadAddress);
     }
 
-    // Special case: length 0 is valid and returns immediately
+    // Special case: length=0
+    // According to Linux kernel (mm/mincore.c), length=0 returns success
+    // WITHOUT validating that addr is mapped.  This is intentional behavior
+    // to match POSIX semantics where a zero-length operation is a no-op.
     if length == 0 {
         return Ok(0);
     }
 
     let start_addr = VirtAddr::from(addr);
-
     // ENOMEM: Check for overflow (simulates "length > TASK_SIZE - addr")
     // This catches negative lengths interpreted as large unsigned values
-    start_addr
+    let end_addr = start_addr
         .checked_add(length)
-        .ok_or({LinuxError::ENOMEM
-    })?;
+        .ok_or(LinuxError::ENOMEM)?;
 
     // Calculate number of pages to check
-    // Formula from man page: (length + PAGE_SIZE - 1) / PAGE_SIZE
-    let page_count = length.div_ceil(PAGE_SIZE_4K);
+    let page_count = length.div_ceil(page_size);
 
     // Get current address space
     let curr = current();
@@ -81,34 +84,46 @@ pub fn sys_mincore(addr: usize, length: usize, vec: *mut u8) -> AxResult<isize> 
     // Initialize all bytes to 0 (non-resident, all reserved bits clear)
     let mut result_vec = vec![0u8; page_count];
 
-    // Check each page in the range [addr, addr+length)
+    // Process pages in batches based on query() returned size
     let mut current_page = start_addr.align_down_4k();
+    let mut result_index = 0;
 
-    for res in result_vec.iter_mut().take(page_count) {
-        // ENOMEM: Check if this page is within a valid VMA (Virtual Memory Area)
-        // Linux returns ENOMEM for "unmapped memory"
-        aspace.find_area(current_page).ok_or({
-            // This address is not mapped - return ENOMEM per Linux spec
-            LinuxError::ENOMEM
-        })?;
+    while current_page < end_addr && result_index < page_count {
+        // ENOMEM: Check if this page is within a valid VMA
+        let area = aspace.find_area(current_page).ok_or(LinuxError::ENOMEM)?;
 
         // Verify we have at least USER access permission
-        // (Though find_area likely already ensures this for user mappings)
-        if !aspace.can_access_range(current_page, PAGE_SIZE_4K, MappingFlags::USER) {
-            // Mapped but not accessible - treat as ENOMEM per Linux behavior
+        if !area.flags().contains(MappingFlags::USER) {
             return Err(LinuxError::ENOMEM.into());
         }
 
-        // Query the page table to check physical page presence
-        // In StarryOS with lazy allocation:
-        // - query() succeeds -> physical page is allocated and resident (return 1)
-        // - query() fails -> page mapped but not populated yet (return 0)
-        let is_resident = match aspace.page_table().query(current_page) {
-            Ok((..)) => 1u8,
-            Err(_) => 0u8,
+        // Query page table with batch awareness
+        let (is_resident, advance_size) = match aspace.page_table().query(current_page) {
+            Ok((_, _, mapped_size)) => {
+                // Physical page exists and is resident
+                // page_size tells us how many contiguous pages have the same status
+                (1u8, mapped_size as _)
+            }
+            Err(_) => {
+                // Page is mapped but not populated (lazy allocation)
+                // We need to determine how many contiguous pages are also not populated
+                // For safety, we check the next page or use PAGE_SIZE_4K as minimum step
+                (0u8, page_size)
+            }
         };
-        *res = is_resident;
-        current_page += PAGE_SIZE_4K;
+
+        let advance_size = advance_size.max(page_size);
+
+        let remaining_to_check = end_addr.as_usize().saturating_sub(current_page.as_usize());
+        let batch_bytes = advance_size.min(remaining_to_check);
+        let batch_pages = (batch_bytes / page_size).max(1);
+
+        // Fill in result vector for this batch
+        let batch_end = (result_index + batch_pages).min(page_count);
+        result_vec[result_index..batch_end].fill(is_resident);
+
+        current_page += advance_size;
+        result_index = batch_end;
     }
 
     // EFAULT: Write result to user space
