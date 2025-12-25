@@ -41,3 +41,6 @@ fn main() {
 
 #[cfg(feature = "vf2")]
 extern crate axplat_riscv64_visionfive2;
+
+#[cfg(feature = "rk3588")]
+extern crate axplat_aarch64_rk3588;

@@ -589,6 +589,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "axplat-aarch64-rk3588"
+version = "0.2.0"
+source = "git+https://github.com/elliott10/axplat-aarch64-rk3588.git?rev=e4799437#e47994378da5324c0dcd27fc4212c919b60c9606"
+dependencies = [
+ "axconfig-macros",
+ "axcpu",
+ "axplat",
+ "axplat-aarch64-peripherals",
+ "dw_apb_uart",
+ "kspin",
+ "log",
+ "page_table_entry",
+]
+
+[[package]]
 name = "axplat-loongarch64-qemu-virt"
 version = "0.3.0"
 source = "git+https://github.com/arceos-org/axplat_crates.git?tag=dev-v03#0df0713b1c20eafaeebdc6b0e194b2985e857949"
@@ -1135,6 +1150,14 @@ dependencies = [
  "rustc_version",
  "syn 2.0.111",
  "unicode-xid",
+]
+
+[[package]]
+name = "dw_apb_uart"
+version = "0.2.0"
+source = "git+https://github.com/elliott10/dw_apb_uart.git?rev=9de1bf0f#9de1bf0fb36a17ba2cc29cbed47131ed1b8de12f"
+dependencies = [
+ "tock-registers 0.8.1",
 ]
 
 [[package]]
@@ -2138,6 +2161,7 @@ dependencies = [
  "axfs",
  "axhal",
  "axlog",
+ "axplat-aarch64-rk3588",
  "axplat-riscv64-visionfive2",
  "axruntime",
  "axsync",
