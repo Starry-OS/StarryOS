@@ -17,7 +17,7 @@ use starry_core::task::AsThread;
 use starry_signal::{SignalInfo, SignalSet};
 use zerocopy::{Immutable, IntoBytes};
 
-use crate::file::{FileLike, ReadBuf, WriteBuf};
+use crate::file::{FileLike, IoDst, IoSrc};
 
 /// The size of signalfd_siginfo structure (128 bytes as per Linux
 /// specification)
@@ -121,8 +121,8 @@ impl Signalfd {
 }
 
 impl FileLike for Signalfd {
-    fn read(&self, dst: &mut dyn ReadBuf) -> AxResult<usize> {
-        if dst.remaining() < SIGNALFD_SIGINFO_SIZE {
+    fn read(&self, dst: &mut IoDst) -> AxResult<usize> {
+        if dst.remaining_mut() < SIGNALFD_SIGINFO_SIZE {
             return Err(AxError::InvalidInput);
         }
 
@@ -147,7 +147,7 @@ impl FileLike for Signalfd {
         }))
     }
 
-    fn write(&self, _src: &mut dyn WriteBuf) -> AxResult<usize> {
+    fn write(&self, _src: &mut IoSrc) -> AxResult<usize> {
         // signalfd is read-only
         Err(AxError::BadFileDescriptor)
     }

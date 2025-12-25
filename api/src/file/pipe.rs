@@ -24,7 +24,7 @@ use starry_signal::{SignalInfo, Signo};
 use starry_vm::VmMutPtr;
 
 use super::{FileLike, Kstat};
-use crate::file::{ReadBuf, WriteBuf};
+use crate::file::{IoDst, IoSrc};
 
 const RING_BUFFER_INIT_SIZE: usize = 65536; // 64 KiB
 
@@ -111,11 +111,11 @@ fn raise_pipe() {
 }
 
 impl FileLike for Pipe {
-    fn read(&self, dst: &mut dyn ReadBuf) -> AxResult<usize> {
+    fn read(&self, dst: &mut IoDst) -> AxResult<usize> {
         if !self.is_read() {
             return Err(AxError::BadFileDescriptor);
         }
-        if dst.remaining() == 0 {
+        if dst.is_full() {
             return Ok(0);
         }
 
@@ -141,7 +141,7 @@ impl FileLike for Pipe {
         }))
     }
 
-    fn write(&self, src: &mut dyn WriteBuf) -> AxResult<usize> {
+    fn write(&self, src: &mut IoSrc) -> AxResult<usize> {
         if !self.is_write() {
             return Err(AxError::BadFileDescriptor);
         }

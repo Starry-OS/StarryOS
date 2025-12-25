@@ -12,7 +12,7 @@ use axhal::{
     paging::MappingFlags,
     trap::{PAGE_FAULT, register_trap_handler},
 };
-use axio::{IoBuf, Read, Write};
+use axio::prelude::*;
 use axtask::current;
 use memory_addr::{MemoryAddr, PAGE_SIZE_4K, VirtAddr};
 use starry_core::{
@@ -342,8 +342,8 @@ impl Write for VmBytesMut {
     }
 }
 
-impl IoBuf for VmBytesMut {
-    fn remaining(&self) -> usize {
+impl IoBufMut for VmBytesMut {
+    fn remaining_mut(&self) -> usize {
         self.len
     }
 }

@@ -12,7 +12,7 @@ use core::{any::Any, ffi::c_int, time::Duration};
 use axerrno::{AxError, AxResult};
 use axfs::{FS_CONTEXT, OpenOptions};
 use axfs_ng_vfs::DeviceId;
-use axio::{IoBuf, Read, Write};
+use axio::prelude::*;
 use axpoll::Pollable;
 use axtask::current;
 use flatten_objects::FlattenObjects;
@@ -124,19 +124,21 @@ impl From<Kstat> for statx {
     }
 }
 
-pub trait ReadBuf: Write + IoBuf {}
-impl<T: Write + IoBuf> ReadBuf for T {}
+pub trait WriteBuf: Write + IoBufMut {}
+impl<T: Write + IoBufMut> WriteBuf for T {}
+pub type IoDst<'a> = dyn WriteBuf + 'a;
 
-pub trait WriteBuf: Read + IoBuf {}
-impl<T: Read + IoBuf> WriteBuf for T {}
+pub trait ReadBuf: Read + IoBuf {}
+impl<T: Read + IoBuf> ReadBuf for T {}
+pub type IoSrc<'a> = dyn ReadBuf + 'a;
 
 #[allow(dead_code)]
 pub trait FileLike: Pollable + Send + Sync {
-    fn read(&self, _dst: &mut dyn ReadBuf) -> AxResult<usize> {
+    fn read(&self, _dst: &mut IoDst) -> AxResult<usize> {
         Err(AxError::InvalidInput)
     }
 
-    fn write(&self, _src: &mut dyn WriteBuf) -> AxResult<usize> {
+    fn write(&self, _src: &mut IoSrc) -> AxResult<usize> {
         Err(AxError::InvalidInput)
     }
 

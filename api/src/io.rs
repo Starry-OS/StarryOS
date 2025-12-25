@@ -1,7 +1,7 @@
 use core::mem::{self, MaybeUninit};
 
 use axerrno::{AxError, AxResult};
-use axio::{IoBuf, Read, Write};
+use axio::prelude::*;
 use bytemuck::AnyBitPattern;
 use starry_vm::{VmPtr, vm_read_slice, vm_write_slice};
 
@@ -157,6 +157,12 @@ impl Write for IoVectorBufIo {
 
 impl IoBuf for IoVectorBufIo {
     fn remaining(&self) -> usize {
+        self.inner.len
+    }
+}
+
+impl IoBufMut for IoVectorBufIo {
+    fn remaining_mut(&self) -> usize {
         self.inner.len
     }
 }

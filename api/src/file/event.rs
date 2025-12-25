@@ -9,7 +9,7 @@ use axerrno::AxError;
 use axpoll::{IoEvents, PollSet, Pollable};
 use axtask::future::{block_on, poll_io};
 
-use crate::file::{FileLike, ReadBuf, WriteBuf};
+use crate::file::{FileLike, IoDst, IoSrc};
 
 pub struct EventFd {
     count: AtomicU64,
@@ -34,8 +34,8 @@ impl EventFd {
 }
 
 impl FileLike for EventFd {
-    fn read(&self, dst: &mut dyn ReadBuf) -> axio::Result<usize> {
-        if dst.remaining() < size_of::<u64>() {
+    fn read(&self, dst: &mut IoDst) -> axio::Result<usize> {
+        if dst.remaining_mut() < size_of::<u64>() {
             return Err(AxError::InvalidInput);
         }
 
@@ -61,7 +61,7 @@ impl FileLike for EventFd {
         }))
     }
 
-    fn write(&self, src: &mut dyn WriteBuf) -> axio::Result<usize> {
+    fn write(&self, src: &mut IoSrc) -> axio::Result<usize> {
         if src.remaining() < size_of::<u64>() {
             return Err(AxError::InvalidInput);
         }
