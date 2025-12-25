@@ -140,7 +140,7 @@ pub fn sys_clone(
 
     let tid = new_task.id().as_u64() as Pid;
     if flags.contains(CloneFlags::PARENT_SETTID) {
-        (parent_tid as *mut Pid).vm_write(tid)?;
+        (parent_tid as *mut Pid).vm_write(tid).ok();
     }
 
     let new_proc_data = if flags.contains(CloneFlags::THREAD) {
