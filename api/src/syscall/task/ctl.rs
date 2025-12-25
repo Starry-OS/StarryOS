@@ -108,21 +108,8 @@ pub fn sys_prctl(
         PR_SET_SECCOMP => {}
         PR_MCE_KILL => {}
         PR_SET_MM => {
-            match arg2 as u32 {
-                PR_SET_MM_START_CODE
-                | PR_SET_MM_END_CODE
-                | PR_SET_MM_START_DATA
-                | PR_SET_MM_END_DATA
-                | PR_SET_MM_START_BRK
-                | PR_SET_MM_START_STACK
-                | PR_SET_MM_ARG_START => {
-                    // We ignore these settings for now.
-                }
-                _ => {
-                    warn!("sys_prctl: unsupported PR_SET_MM option {}", arg2);
-                    return Err(AxError::InvalidInput);
-                }
-            }
+            // not implemented; but avoid annoying warnings
+            return Err(AxError::InvalidInput);
         }
         _ => {
             warn!("sys_prctl: unsupported option {option}");
