@@ -43,13 +43,10 @@ use starry_vm::vm_write_slice;
 /// - EINVAL: addr not page-aligned
 /// - ENOMEM: length > (TASK_SIZE - addr), negative length, or unmapped memory
 pub fn sys_mincore(addr: usize, length: usize, vec: *mut u8) -> AxResult<isize> {
-    debug!("sys_mincore <= addr: {addr:#x}, length: {length:#x}, vec: {vec:?}");
-
-    // TODO: Arceos should support unified PAGE_SIZE constant
-    let page_size = PAGE_SIZE_4K;
+    let start_addr = VirtAddr::from(addr);
 
     // EINVAL: addr must be a multiple of the page size
-    if !addr.is_multiple_of(page_size) {
+    if !start_addr.is_aligned(PAGE_SIZE_4K) {
         return Err(AxError::InvalidInput);
     }
 
@@ -57,6 +54,8 @@ pub fn sys_mincore(addr: usize, length: usize, vec: *mut u8) -> AxResult<isize> 
     if vec.is_null() {
         return Err(AxError::BadAddress);
     }
+
+    debug!("sys_mincore <= addr: {addr:#x}, length: {length:#x}, vec: {vec:?}");
 
     // Special case: length=0
     // According to Linux kernel (mm/mincore.c), length=0 returns success
@@ -66,29 +65,21 @@ pub fn sys_mincore(addr: usize, length: usize, vec: *mut u8) -> AxResult<isize> 
         return Ok(0);
     }
 
-    let start_addr = VirtAddr::from(addr);
-    // ENOMEM: Check for overflow (simulates "length > TASK_SIZE - addr")
-    // This catches negative lengths interpreted as large unsigned values
-    let end_addr = start_addr.checked_add(length).ok_or(AxError::NoMemory)?;
-
     // Calculate number of pages to check
-    let page_count = length.div_ceil(page_size);
+    let page_count = length.div_ceil(PAGE_SIZE_4K);
 
     // Get current address space
     let curr = current();
     let aspace = curr.as_thread().proc_data.aspace.lock();
 
-    // Allocate temporary buffer for results
-    // Initialize all bytes to 0 (non-resident, all reserved bits clear)
-    let mut result_vec = vec![0u8; page_count];
+    let mut result = vec![0u8; page_count];
+    let mut i = 0;
 
-    // Process pages in batches based on query() returned size
-    let mut current_page = start_addr.align_down_4k();
-    let mut result_index = 0;
+    while i < page_count {
+        let addr = start_addr + i * PAGE_SIZE_4K;
 
-    while current_page < end_addr && result_index < page_count {
         // ENOMEM: Check if this page is within a valid VMA
-        let area = aspace.find_area(current_page).ok_or(AxError::NoMemory)?;
+        let area = aspace.find_area(addr).ok_or(AxError::NoMemory)?;
 
         // Verify we have at least USER access permission
         if !area.flags().contains(MappingFlags::USER) {
@@ -96,37 +87,32 @@ pub fn sys_mincore(addr: usize, length: usize, vec: *mut u8) -> AxResult<isize> 
         }
 
         // Query page table with batch awareness
-        let (is_resident, advance_size) = match aspace.page_table().query(current_page) {
-            Ok((_, _, mapped_size)) => {
+        let (is_resident, size) = match aspace.page_table().query(addr) {
+            Ok((_, _, size)) => {
                 // Physical page exists and is resident
                 // page_size tells us how many contiguous pages have the same status
-                (1u8, mapped_size as _)
+                (true, size as _)
             }
             Err(_) => {
                 // Page is mapped but not populated (lazy allocation)
                 // We need to determine how many contiguous pages are also not populated
                 // For safety, we check the next page or use PAGE_SIZE_4K as minimum step
-                (0u8, page_size)
+                (false, PAGE_SIZE_4K)
             }
         };
+        let n = size / PAGE_SIZE_4K;
 
-        let advance_size = advance_size.max(page_size);
+        if is_resident {
+            let end = (i + n).min(page_count);
+            result[i..end].fill(1);
+        }
 
-        let remaining_to_check = end_addr.as_usize().saturating_sub(current_page.as_usize());
-        let batch_bytes = advance_size.min(remaining_to_check);
-        let batch_pages = (batch_bytes / page_size).max(1);
-
-        // Fill in result vector for this batch
-        let batch_end = (result_index + batch_pages).min(page_count);
-        result_vec[result_index..batch_end].fill(is_resident);
-
-        current_page += advance_size;
-        result_index = batch_end;
+        i += n;
     }
 
     // EFAULT: Write result to user space
     // vm_write_slice will return EFAULT if vec is invalid
-    vm_write_slice(vec, &result_vec)?;
+    vm_write_slice(vec, result.as_slice())?;
 
     Ok(0)
 }
