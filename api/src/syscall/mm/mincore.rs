@@ -8,7 +8,7 @@
 
 use alloc::vec;
 
-use axerrno::{AxError, AxResult, LinuxError};
+use axerrno::{AxError, AxResult};
 use axtask::current;
 use axhal::paging::MappingFlags;
 use memory_addr::{MemoryAddr, PAGE_SIZE_4K, VirtAddr};
@@ -69,9 +69,7 @@ pub fn sys_mincore(addr: usize, length: usize, vec: *mut u8) -> AxResult<isize> 
     let start_addr = VirtAddr::from(addr);
     // ENOMEM: Check for overflow (simulates "length > TASK_SIZE - addr")
     // This catches negative lengths interpreted as large unsigned values
-    let end_addr = start_addr
-        .checked_add(length)
-        .ok_or(LinuxError::ENOMEM)?;
+    let end_addr = start_addr.checked_add(length).ok_or(AxError::NoMemory)?;
 
     // Calculate number of pages to check
     let page_count = length.div_ceil(page_size);
@@ -90,11 +88,11 @@ pub fn sys_mincore(addr: usize, length: usize, vec: *mut u8) -> AxResult<isize> 
 
     while current_page < end_addr && result_index < page_count {
         // ENOMEM: Check if this page is within a valid VMA
-        let area = aspace.find_area(current_page).ok_or(LinuxError::ENOMEM)?;
+        let area = aspace.find_area(current_page).ok_or(AxError::NoMemory)?;
 
         // Verify we have at least USER access permission
         if !area.flags().contains(MappingFlags::USER) {
-            return Err(LinuxError::ENOMEM.into());
+            return Err(AxError::NoMemory);
         }
 
         // Query page table with batch awareness
