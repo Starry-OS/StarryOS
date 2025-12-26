@@ -16,6 +16,7 @@ pub mod bpf;
 mod exception;
 pub mod file;
 pub mod io;
+pub mod kmod;
 pub mod kprobe;
 mod lock_api;
 pub mod mm;
@@ -63,6 +64,11 @@ pub fn init() {
 
     #[cfg(not(target_arch = "loongarch64"))]
     test_unwind();
+
+    ax_println!(
+        "write_char addr: {:#x}",
+        kmod::write_char as usize // access the function to avoid optimization removal
+    );
 
     info!("Initialize alarm...");
     starry_core::time::spawn_alarm_task();

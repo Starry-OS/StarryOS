@@ -1,0 +1,12 @@
+[package]
+name = "hello"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "hello"
+crate-type = ["staticlib"]
+
+[dependencies]
+# kmod = { path = "../../../ax-project/kmod/kmod" }
+kmod = { git = "https://github.com/Starry-OS/kmod" }

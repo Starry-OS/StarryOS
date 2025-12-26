@@ -1320,6 +1320,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
+name = "goblin"
+version = "0.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4db6758c546e6f81f265638c980e5e84dfbda80cfd8e89e02f83454c8e8124bd"
+dependencies = [
+ "log",
+ "plain",
+ "scroll",
+]
+
+[[package]]
 name = "gpt_disk_io"
 version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1392,6 +1403,13 @@ name = "heck"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
+
+[[package]]
+name = "hello"
+version = "0.1.0"
+dependencies = [
+ "kmod",
+]
 
 [[package]]
 name = "ident_case"
@@ -1479,6 +1497,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "kbindings"
+version = "0.1.0"
+source = "git+https://github.com/Starry-OS/kmod#e96f69d6a9e038e212c90192ea4b9d501dfa6b56"
+
+[[package]]
 name = "kbpf-basic"
 version = "0.1.0"
 source = "git+https://github.com/Starry-OS/kbpf-basic?rev=ab3b368#ab3b368bf4d64d514969270a1cbd023fae61f0b9"
@@ -1509,6 +1532,39 @@ checksum = "307e6be468f3d6b6d895e191f63c11602e4e76575ecca68325d8c8dbebe2870e"
 dependencies = [
  "cfg-if",
  "crate_interface",
+]
+
+[[package]]
+name = "kmacro"
+version = "0.1.0"
+source = "git+https://github.com/Starry-OS/kmod#e96f69d6a9e038e212c90192ea4b9d501dfa6b56"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+]
+
+[[package]]
+name = "kmod"
+version = "0.1.0"
+source = "git+https://github.com/Starry-OS/kmod#e96f69d6a9e038e212c90192ea4b9d501dfa6b56"
+dependencies = [
+ "kbindings",
+ "kmacro",
+]
+
+[[package]]
+name = "kmod-loader"
+version = "0.1.0"
+source = "git+https://github.com/Starry-OS/kmod#e96f69d6a9e038e212c90192ea4b9d501dfa6b56"
+dependencies = [
+ "bitfield-struct",
+ "bitflags 2.10.0",
+ "goblin",
+ "int-enum",
+ "kmod",
+ "log",
+ "rustc-demangle",
 ]
 
 [[package]]
@@ -1885,6 +1941,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "plain"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
+
+[[package]]
 name = "plic"
 version = "0.1.0"
 source = "git+https://github.com/Starry-OS/plic.git?rev=ee40f86#ee40f86b888280f291af815874e5f3cee9ee3b94"
@@ -2168,6 +2230,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
+name = "scroll"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1257cd4248b4132760d6524d6dda4e053bc648c9070b960929bf50cfb1e7add"
+dependencies = [
+ "scroll_derive",
+]
+
+[[package]]
+name = "scroll_derive"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed76efe62313ab6610570951494bdaa81568026e0318eaa55f167de70eeea67d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+]
+
+[[package]]
 name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2301,6 +2383,7 @@ dependencies = [
  "inherit-methods-macro",
  "kbpf-basic",
  "kernel_guard",
+ "kmod-loader",
  "kprobe",
  "kspin",
  "ksym",

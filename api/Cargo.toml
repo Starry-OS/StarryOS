@@ -81,6 +81,8 @@ tracepoint = { git = "https://github.com/Starry-OS/tracepoint.git", package = "k
 kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "ab3b368" }
 rbpf = { git = "https://github.com/qmonnet/rbpf.git", default-features = false, rev = "f31e471" }
 kprobe = { git = "https://github.com/Starry-OS/kprobe" }
+# kmod-loader = { path = "../../ax-project/kmod/kmod-loader" }
+kmod-loader = { git = "https://github.com/Starry-OS/kmod" }
 
 [target.'cfg(not(target_arch = "loongarch64"))'.dependencies]
 unwinding = { version = "=0.2.8", default-features = false, features = [

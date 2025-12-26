@@ -2,6 +2,7 @@ mod bpf;
 mod fs;
 mod io_mpx;
 mod ipc;
+mod kmod;
 mod mm;
 mod net;
 mod perf;
@@ -18,8 +19,8 @@ pub use mm::{MmapFlags, MmapProt};
 use syscalls::Sysno;
 
 use self::{
-    bpf::*, fs::*, io_mpx::*, ipc::*, mm::*, net::*, perf::*, resources::*, signal::*, sync::*,
-    sys::*, task::*, time::*,
+    bpf::*, fs::*, io_mpx::*, ipc::*, kmod::*, mm::*, net::*, perf::*, resources::*, signal::*,
+    sync::*, sys::*, task::*, time::*,
 };
 
 #[inline(never)]
@@ -600,6 +601,9 @@ pub fn handle_syscall(uctx: &mut UserContext) {
             uctx.arg3() as _,
             uctx.arg4() as _,
         ),
+
+        Sysno::init_module => sys_init_module(uctx.arg0() as _, uctx.arg1() as _, uctx.arg2() as _),
+        Sysno::delete_module => sys_delete_module(uctx.arg0() as _, uctx.arg1() as _),
         // dummy fds
         Sysno::signalfd4
         | Sysno::timerfd_create
