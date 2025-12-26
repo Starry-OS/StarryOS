@@ -30,10 +30,6 @@ impl FileLike for PidFd {
     fn path(&self) -> Cow<'_, str> {
         "anon_inode:[pidfd]".into()
     }
-
-    fn into_any(self: Arc<Self>) -> Arc<dyn core::any::Any + Send + Sync> {
-        self
-    }
 }
 
 impl Pollable for PidFd {

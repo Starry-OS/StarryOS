@@ -22,11 +22,7 @@ use crate::{
 struct DummyFd;
 impl FileLike for DummyFd {
     fn path(&self) -> Cow<'_, str> {
-        "anon_inode:[bruh]".into()
-    }
-
-    fn into_any(self: Arc<Self>) -> Arc<dyn core::any::Any + Send + Sync> {
-        self
+        "anon_inode:[dummy]".into()
     }
 }
 impl Pollable for DummyFd {

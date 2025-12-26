@@ -13,7 +13,6 @@ use alloc::{
     task::Wake,
 };
 use core::{
-    any::Any,
     hash::{Hash, Hasher},
     sync::atomic::{AtomicBool, Ordering},
     task::{Context, Waker},
@@ -436,10 +435,6 @@ impl Epoll {
 impl FileLike for Epoll {
     fn path(&self) -> Cow<'_, str> {
         "anon_inode:[eventpoll]".into()
-    }
-
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any + Send + Sync> {
-        self
     }
 }
 

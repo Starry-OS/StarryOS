@@ -7,7 +7,7 @@ mod pipe;
 pub mod signalfd;
 
 use alloc::{borrow::Cow, sync::Arc};
-use core::{any::Any, ffi::c_int, time::Duration};
+use core::{ffi::c_int, time::Duration};
 
 use axerrno::{AxError, AxResult};
 use axfs::{FS_CONTEXT, OpenOptions};
@@ -15,6 +15,7 @@ use axfs_ng_vfs::DeviceId;
 use axio::prelude::*;
 use axpoll::Pollable;
 use axtask::current;
+use downcast_rs::{DowncastSync, impl_downcast};
 use flatten_objects::FlattenObjects;
 use linux_raw_sys::general::{RLIMIT_NOFILE, stat, statx, statx_timestamp};
 use spin::RwLock;
@@ -133,7 +134,7 @@ impl<T: Read + IoBuf> ReadBuf for T {}
 pub type IoSrc<'a> = dyn ReadBuf + 'a;
 
 #[allow(dead_code)]
-pub trait FileLike: Pollable + Send + Sync {
+pub trait FileLike: Pollable + DowncastSync {
     fn read(&self, _dst: &mut IoDst) -> AxResult<usize> {
         Err(AxError::InvalidInput)
     }
@@ -145,8 +146,6 @@ pub trait FileLike: Pollable + Send + Sync {
     fn stat(&self) -> AxResult<Kstat> {
         Ok(Kstat::default())
     }
-
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any + Send + Sync>;
 
     fn path(&self) -> Cow<'_, str>;
 
@@ -167,8 +166,7 @@ pub trait FileLike: Pollable + Send + Sync {
         Self: Sized + 'static,
     {
         get_file_like(fd)?
-            .into_any()
-            .downcast::<Self>()
+            .downcast_arc()
             .map_err(|_| AxError::InvalidInput)
     }
 
@@ -179,6 +177,7 @@ pub trait FileLike: Pollable + Send + Sync {
         add_file_like(Arc::new(self), cloexec)
     }
 }
+impl_downcast!(sync FileLike);
 
 #[derive(Clone)]
 pub struct FileDescriptor {

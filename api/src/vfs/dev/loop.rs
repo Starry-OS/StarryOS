@@ -86,7 +86,7 @@ impl DeviceOps for LoopDevice {
                     return Err(AxError::BadFileDescriptor);
                 }
                 let f = get_file_like(fd)?;
-                let Ok(file) = f.into_any().downcast::<crate::file::File>() else {
+                let Some(file) = f.downcast_ref::<crate::file::File>() else {
                     return Err(AxError::InvalidInput);
                 };
                 let mut guard = self.file.lock();

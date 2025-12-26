@@ -1,6 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
 use core::{
-    any::Any,
     sync::atomic::{AtomicBool, AtomicU64, Ordering},
     task::Context,
 };
@@ -104,10 +103,6 @@ impl FileLike for EventFd {
 
     fn path(&self) -> Cow<'_, str> {
         "anon_inode:[eventfd]".into()
-    }
-
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any + Send + Sync> {
-        self
     }
 }
 

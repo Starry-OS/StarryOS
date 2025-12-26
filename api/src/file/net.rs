@@ -40,10 +40,6 @@ impl FileLike for Socket {
         })
     }
 
-    fn into_any(self: Arc<Self>) -> Arc<dyn core::any::Any + Send + Sync> {
-        self
-    }
-
     fn nonblocking(&self) -> bool {
         let mut result = false;
         self.get_option(GetSocketOption::NonBlocking(&mut result))
@@ -65,8 +61,7 @@ impl FileLike for Socket {
         Self: Sized + 'static,
     {
         get_file_like(fd)?
-            .into_any()
-            .downcast::<Self>()
+            .downcast_arc()
             .map_err(|_| AxError::NotASocket)
     }
 }

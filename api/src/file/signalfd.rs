@@ -1,6 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
 use core::{
-    any::Any,
     mem,
     sync::atomic::{AtomicBool, Ordering},
     task::Context,
@@ -163,10 +162,6 @@ impl FileLike for Signalfd {
 
     fn path(&self) -> Cow<'_, str> {
         "anon_inode:[signalfd]".into()
-    }
-
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any + Send + Sync> {
-        self
     }
 }
 

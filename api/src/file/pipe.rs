@@ -1,6 +1,5 @@
 use alloc::{borrow::Cow, format, sync::Arc};
 use core::{
-    any::Any,
     mem,
     sync::atomic::{AtomicBool, Ordering},
     task::Context,
@@ -188,10 +187,6 @@ impl FileLike for Pipe {
 
     fn path(&self) -> Cow<'_, str> {
         format!("pipe:[{}]", self as *const _ as usize).into()
-    }
-
-    fn into_any(self: Arc<Self>) -> Arc<dyn Any + Send + Sync> {
-        self
     }
 
     fn set_nonblocking(&self, nonblocking: bool) -> AxResult {
