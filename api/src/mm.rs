@@ -330,6 +330,9 @@ impl Write for VmBytesMut {
     /// Writes bytes from the provided buffer into the VM's memory.
     fn write(&mut self, buf: &[u8]) -> axio::Result<usize> {
         let len = self.len.min(buf.len());
+        if len == 0 {
+            return Ok(0);
+        }
         vm_write_slice(self.ptr, &buf[..len])?;
         self.ptr = self.ptr.wrapping_add(len);
         self.len -= len;
