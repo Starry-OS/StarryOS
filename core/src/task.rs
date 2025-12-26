@@ -18,7 +18,7 @@ use axerrno::{AxError, AxResult};
 use axmm::AddrSpace;
 use axpoll::PollSet;
 use axsync::{Mutex, spin::SpinNoIrq};
-use axtask::{AxTaskRef, TaskExt, TaskInner, WeakAxTaskRef, current};
+use axtask::{AxCpuMask, AxTaskRef, TaskExt, TaskInner, WeakAxTaskRef, current};
 use extern_trait::extern_trait;
 use hashbrown::HashMap;
 use lazy_static::lazy_static;
@@ -147,11 +147,17 @@ unsafe impl TaskExt for Box<Thread> {
         let scope = self.proc_data.scope.read();
         unsafe { ActiveScope::set(&scope) };
         core::mem::forget(scope);
+        let mut on_cpu_mask = self.proc_data.on_cpu_mask.write();
+        on_cpu_mask.set(axhal::percpu::this_cpu_id(), true);
     }
 
     fn on_leave(&self) {
         ActiveScope::set_global();
         unsafe { self.proc_data.scope.force_read_decrement() };
+    }
+
+    fn on_cpu_mask(&self) -> AxCpuMask {
+        self.proc_data.on_cpu_mask.read().clone()
     }
 }
 
@@ -184,6 +190,8 @@ pub struct ProcessData {
     /// The virtual memory address space.
     // TODO: scopify
     pub aspace: Arc<Mutex<AddrSpace>>,
+    /// The CPUs on which the task has run.
+    pub on_cpu_mask: RwLock<AxCpuMask>,
     /// The resource scope
     pub scope: RwLock<Scope>,
     /// The user heap bottom
@@ -226,6 +234,7 @@ impl ProcessData {
             exe_path: RwLock::new(exe_path),
             cmdline: RwLock::new(cmdline),
             aspace,
+            on_cpu_mask: RwLock::new(AxCpuMask::new()),
             scope: RwLock::new(Scope::new()),
             heap_bottom: AtomicUsize::new(crate::config::USER_HEAP_BASE),
             heap_top: AtomicUsize::new(crate::config::USER_HEAP_BASE),
