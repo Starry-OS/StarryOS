@@ -1,12 +1,7 @@
 //! User address space management.
 
 use alloc::{borrow::ToOwned, string::String, vec, vec::Vec};
-use core::{
-    ffi::CStr,
-    hint::unlikely,
-    iter,
-    mem::MaybeUninit,
-};
+use core::{ffi::CStr, hint::unlikely, iter, mem::MaybeUninit};
 
 use axerrno::{AxError, AxResult};
 use axfs::{CachedFile, FS_CONTEXT, FileBackend};

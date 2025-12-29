@@ -85,7 +85,6 @@ pub struct Thread {
 
     /// Indicates whether the thread is currently accessing user memory.
     accessing_user_memory: AtomicBool,
-
 }
 
 impl Thread {
@@ -155,7 +154,6 @@ impl Thread {
         self.accessing_user_memory
             .store(accessing, Ordering::Release);
     }
-
 }
 
 #[extern_trait]
