@@ -6,7 +6,7 @@ use core::{
     hint::unlikely,
     iter,
     mem::MaybeUninit,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 use axerrno::{AxError, AxResult};
@@ -350,20 +350,20 @@ pub fn load_user_app(
     Ok((entry, user_sp))
 }
 
-static ACCESSING_USER_MEM: AtomicBool = AtomicBool::new(false);
+static ACCESSING_USER_MEM: AtomicUsize = AtomicUsize::new(0);
 
 /// Enables scoped access into user memory, allowing page faults to occur inside
 /// kernel.
 pub fn access_user_memory<R>(f: impl FnOnce() -> R) -> R {
-    ACCESSING_USER_MEM.store(true, Ordering::Release);
+    ACCESSING_USER_MEM.fetch_add(1, Ordering::AcqRel);
     let result = f();
-    ACCESSING_USER_MEM.store(false, Ordering::Release);
+    ACCESSING_USER_MEM.fetch_sub(1, Ordering::AcqRel);
     result
 }
 
 /// Check if the current thread is accessing user memory.
 pub fn is_accessing_user_memory() -> bool {
-    ACCESSING_USER_MEM.load(Ordering::Acquire)
+    ACCESSING_USER_MEM.load(Ordering::Acquire) > 0
 }
 
 #[allow(dead_code)]
