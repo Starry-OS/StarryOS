@@ -50,9 +50,13 @@ pub fn sys_execve(
     }
 
     let mut aspace = proc_data.aspace.lock();
-    let (entry_point, user_stack_base) =
+    let (entry_point, user_stack_base, auxv) =
         load_user_app(&mut aspace, Some(path.as_str()), &args, &envs)?;
     drop(aspace);
+
+    let trampoline = starry_vdso::vdso::get_trampoline_addr(&auxv)
+        .unwrap_or(starry_core::config::SIGNAL_TRAMPOLINE);
+    proc_data.signal.set_default_restorer(trampoline);
 
     let loc = FS_CONTEXT.lock().resolve(&path)?;
     curr.set_name(loc.name());
