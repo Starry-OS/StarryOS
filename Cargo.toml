@@ -148,9 +148,9 @@ optional = true
 
 [dependencies.axplat-aarch64-rk3588]
 version = "0.2"
-git = "https://github.com/elliott10/axplat-aarch64-rk3588.git"
-rev = "e4799437"
-features = ["fp-simd", "irq", "rtc", "smp"]
+git = "https://github.com/Starry-OS/axplat-aarch64-rk3588.git"
+rev = "c8f2bbf0"
+features = ["fp-simd", "irq", "rtc"]
 optional = true
 
 [package.metadata.vendor-filter]
