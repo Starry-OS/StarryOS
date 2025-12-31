@@ -1,4 +1,6 @@
 use axerrno::{AxError, AxResult, LinuxError};
+#[cfg(feature = "netlink")]
+use axnet::netlink::RouteTransport;
 #[cfg(feature = "vsock")]
 use axnet::vsock::{VsockSocket, VsockStreamTransport};
 use axnet::{
@@ -14,6 +16,11 @@ use linux_raw_sys::{
         AF_INET, AF_UNIX, AF_VSOCK, IPPROTO_TCP, IPPROTO_UDP, SHUT_RD, SHUT_RDWR, SHUT_WR,
         SOCK_DGRAM, SOCK_SEQPACKET, SOCK_STREAM, sockaddr, socklen_t,
     },
+};
+#[cfg(feature = "netlink")]
+use linux_raw_sys::{
+    net::{AF_NETLINK, SOCK_RAW},
+    netlink::NETLINK_ROUTE,
 };
 use starry_core::task::AsThread;
 
@@ -46,6 +53,13 @@ pub fn sys_socket(domain: u32, raw_ty: u32, proto: u32) -> AxResult<isize> {
         #[cfg(feature = "vsock")]
         (AF_VSOCK, SOCK_STREAM) => {
             axnet::Socket::Vsock(VsockSocket::new(VsockStreamTransport::new()))
+        }
+        #[cfg(feature = "netlink")]
+        (AF_NETLINK, SOCK_RAW | SOCK_DGRAM) => {
+            if proto != NETLINK_ROUTE as _ {
+                return Err(AxError::from(LinuxError::EPROTONOSUPPORT));
+            }
+            axnet::Socket::Netlink(axnet::netlink::NetlinkSocket::new(RouteTransport::new()))
         }
         (AF_INET, _) | (AF_UNIX, _) | (AF_VSOCK, _) => {
             warn!("Unsupported socket type: domain: {domain}, ty: {ty}");
