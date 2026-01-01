@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, vec::Vec};
-use core::net::Ipv4Addr;
+use core::{net::Ipv4Addr, ptr::addr_of_mut};
 
 use axerrno::{AxError, AxResult};
 use axio::prelude::*;
@@ -7,11 +7,12 @@ use axnet::{CMsgData, RecvFlags, RecvOptions, SendFlags, SendOptions, SocketAddr
 use linux_raw_sys::net::{
     MSG_PEEK, MSG_TRUNC, SCM_RIGHTS, SOL_SOCKET, cmsghdr, msghdr, sockaddr, socklen_t,
 };
+use starry_vm::{VmMutPtr, VmPtr};
 
 use crate::{
     file::{FileLike, Socket, add_file_like},
     io::{IoVec, IoVectorBuf},
-    mm::{UserConstPtr, UserPtr, VmBytes, VmBytesMut},
+    mm::{VmBytes, VmBytesMut},
     socket::SocketAddrExt,
     syscall::net::{CMsg, CMsgBuilder},
 };
@@ -20,7 +21,7 @@ fn send_impl(
     fd: i32,
     mut src: impl Read + IoBuf,
     flags: u32,
-    addr: UserConstPtr<sockaddr>,
+    addr: *const sockaddr,
     addrlen: socklen_t,
     cmsg: Vec<CMsgData>,
 ) -> AxResult<isize> {
@@ -50,24 +51,24 @@ pub fn sys_sendto(
     buf: *const u8,
     len: usize,
     flags: u32,
-    addr: UserConstPtr<sockaddr>,
+    addr: *const sockaddr,
     addrlen: socklen_t,
 ) -> AxResult<isize> {
     send_impl(fd, VmBytes::new(buf, len), flags, addr, addrlen, Vec::new())
 }
 
-pub fn sys_sendmsg(fd: i32, msg: UserConstPtr<msghdr>, flags: u32) -> AxResult<isize> {
-    let msg = msg.get_as_ref()?;
+pub fn sys_sendmsg(fd: i32, msg: *const msghdr, flags: u32) -> AxResult<isize> {
+    let msg = unsafe { msg.vm_read_uninit()?.assume_init() };
     let mut cmsg = Vec::new();
     if !msg.msg_control.is_null() {
         let mut ptr = msg.msg_control as usize;
         let ptr_end = ptr + msg.msg_controllen;
         while ptr + size_of::<cmsghdr>() <= ptr_end {
-            let hdr = UserConstPtr::<cmsghdr>::from(ptr).get_as_ref()?;
+            let hdr = unsafe { (ptr as *const cmsghdr).vm_read_uninit()?.assume_init() };
             if ptr_end - ptr < hdr.cmsg_len {
                 return Err(AxError::InvalidInput);
             }
-            cmsg.push(Box::new(CMsg::parse(hdr)?) as CMsgData);
+            cmsg.push(Box::new(CMsg::parse(&hdr)?) as CMsgData);
             ptr += hdr.cmsg_len;
         }
     }
@@ -75,7 +76,7 @@ pub fn sys_sendmsg(fd: i32, msg: UserConstPtr<msghdr>, flags: u32) -> AxResult<i
         fd,
         IoVectorBuf::new(msg.msg_iov as *const IoVec, msg.msg_iovlen)?.into_io(),
         flags,
-        UserConstPtr::from(msg.msg_name as usize),
+        msg.msg_name as *const sockaddr,
         msg.msg_namelen as socklen_t,
         cmsg,
     )
@@ -85,8 +86,8 @@ fn recv_impl(
     fd: i32,
     mut dst: impl Write + IoBufMut,
     flags: u32,
-    addr: UserPtr<sockaddr>,
-    addrlen: UserPtr<socklen_t>,
+    addr: *mut sockaddr,
+    addrlen: *mut socklen_t,
     cmsg_builder: Option<CMsgBuilder>,
 ) -> AxResult<isize> {
     debug!("sys_recv <= fd: {fd}, flags: {flags}");
@@ -114,7 +115,7 @@ fn recv_impl(
     )?;
 
     if let Some(remote_addr) = remote_addr {
-        remote_addr.write_to_user(addr, addrlen.get_as_mut()?)?;
+        remote_addr.write_to_user(addr, addrlen)?;
     }
 
     if let Some(mut builder) = cmsg_builder {
@@ -125,15 +126,21 @@ fn recv_impl(
             };
 
             let pushed = match *cmsg {
-                CMsg::Rights { fds } => builder.push(SOL_SOCKET, SCM_RIGHTS, |data| {
-                    let mut written = 0;
-                    for (f, chunk) in fds.into_iter().zip(data.chunks_exact_mut(size_of::<i32>())) {
-                        let fd = add_file_like(f, false)?;
-                        chunk.copy_from_slice(&fd.to_ne_bytes());
-                        written += size_of::<i32>();
-                    }
-                    Ok(written)
-                })?,
+                CMsg::Rights { fds } => {
+                    builder.push(SOL_SOCKET, SCM_RIGHTS, |data_ptr, capacity| {
+                        let mut written = 0;
+                        for f in fds.into_iter() {
+                            if written + size_of::<i32>() > capacity {
+                                break;
+                            }
+                            let fd = add_file_like(f, false)?;
+                            let ptr = ((data_ptr as usize) + written) as *mut i32;
+                            ptr.vm_write(fd)?;
+                            written += size_of::<i32>();
+                        }
+                        Ok(written)
+                    })?
+                }
             };
             if !pushed {
                 break;
@@ -150,25 +157,26 @@ pub fn sys_recvfrom(
     buf: *mut u8,
     len: usize,
     flags: u32,
-    addr: UserPtr<sockaddr>,
-    addrlen: UserPtr<socklen_t>,
+    addr: *mut sockaddr,
+    addrlen: *mut socklen_t,
 ) -> AxResult<isize> {
     recv_impl(fd, VmBytesMut::new(buf, len), flags, addr, addrlen, None)
 }
 
-pub fn sys_recvmsg(fd: i32, msg: UserPtr<msghdr>, flags: u32) -> AxResult<isize> {
-    let msg = msg.get_as_mut()?;
+pub fn sys_recvmsg(fd: i32, msg: *mut msghdr, flags: u32) -> AxResult<isize> {
+    let msg_val = unsafe { msg.vm_read_uninit()?.assume_init() };
+
     recv_impl(
         fd,
-        IoVectorBuf::new(msg.msg_iov as *mut IoVec, msg.msg_iovlen)?.into_io(),
+        IoVectorBuf::new(msg_val.msg_iov as *mut IoVec, msg_val.msg_iovlen)?.into_io(),
         flags,
-        UserPtr::from(msg.msg_name as usize),
-        UserPtr::from(&mut msg.msg_namelen as *mut _ as *mut socklen_t),
-        (!msg.msg_control.is_null()).then(|| {
-            CMsgBuilder::new(
-                UserPtr::from(msg.msg_control as *mut cmsghdr),
-                &mut msg.msg_controllen,
-            )
-        }),
+        msg_val.msg_name as *mut sockaddr,
+        unsafe { addr_of_mut!((*msg).msg_namelen) } as *mut socklen_t,
+        Option::from(msg_val.msg_control as *mut cmsghdr)
+            .map(|control| {
+                CMsgBuilder::new(control, unsafe { addr_of_mut!((*msg).msg_controllen) }
+                    as *mut socklen_t)
+            })
+            .transpose()?,
     )
 }

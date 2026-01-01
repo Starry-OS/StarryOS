@@ -16,7 +16,7 @@ use syscalls::Sysno;
 use crate::{
     file::{File, FileLike, Pipe, get_file_like},
     io::{IoVec, IoVectorBuf},
-    mm::{UserConstPtr, VmBytes, VmBytesMut},
+    mm::{VmBytes, VmBytesMut, vm_load_string},
 };
 
 struct DummyFd;
@@ -85,8 +85,8 @@ pub fn sys_lseek(fd: c_int, offset: __kernel_off_t, whence: c_int) -> AxResult<i
     Ok(off as _)
 }
 
-pub fn sys_truncate(path: UserConstPtr<c_char>, length: __kernel_off_t) -> AxResult<isize> {
-    let path = path.get_as_str()?;
+pub fn sys_truncate(path: *const c_char, length: __kernel_off_t) -> AxResult<isize> {
+    let path = vm_load_string(path)?;
     debug!("sys_truncate <= {path:?} {length}");
     if length < 0 {
         return Err(AxError::InvalidInput);

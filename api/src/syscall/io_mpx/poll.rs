@@ -6,13 +6,11 @@ use axpoll::IoEvents;
 use axtask::future::{self, block_on, poll_io};
 use linux_raw_sys::general::{POLLNVAL, pollfd, timespec};
 use starry_signal::SignalSet;
+use starry_vm::{VmMutPtr, VmPtr};
 
 use super::FdPollSet;
 use crate::{
-    file::get_file_like,
-    mm::{UserConstPtr, UserPtr, nullable},
-    signal::with_replacen_blocked,
-    syscall::signal::check_sigset_size,
+    file::get_file_like, signal::with_replacen_blocked, syscall::signal::check_sigset_size,
     time::TimeValueLike,
 };
 
@@ -86,28 +84,49 @@ fn do_poll(
 }
 
 #[cfg(target_arch = "x86_64")]
-pub fn sys_poll(fds: UserPtr<pollfd>, nfds: u32, timeout: i32) -> AxResult<isize> {
-    let fds = fds.get_as_mut_slice(nfds as usize)?;
+pub fn sys_poll(fds: *mut pollfd, nfds: u32, timeout: i32) -> AxResult<isize> {
+    let n = nfds as usize;
+    let mut local: Vec<pollfd> = Vec::with_capacity(n);
+    for i in 0..n {
+        local.push(unsafe { fds.add(i).vm_read_uninit()?.assume_init() });
+    }
     let timeout = if timeout < 0 {
         None
     } else {
         Some(TimeValue::from_millis(timeout as u64))
     };
-    do_poll(fds, timeout, None)
+    let ret = do_poll(&mut local, timeout, None)?;
+    for (i, it) in local.iter().enumerate() {
+        unsafe { fds.add(i).vm_write(*it)? };
+    }
+    Ok(ret)
 }
 
 pub fn sys_ppoll(
-    fds: UserPtr<pollfd>,
+    fds: *mut pollfd,
     nfds: i32,
-    timeout: UserConstPtr<timespec>,
-    sigmask: UserConstPtr<SignalSet>,
+    timeout: *const timespec,
+    sigmask: *const SignalSet,
     sigsetsize: usize,
 ) -> AxResult<isize> {
     check_sigset_size(sigsetsize)?;
-    let fds = fds.get_as_mut_slice(nfds.try_into().map_err(|_| AxError::InvalidInput)?)?;
-    let timeout = nullable!(timeout.get_as_ref())?
-        .map(|ts| ts.try_into_time_value())
+    let n: usize = nfds.try_into().map_err(|_| AxError::InvalidInput)?;
+    let mut local: Vec<pollfd> = Vec::with_capacity(n);
+    for i in 0..n {
+        local.push(unsafe { fds.add(i).vm_read_uninit()?.assume_init() });
+    }
+    let timeout = timeout
+        .nullable()
+        .map(|ts| unsafe { ts.vm_read_uninit()?.assume_init().try_into_time_value() })
         .transpose()?;
+    let sig = match sigmask.nullable() {
+        Some(p) => Some(unsafe { p.vm_read_uninit()?.assume_init() }),
+        None => None,
+    };
     // TODO: handle signal
-    do_poll(fds, timeout, nullable!(sigmask.get_as_ref())?.copied())
+    let ret = do_poll(&mut local, timeout, sig)?;
+    for (i, it) in local.iter().enumerate() {
+        unsafe { fds.add(i).vm_write(*it)? };
+    }
+    Ok(ret)
 }

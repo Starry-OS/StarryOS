@@ -1,11 +1,9 @@
 use axerrno::{AxError, AxResult, LinuxError};
 use axnet::options::{Configurable, GetSocketOption, SetSocketOption};
 use linux_raw_sys::net::socklen_t;
+use starry_vm::{VmMutPtr, VmPtr};
 
-use crate::{
-    file::{FileLike, Socket},
-    mm::{UserConstPtr, UserPtr},
-};
+use crate::file::{FileLike, Socket};
 
 const PROTO_TCP: u32 = linux_raw_sys::net::IPPROTO_TCP as u32;
 
@@ -116,39 +114,43 @@ pub fn sys_getsockopt(
     fd: i32,
     level: u32,
     optname: u32,
-    optval: UserPtr<u8>,
-    optlen: UserPtr<socklen_t>,
+    optval: *mut u8,
+    optlen: *mut socklen_t,
 ) -> AxResult<isize> {
-    let optlen = optlen.get_as_mut()?;
+    let mut len = optlen.vm_read()?;
     debug!(
         "sys_getsockopt <= fd: {}, level: {}, optname: {}, optval: {:?}, optlen: {}",
-        fd,
-        level,
-        optname,
-        optval.address(),
-        optlen,
+        fd, level, optname, optval, len,
     );
 
-    fn get<'a, T: 'static>(val: UserPtr<u8>, len: &mut socklen_t) -> AxResult<&'a mut T> {
+    fn write_out<T>(dst: *mut u8, len: &mut socklen_t, val: T) -> AxResult<()>
+    where
+        T: 'static,
+    {
         if (*len as usize) < size_of::<T>() {
             return Err(AxError::InvalidInput);
         }
         *len = size_of::<T>() as socklen_t;
-        val.cast().get_as_mut()
+        (dst as *mut T).vm_write(val)?;
+        Ok(())
     }
 
     let socket = Socket::from_fd(fd)?;
     macro_rules! dispatch {
         ($which:ident) => {
-            socket.get_option(GetSocketOption::$which(get(optval, optlen)?))?;
+            let mut out = Default::default();
+            socket.get_option(GetSocketOption::$which(&mut out))?;
+            write_out(optval, &mut len, out)?;
         };
         ($which:ident as $conv:ty) => {
             let mut val = Default::default();
             socket.get_option(GetSocketOption::$which(&mut val))?;
-            *get(optval, optlen)? = <$conv>::rust_to_sys(val)?;
+            let val_sys = <$conv>::rust_to_sys(val)?;
+            write_out(optval, &mut len, val_sys)?;
         };
     }
     call_dispatch!(dispatch, (level, optname));
+    optlen.vm_write(len)?;
 
     Ok(0)
 }
@@ -157,32 +159,28 @@ pub fn sys_setsockopt(
     fd: i32,
     level: u32,
     optname: u32,
-    optval: UserConstPtr<u8>,
+    optval: *const u8,
     optlen: socklen_t,
 ) -> AxResult<isize> {
     debug!(
         "sys_setsockopt <= fd: {}, level: {}, optname: {}, optval: {:?}, optlen: {}",
-        fd,
-        level,
-        optname,
-        optval.address(),
-        optlen
+        fd, level, optname, optval, optlen
     );
 
-    fn get<'a, T: 'static>(val: UserConstPtr<u8>, len: socklen_t) -> AxResult<&'a T> {
+    fn get<T>(val: *const u8, len: socklen_t) -> AxResult<T> {
         if len as usize != size_of::<T>() {
             return Err(AxError::InvalidInput);
         }
-        val.cast().get_as_ref()
+        Ok(unsafe { (val as *const T).vm_read_uninit()?.assume_init() })
     }
 
     let socket = Socket::from_fd(fd)?;
     macro_rules! dispatch {
         ($which:ident) => {
-            socket.set_option(SetSocketOption::$which(get(optval, optlen)?))?;
+            socket.set_option(SetSocketOption::$which(&(get(optval, optlen)?)))?;
         };
         ($which:ident as $conv:ty) => {
-            let mut val = <$conv>::sys_to_rust(*get(optval, optlen)?)?;
+            let mut val = <$conv>::sys_to_rust(get(optval, optlen)?)?;
             socket.set_option(SetSocketOption::$which(&mut val))?;
         };
     }
