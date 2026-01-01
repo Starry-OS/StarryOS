@@ -1,3 +1,4 @@
+use alloc::vec;
 use core::time::Duration;
 
 use axerrno::{AxError, AxResult};
@@ -8,13 +9,13 @@ use linux_raw_sys::general::{
     EPOLL_CLOEXEC, EPOLL_CTL_ADD, EPOLL_CTL_DEL, EPOLL_CTL_MOD, epoll_event, timespec,
 };
 use starry_signal::SignalSet;
+use starry_vm::{VmMutPtr, VmPtr};
 
 use crate::{
     file::{
         FileLike,
         epoll::{Epoll, EpollEvent, EpollFlags},
     },
-    mm::{UserConstPtr, UserPtr, nullable},
     signal::with_replacen_blocked,
     syscall::signal::check_sigset_size,
     time::TimeValueLike,
@@ -36,17 +37,12 @@ pub fn sys_epoll_create1(flags: u32) -> AxResult<isize> {
         .map(|fd| fd as isize)
 }
 
-pub fn sys_epoll_ctl(
-    epfd: i32,
-    op: u32,
-    fd: i32,
-    event: UserConstPtr<epoll_event>,
-) -> AxResult<isize> {
+pub fn sys_epoll_ctl(epfd: i32, op: u32, fd: i32, event: *const epoll_event) -> AxResult<isize> {
     let epoll = Epoll::from_fd(epfd)?;
     debug!("sys_epoll_ctl <= epfd: {epfd}, op: {op}, fd: {fd}");
 
     let parse_event = || -> AxResult<(EpollEvent, EpollFlags)> {
-        let event = event.get_as_ref()?;
+        let event = unsafe { event.vm_read_uninit()?.assume_init() };
         let events = IoEvents::from_bits_truncate(event.events);
         let flags =
             EpollFlags::from_bits(event.events & !events.bits()).ok_or(AxError::InvalidInput)?;
@@ -77,10 +73,10 @@ pub fn sys_epoll_ctl(
 
 fn do_epoll_wait(
     epfd: i32,
-    events: UserPtr<epoll_event>,
+    events: *mut epoll_event,
     maxevents: i32,
     timeout: Option<Duration>,
-    sigmask: UserConstPtr<SignalSet>,
+    sigmask: *const SignalSet,
     sigsetsize: usize,
 ) -> AxResult<isize> {
     check_sigset_size(sigsetsize)?;
@@ -91,28 +87,34 @@ fn do_epoll_wait(
     if maxevents <= 0 {
         return Err(AxError::InvalidInput);
     }
-    let events = events.get_as_mut_slice(maxevents as usize)?;
-
-    with_replacen_blocked(
-        nullable!(sigmask.get_as_ref())?.copied(),
-        || match block_on(future::timeout(
+    let mut buf = vec![epoll_event { events: 0, data: 0 }; maxevents as usize];
+    let sig = match sigmask.nullable() {
+        Some(p) => Some(unsafe { p.vm_read_uninit()?.assume_init() }),
+        None => None,
+    };
+    let n = with_replacen_blocked(sig, || {
+        match block_on(future::timeout(
             timeout,
             poll_io(epoll.as_ref(), IoEvents::IN, false, || {
-                epoll.poll_events(events)
+                epoll.poll_events(&mut buf)
             }),
         )) {
             Ok(r) => r.map(|n| n as _),
             Err(_) => Ok(0),
-        },
-    )
+        }
+    })?;
+    for (i, ev) in buf.iter().take(n as usize).enumerate() {
+        unsafe { events.add(i).vm_write(*ev)? };
+    }
+    Ok(n)
 }
 
 pub fn sys_epoll_pwait(
     epfd: i32,
-    events: UserPtr<epoll_event>,
+    events: *mut epoll_event,
     maxevents: i32,
     timeout: i32,
-    sigmask: UserConstPtr<SignalSet>,
+    sigmask: *const SignalSet,
     sigsetsize: usize,
 ) -> AxResult<isize> {
     let timeout = match timeout {
@@ -125,14 +127,15 @@ pub fn sys_epoll_pwait(
 
 pub fn sys_epoll_pwait2(
     epfd: i32,
-    events: UserPtr<epoll_event>,
+    events: *mut epoll_event,
     maxevents: i32,
-    timeout: UserConstPtr<timespec>,
-    sigmask: UserConstPtr<SignalSet>,
+    timeout: *const timespec,
+    sigmask: *const SignalSet,
     sigsetsize: usize,
 ) -> AxResult<isize> {
-    let timeout = nullable!(timeout.get_as_ref())?
-        .map(|ts| ts.try_into_time_value())
+    let timeout = timeout
+        .nullable()
+        .map(|ts| unsafe { ts.vm_read_uninit()?.assume_init().try_into_time_value() })
         .transpose()?;
     do_epoll_wait(epfd, events, maxevents, timeout, sigmask, sigsetsize)
 }
