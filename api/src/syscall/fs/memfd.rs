@@ -5,14 +5,11 @@ use axerrno::{AxError, AxResult};
 use axfs::{FS_CONTEXT, OpenOptions};
 use linux_raw_sys::general::MFD_CLOEXEC;
 
-use crate::{
-    file::{File, FileLike},
-    mm::UserConstPtr,
-};
+use crate::file::{File, FileLike};
 
 // TODO: correct memfd implementation
 
-pub fn sys_memfd_create(_name: UserConstPtr<c_char>, flags: u32) -> AxResult<isize> {
+pub fn sys_memfd_create(_name: *const c_char, flags: u32) -> AxResult<isize> {
     // This is cursed
     for id in 0..0xffff {
         let name = format!("/tmp/memfd-{id:04x}");
