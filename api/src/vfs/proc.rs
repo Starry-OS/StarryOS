@@ -9,6 +9,7 @@ use alloc::{
 };
 use core::{ffi::CStr, iter};
 
+use axalloc::{UsageKind, global_allocator};
 use axfs_ng_vfs::{Filesystem, NodeType, VfsError, VfsResult};
 use axtask::{AxTaskRef, WeakAxTaskRef, current};
 use indoc::indoc;
@@ -23,65 +24,87 @@ use starry_process::Process;
 
 use crate::file::FD_TABLE;
 
-const DUMMY_MEMINFO: &str = indoc! {"
-    MemTotal:       32536204 kB
-    MemFree:         5506524 kB
-    MemAvailable:   18768344 kB
-    Buffers:            3264 kB
-    Cached:         14454588 kB
-    SwapCached:            0 kB
-    Active:         18229700 kB
-    Inactive:        6540624 kB
-    Active(anon):   11380224 kB
-    Inactive(anon):        0 kB
-    Active(file):    6849476 kB
-    Inactive(file):  6540624 kB
-    Unevictable:      930088 kB
-    Mlocked:            1136 kB
-    SwapTotal:       4194300 kB
-    SwapFree:        4194300 kB
-    Zswap:                 0 kB
-    Zswapped:              0 kB
-    Dirty:             47952 kB
-    Writeback:             0 kB
-    AnonPages:      10992512 kB
-    Mapped:          1361184 kB
-    Shmem:           1068056 kB
-    KReclaimable:     341440 kB
-    Slab:             628996 kB
-    SReclaimable:     341440 kB
-    SUnreclaim:       287556 kB
-    KernelStack:       28704 kB
-    PageTables:        85308 kB
-    SecPageTables:      2084 kB
-    NFS_Unstable:          0 kB
-    Bounce:                0 kB
-    WritebackTmp:          0 kB
-    CommitLimit:    20462400 kB
-    Committed_AS:   45105316 kB
-    VmallocTotal:   34359738367 kB
-    VmallocUsed:      205924 kB
-    VmallocChunk:          0 kB
-    Percpu:            23840 kB
-    HardwareCorrupted:     0 kB
-    AnonHugePages:   1417216 kB
-    ShmemHugePages:        0 kB
-    ShmemPmdMapped:        0 kB
-    FileHugePages:    477184 kB
-    FilePmdMapped:    288768 kB
-    CmaTotal:              0 kB
-    CmaFree:               0 kB
-    Unaccepted:            0 kB
-    HugePages_Total:       0
-    HugePages_Free:        0
-    HugePages_Rsvd:        0
-    HugePages_Surp:        0
-    Hugepagesize:       2048 kB
-    Hugetlb:               0 kB
-    DirectMap4k:     1739900 kB
-    DirectMap2M:    31492096 kB
-    DirectMap1G:     1048576 kB
-"};
+// Helper constant for unit conversion clarity
+const KB: usize = 1024;
+const PAGE_SIZE: usize = 0x1000;
+
+pub fn meminfo_read() -> VfsResult<Vec<u8>> {
+    let allocator = global_allocator();
+
+    // Basic Pages Statistics
+    // We access the page allocator to get the raw physical page counts.
+    let used_pages = allocator.used_pages();
+    let free_pages = allocator.available_pages();
+    let total_pages = used_pages + free_pages;
+
+    let total_kb = (total_pages * PAGE_SIZE) / KB;
+    let free_kb = (free_pages * PAGE_SIZE) / KB;
+
+    // Granular Usage Statistics (Snapshot)
+    // We capture a snapshot of the usage tracker to avoid holding the lock for too long.
+    let usages = allocator.usages();
+
+    // Helper closure to convert bytes to KiB safely
+    let to_kb = |kind| usages.get(kind) / KB;
+
+    let heap_kb = to_kb(UsageKind::RustHeap);
+    let cache_kb = to_kb(UsageKind::PageCache);
+    let pg_tbl_kb = to_kb(UsageKind::PageTable);
+    let user_kb = to_kb(UsageKind::VirtMem);
+    let dma_kb = to_kb(UsageKind::Dma);
+
+    // Derived Metrics
+    // MemAvailable: An estimate of how much memory is available for starting new applications.
+    // In Linux, this includes free memory + reclaimable caches.
+    // For StarryOS v1, we assume PageCache is reclaimable.
+    let available_kb = free_kb + cache_kb;
+
+    // Fields set to 0 are placeholders for features not yet implemented in StarryOS.
+    let content = format!(
+        indoc! {"
+        MemTotal:       {:8} kB
+        MemFree:        {:8} kB
+        MemAvailable:   {:8} kB
+        Buffers:               0 kB
+        Cached:         {:8} kB
+        SwapCached:            0 kB
+        Active:                0 kB
+        Inactive:              0 kB
+        SwapTotal:             0 kB
+        SwapFree:              0 kB
+        Dirty:                 0 kB
+        Writeback:             0 kB
+        AnonPages:      {:8} kB
+        Mapped:         {:8} kB
+        Shmem:                 0 kB
+        Slab:           {:8} kB
+        SReclaimable:          0 kB
+        SUnreclaim:     {:8} kB
+        PageTables:     {:8} kB
+        NFS_Unstable:          0 kB
+        Bounce:                0 kB
+        CmaTotal:       {:8} kB
+        HugePages_Total:       0
+        HugePages_Free:        0
+        Hugepagesize:       2048 kB
+        DirectMap4k:    {:8} kB
+        DirectMap2M:           0 kB
+        "},
+        total_kb,     // MemTotal
+        free_kb,      // MemFree
+        available_kb, // MemAvailable
+        cache_kb,     // Cached
+        user_kb,      // AnonPages (Userspace anonymous memory)
+        user_kb,      // Mapped (Approximated as equal to AnonPages for now)
+        heap_kb,      // Slab (Kernel heap usage)
+        heap_kb,      // SUnreclaim (Kernel objects are mostly unreclaimable currently)
+        pg_tbl_kb,    // PageTables
+        dma_kb,       // CmaTotal
+        total_kb      // DirectMap4k (Assuming 1:1 mapping for all memory)
+    );
+
+    Ok(content.into_bytes())
+}
 
 pub fn new_procfs() -> Filesystem {
     SimpleFs::new_with("proc".into(), 0x9fa0, builder)
@@ -362,14 +385,7 @@ fn builder(fs: Arc<SimpleFs>) -> DirMaker {
     );
     root.add(
         "meminfo",
-        SimpleFile::new_regular(fs.clone(), || Ok(DUMMY_MEMINFO)),
-    );
-    root.add(
-        "meminfo2",
-        SimpleFile::new_regular(fs.clone(), || {
-            let allocator = axalloc::global_allocator();
-            Ok(format!("{:?}\n", allocator.usages()))
-        }),
+        SimpleFile::new_regular(fs.clone(), || meminfo_read()),
     );
     root.add(
         "instret",
