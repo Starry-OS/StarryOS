@@ -3,6 +3,7 @@
 pub mod dev;
 mod proc;
 mod tmp;
+mod seq_file;
 
 use axerrno::LinuxResult;
 use axfs::{FS_CONTEXT, FsContext};
