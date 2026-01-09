@@ -83,7 +83,9 @@ rbpf = { git = "https://github.com/qmonnet/rbpf.git", default-features = false, 
 kprobe = { git = "https://github.com/Starry-OS/kprobe" }
 # kmod-loader = { path = "../../ax-project/kmod/kmod-loader" }
 kmod-loader = { git = "https://github.com/Starry-OS/kmod" }
-
+lwprintf-rs = "0.3.1"
+# kmod = { path = "../../ax-project/kmod/kmod" }
+kmod = { git = "https://github.com/Starry-OS/kmod" }
 [target.'cfg(not(target_arch = "loongarch64"))'.dependencies]
 unwinding = { version = "=0.2.8", default-features = false, features = [
     "unwinder",

@@ -2,6 +2,8 @@
 #![feature(likely_unlikely)]
 #![feature(bstr)]
 #![feature(maybe_uninit_slice)]
+#![feature(c_variadic)]
+#![feature(concat_bytes)]
 #![allow(missing_docs)]
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 #![allow(clippy::non_upper_case_globals)]
@@ -65,10 +67,7 @@ pub fn init() {
     #[cfg(not(target_arch = "loongarch64"))]
     test_unwind();
 
-    ax_println!(
-        "write_char addr: {:#x}",
-        kmod::write_char as usize // access the function to avoid optimization removal
-    );
+    kmod::init_kmod();
 
     info!("Initialize alarm...");
     starry_core::time::spawn_alarm_task();

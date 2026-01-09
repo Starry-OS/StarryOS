@@ -42,7 +42,7 @@ name = "allocator"
 version = "0.1.1"
 source = "git+https://github.com/Starry-OS/allocator.git?rev=918365e#918365ebdd9c0a542df4b5a86ab36a2244440617"
 dependencies = [
- "axerrno",
+ "axerrno 0.1.0",
  "bitmap-allocator",
  "cfg-if",
  "rlsf",
@@ -184,7 +184,7 @@ version = "0.2.0"
 dependencies = [
  "allocator",
  "axbacktrace 0.1.0 (git+https://github.com/Starry-OS/axbacktrace?rev=e59ad73)",
- "axerrno",
+ "axerrno 0.1.0",
  "cfg-if",
  "kspin",
  "log",
@@ -383,6 +383,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "axerrno"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f961d2868582a092fb1e71b90c16cc6f2cbbe7bb5fa7e4bd6fe61d882ce6bb34"
+dependencies = [
+ "log",
+ "strum",
+]
+
+[[package]]
 name = "axfeat"
 version = "0.2.0"
 dependencies = [
@@ -405,7 +415,7 @@ version = "0.1.0"
 dependencies = [
  "axalloc",
  "axdriver",
- "axerrno",
+ "axerrno 0.1.0",
  "axfs-ng-vfs",
  "axhal",
  "axio",
@@ -430,7 +440,7 @@ name = "axfs-ng-vfs"
 version = "0.1.0"
 source = "git+https://github.com/Starry-OS/axfs-ng-vfs.git?rev=d6f470f#d6f470f0c739395abe649534b87b28ca92195999"
 dependencies = [
- "axerrno",
+ "axerrno 0.1.0",
  "axpoll",
  "bitflags 2.10.0",
  "cfg-if",
@@ -483,7 +493,7 @@ name = "axio"
 version = "0.1.1"
 source = "git+https://github.com/Starry-OS/axio.git?rev=ebb0c6b#ebb0c6bb0c7d42d1f2d6f2cc703ddfe5b209a4d9"
 dependencies = [
- "axerrno",
+ "axerrno 0.1.0",
 ]
 
 [[package]]
@@ -502,7 +512,7 @@ version = "0.2.0"
 dependencies = [
  "axalloc",
  "axconfig",
- "axerrno",
+ "axerrno 0.1.0",
  "axfs-ng",
  "axfs-ng-vfs",
  "axhal",
@@ -525,7 +535,7 @@ dependencies = [
  "async-trait",
  "axconfig",
  "axdriver",
- "axerrno",
+ "axerrno 0.1.0",
  "axfs-ng",
  "axfs-ng-vfs",
  "axhal",
@@ -740,7 +750,7 @@ name = "axtask"
 version = "0.2.0"
 dependencies = [
  "axconfig",
- "axerrno",
+ "axerrno 0.1.0",
  "axhal",
  "axpoll",
  "axsched",
@@ -810,6 +820,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitfield-struct"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8769c4854c5ada2852ddf6fd09d15cf43d4c2aaeccb4de6432f5402f08a6003b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -867,6 +888,16 @@ name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+
+[[package]]
+name = "cc"
+version = "1.2.51"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a0aeaff4ff1a90589618835a598e545176939b97874f7abc7851caa0618f203"
+dependencies = [
+ "find-msvc-tools",
+ "shlex",
+]
 
 [[package]]
 name = "cexpr"
@@ -1223,6 +1254,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "find-msvc-tools"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "645cbb3a84e60b7531617d5ae4e57f7e27308f6445f5abf653209ea76dec8dff"
+
+[[package]]
 name = "flatten_objects"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1499,7 +1536,7 @@ dependencies = [
 [[package]]
 name = "kbindings"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kmod#e96f69d6a9e038e212c90192ea4b9d501dfa6b56"
+source = "git+https://github.com/Starry-OS/kmod#694715dacd41161123d25ebb616fca0cf35133d3"
 
 [[package]]
 name = "kbpf-basic"
@@ -1537,7 +1574,7 @@ dependencies = [
 [[package]]
 name = "kmacro"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kmod#e96f69d6a9e038e212c90192ea4b9d501dfa6b56"
+source = "git+https://github.com/Starry-OS/kmod#694715dacd41161123d25ebb616fca0cf35133d3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1547,7 +1584,7 @@ dependencies = [
 [[package]]
 name = "kmod"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kmod#e96f69d6a9e038e212c90192ea4b9d501dfa6b56"
+source = "git+https://github.com/Starry-OS/kmod#694715dacd41161123d25ebb616fca0cf35133d3"
 dependencies = [
  "kbindings",
  "kmacro",
@@ -1556,14 +1593,16 @@ dependencies = [
 [[package]]
 name = "kmod-loader"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kmod#e96f69d6a9e038e212c90192ea4b9d501dfa6b56"
+source = "git+https://github.com/Starry-OS/kmod#694715dacd41161123d25ebb616fca0cf35133d3"
 dependencies = [
- "bitfield-struct",
+ "axerrno 0.2.2",
+ "bitfield-struct 0.12.1",
  "bitflags 2.10.0",
  "goblin",
  "int-enum",
  "kmod",
  "log",
+ "paste",
  "rustc-demangle",
 ]
 
@@ -1717,6 +1756,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "lwprintf-rs"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d132b188c9f12e4a91081eeb55c6dbb5a098a090abb5138e44e15bf7e9ea5a6c"
+dependencies = [
+ "bindgen",
+ "cc",
+]
+
+[[package]]
 name = "mach2"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1757,7 +1806,7 @@ name = "memory_set"
 version = "0.4.0"
 source = "git+https://github.com/Godones/axmm_crates.git?rev=0993524#09935245d6cc025870354c47c8f5493c5f49017e"
 dependencies = [
- "axerrno",
+ "axerrno 0.1.0",
  "memory_addr",
 ]
 
@@ -1869,7 +1918,7 @@ version = "0.5.5"
 source = "git+https://github.com/Starry-OS/page_table_multiarch.git?rev=9df46c8#9df46c822da2487ebc8a78ac411e9132e1409353"
 dependencies = [
  "arrayvec",
- "axerrno",
+ "axerrno 0.1.0",
  "bitmaps",
  "log",
  "memory_addr",
@@ -2260,7 +2309,7 @@ name = "simple-sdmmc"
 version = "0.1.0"
 source = "git+https://github.com/Starry-OS/simple-sdmmc.git?rev=db64be9#db64be91d8b5b0cae5c33f8e13e41a010233a306"
 dependencies = [
- "bitfield-struct",
+ "bitfield-struct 0.11.0",
  "log",
  "volatile 0.6.1",
 ]
@@ -2328,7 +2377,7 @@ name = "starry"
 version = "0.1.0"
 dependencies = [
  "axdriver",
- "axerrno",
+ "axerrno 0.1.0",
  "axfeat",
  "axfs-ng",
  "axhal",
@@ -2356,7 +2405,7 @@ dependencies = [
  "axcpu",
  "axdisplay",
  "axdriver",
- "axerrno",
+ "axerrno 0.1.0",
  "axfeat",
  "axfs-ng",
  "axfs-ng-vfs",
@@ -2383,6 +2432,7 @@ dependencies = [
  "inherit-methods-macro",
  "kbpf-basic",
  "kernel_guard",
+ "kmod",
  "kmod-loader",
  "kprobe",
  "kspin",
@@ -2393,6 +2443,7 @@ dependencies = [
  "linkme",
  "linux-raw-sys",
  "lock_api",
+ "lwprintf-rs",
  "memory_addr",
  "num_enum",
  "rand",
@@ -2419,7 +2470,7 @@ version = "0.1.0"
 dependencies = [
  "axbacktrace 0.1.0 (git+https://github.com/Starry-OS/axbacktrace?rev=e59ad73)",
  "axconfig",
- "axerrno",
+ "axerrno 0.1.0",
  "axfeat",
  "axfs-ng",
  "axfs-ng-vfs",
@@ -2492,7 +2543,7 @@ name = "starry-vm"
 version = "0.2.0"
 source = "git+https://github.com/Starry-OS/starry-vm.git?rev=4c91a6b#4c91a6bf7945dd04e68f6cf9b522e2152ad8d9b4"
 dependencies = [
- "axerrno",
+ "axerrno 0.1.0",
  "bytemuck",
  "extern-trait",
 ]
