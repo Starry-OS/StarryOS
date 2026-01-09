@@ -7,13 +7,15 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use core::{ffi::CStr, iter};
+use core::{ffi::CStr, fmt::Write, iter};
 
 use axalloc::{UsageKind, global_allocator};
 use axfs_ng_vfs::{Filesystem, NodeType, VfsError, VfsResult};
+use axhal::paging::MappingFlags;
 use axtask::{AxTaskRef, WeakAxTaskRef, current};
 use indoc::indoc;
 use starry_core::{
+    config::{USER_HEAP_BASE, USER_STACK_TOP},
     task::{AsThread, TaskStat, get_task, tasks},
     vfs::{
         DirMaker, DirMapping, NodeOpsMux, RwFile, SimpleDir, SimpleDirOps, SimpleFile,
@@ -22,7 +24,10 @@ use starry_core::{
 };
 use starry_process::Process;
 
-use crate::file::FD_TABLE;
+use crate::{
+    file::FD_TABLE,
+    vfs::seq_file::{SeqFileNode, SeqIterator},
+};
 
 // Helper constant for unit conversion clarity
 const KB: usize = 1024;
@@ -206,6 +211,103 @@ impl SimpleDirOps for ThreadFdDir {
     }
 }
 
+/// VmaSnapshot use for lock-free maps format
+struct VmaSnapshot {
+    start: usize,
+    end: usize,
+    flags: MappingFlags,
+    name: String,
+}
+
+/// iterator for travesing vma
+struct ProcIterator {
+    task: WeakAxTaskRef,
+    index: usize,
+}
+
+impl ProcIterator {
+    pub fn new(task: WeakAxTaskRef) -> Self {
+        Self { task, index: 0 }
+    }
+}
+
+impl SeqIterator for ProcIterator {
+    type Item = VmaSnapshot;
+
+    fn start(&mut self) -> Option<Self::Item> {
+        self.index = 0;
+        self.next()
+    }
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let task = self.task.upgrade()?;
+        let proc = &task.as_thread().proc_data;
+        let aspace = proc.aspace.lock();
+
+        if let Some(area) = aspace.areas().nth(self.index) {
+            self.index += 1;
+            // Phase 1 Quick Win: Identify Stack and Heap by address
+            let name = if area.end().as_usize() == USER_STACK_TOP {
+                String::from("[stack]")
+            } else if area.start().as_usize() == USER_HEAP_BASE {
+                String::from("[heap]")
+            } else {
+                // TODO: Retrieve filename from FileBackend
+                String::new()
+            };
+            Some(VmaSnapshot {
+                start: area.start().as_usize(),
+                end: area.end().as_usize(),
+                flags: area.flags(),
+                name,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn show(&self, item: &Self::Item, buf: &mut String) -> core::fmt::Result {
+        write!(buf, "{:012x}-{:012x} ", item.start, item.end)?;
+
+        let r = if item.flags.contains(MappingFlags::READ) {
+            'r'
+        } else {
+            '-'
+        };
+        let w = if item.flags.contains(MappingFlags::WRITE) {
+            'w'
+        } else {
+            '-'
+        };
+        let x = if item.flags.contains(MappingFlags::EXECUTE) {
+            'x'
+        } else {
+            '-'
+        };
+
+        // 'p' = Private (COW), 's' = Shared.
+        // Currently hardcoded to 'p' as StarryOS defaults to private mappings.
+        let s = 'p';
+        write!(buf, "{}{}{}{} ", r, w, x, s)?;
+
+        // Offset, Dev, Inode
+        // Currently hardcoded to 0.
+        // TODO: Retrieve actual offset/inode from Backend in the future.
+        // Format: Offset(8 chars) Dev(Major:Minor) Inode
+        write!(buf, "{:08x} 00:00 0", 0)?;
+
+        // Pathname
+        // Linux style: pad with spaces if a name exists, otherwise just newline.
+        if !item.name.is_empty() {
+            writeln!(buf, "                          {}", item.name)?;
+        } else {
+            writeln!(buf)?;
+        }
+
+        Ok(())
+    }
+}
+
 /// The /proc/[pid] directory
 struct ThreadDir {
     fs: Arc<SimpleFs>,
@@ -268,15 +370,17 @@ impl SimpleDirOps for ThreadDir {
                 }),
             )
             .into(),
-            "maps" => SimpleFile::new_regular(fs, move || {
-                Ok(indoc! {"
-                    7f000000-7f001000 r--p 00000000 00:00 0          [vdso]
-                    7f001000-7f003000 r-xp 00001000 00:00 0          [vdso]
-                    7f003000-7f005000 r--p 00003000 00:00 0          [vdso]
-                    7f005000-7f007000 rw-p 00005000 00:00 0          [vdso]
-                "})
-            })
-            .into(),
+            "maps" => {
+                let task_ref = Arc::downgrade(&task);
+                let iter = ProcIterator::new(task_ref);
+
+                // Construct a fake Inode based on PID + Magic
+                let inode = (task.id().as_u64() << 16) | 0x100;
+
+                let node = SeqFileNode::new(iter, fs, inode);
+
+                node.into()
+            }
             "mounts" => SimpleFile::new_regular(fs, move || {
                 Ok("proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0\n")
             })

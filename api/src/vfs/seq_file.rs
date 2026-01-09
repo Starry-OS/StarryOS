@@ -1,11 +1,5 @@
 use alloc::{string::String, sync::Arc};
-use core::{
-    any::Any,
-    cmp::min,
-    fmt,
-    task::Context,
-    time::Duration,
-};
+use core::{any::Any, cmp::min, fmt, task::Context, time::Duration};
 
 use axfs_ng_vfs::{
     DeviceId, FileNodeOps, FilesystemOps, Metadata, MetadataUpdate, NodeFlags, NodeOps,
@@ -17,11 +11,14 @@ use axsync::Mutex;
 /// Internal buffer size for SeqFile (4KB page).
 const SEQ_BUF_SIZE: usize = 0x1000;
 
+/// Report a large virtual file size (e.g., 1MB) to the VFS.
+const VIRTUAL_FILE_SIZE: u64 = 1024 * 1024;
+
 /// The interface that specific features (e.g., /proc/maps) must implement.
 ///
 /// This trait separates the "Business Logic" (traversal) from the "IO Logic" (buffering).
 pub trait SeqIterator: Send + 'static {
-    /// The type of the object being iterated (e.g., `Arc<Vma>`).
+    /// The type of the object being iterated
     type Item;
 
     /// Initialize the iterator and return the first item.
@@ -56,7 +53,8 @@ impl<I: SeqIterator> SeqFile<I> {
     }
 
     pub fn read(&mut self, output: &mut [u8], offset: u64) -> VfsResult<usize> {
-        // 1. Consistency Check & Reset Logic
+        output.fill(0);
+        // Consistency Check & Reset Logic
         if offset == 0 {
             self.reset();
         } else if offset != self.last_file_offset {
@@ -77,9 +75,9 @@ impl<I: SeqIterator> SeqFile<I> {
         let mut output_cursor = 0;
         let output_len = output.len();
 
-        // 2. Main Filling Loop
+        //  Main Filling Loop
         while output_cursor < output_len {
-            // Step 2a: Flush internal buffer if it has data
+            // Flush internal buffer if it has data
             let available = self.buf.len() - self.buf_read_pos;
             if available > 0 {
                 let to_copy = min(available, output_len - output_cursor);
@@ -91,10 +89,10 @@ impl<I: SeqIterator> SeqFile<I> {
                 self.buf_read_pos += to_copy;
                 self.last_file_offset += to_copy as u64;
                 total_written += to_copy;
-                continue; // Loop again to see if we can fill more
+                continue;
             }
 
-            // Step 2b: Buffer empty, fetch next item
+            // Buffer empty, fetch next item
             if self.is_eof {
                 break;
             }
@@ -112,9 +110,9 @@ impl<I: SeqIterator> SeqFile<I> {
             match next_item {
                 Some(item) => {
                     // Format into internal buffer
-                    if let Err(_) = self.iter.show(&item, &mut self.buf) {
-                        return Err(VfsError::Io);
-                    }
+                    self.iter
+                        .show(&item, &mut self.buf)
+                        .map_err(|_| VfsError::Io)?;
                     // Handle case where show() produces empty string (rare but possible)
                     if self.buf.is_empty() {
                         continue;
@@ -179,7 +177,7 @@ impl<I: SeqIterator> NodeOps for SeqFileNode<I> {
             node_type: NodeType::RegularFile,
             uid: 0,
             gid: 0,
-            size: 0, // Size is 0 for seq_files (dynamic)
+            size: VIRTUAL_FILE_SIZE, /* Hack: Set a fake non-zero size to ensure tools like 'cat' read the file. */
             block_size: 0,
             blocks: 0,
             rdev: DeviceId::default(),
@@ -190,7 +188,7 @@ impl<I: SeqIterator> NodeOps for SeqFileNode<I> {
     }
 
     fn update_metadata(&self, _update: MetadataUpdate) -> VfsResult<()> {
-        Err(VfsError::PermissionDenied)
+        Ok(())
     }
 
     fn filesystem(&self) -> &dyn FilesystemOps {
