@@ -31,7 +31,7 @@ pub fn run_initproc(args: &[String], envs: &[String]) -> i32 {
         .expect("Failed to get executable absolute path");
     let name = loc.name();
 
-    let (entry_vaddr, ustack_top) = load_user_app(&mut uspace, None, args, envs)
+    let (entry_vaddr, ustack_top, auxv) = load_user_app(&mut uspace, None, args, envs)
         .unwrap_or_else(|e| panic!("Failed to load user app: {}", e));
 
     let uctx = UserContext::new(entry_vaddr.into(), ustack_top, 0);
@@ -52,6 +52,8 @@ pub fn run_initproc(args: &[String], envs: &[String]) -> i32 {
         Arc::new(Mutex::new(uspace)),
         Arc::default(),
         None,
+        starry_vdso::vdso::get_trampoline_addr(&auxv)
+            .unwrap_or(starry_core::config::SIGNAL_TRAMPOLINE),
     );
     {
         let mut scope = proc_data.scope.write();

@@ -25,9 +25,13 @@ pub fn init() {
     info!("Initialize VFS...");
     vfs::mount_all().expect("Failed to mount vfs");
 
+    info!("Initialize vDSO data...");
+    starry_vdso::vdso::init_vdso_data();
+
     info!("Initialize /proc/interrupts...");
     axtask::register_timer_callback(|_| {
         time::inc_irq_cnt();
+        starry_vdso::vdso::update_vdso_data();
     });
 
     info!("Initialize alarm...");
