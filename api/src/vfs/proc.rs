@@ -7,12 +7,15 @@ use alloc::{
     vec,
     vec::Vec,
 };
-use core::{ffi::CStr, iter};
+use core::{ffi::CStr, fmt::Write, iter};
 
+use axalloc::{UsageKind, global_allocator};
 use axfs_ng_vfs::{Filesystem, NodeType, VfsError, VfsResult};
+use axhal::paging::MappingFlags;
 use axtask::{AxTaskRef, WeakAxTaskRef, current};
 use indoc::indoc;
 use starry_core::{
+    config::{USER_HEAP_BASE, USER_STACK_TOP},
     task::{AsThread, TaskStat, get_task, tasks},
     vfs::{
         DirMaker, DirMapping, NodeOpsMux, RwFile, SimpleDir, SimpleDirOps, SimpleFile,
@@ -21,67 +24,92 @@ use starry_core::{
 };
 use starry_process::Process;
 
-use crate::file::FD_TABLE;
+use crate::{
+    file::FD_TABLE,
+    vfs::seq_file::{SeqFileNode, SeqIterator},
+};
 
-const DUMMY_MEMINFO: &str = indoc! {"
-    MemTotal:       32536204 kB
-    MemFree:         5506524 kB
-    MemAvailable:   18768344 kB
-    Buffers:            3264 kB
-    Cached:         14454588 kB
-    SwapCached:            0 kB
-    Active:         18229700 kB
-    Inactive:        6540624 kB
-    Active(anon):   11380224 kB
-    Inactive(anon):        0 kB
-    Active(file):    6849476 kB
-    Inactive(file):  6540624 kB
-    Unevictable:      930088 kB
-    Mlocked:            1136 kB
-    SwapTotal:       4194300 kB
-    SwapFree:        4194300 kB
-    Zswap:                 0 kB
-    Zswapped:              0 kB
-    Dirty:             47952 kB
-    Writeback:             0 kB
-    AnonPages:      10992512 kB
-    Mapped:          1361184 kB
-    Shmem:           1068056 kB
-    KReclaimable:     341440 kB
-    Slab:             628996 kB
-    SReclaimable:     341440 kB
-    SUnreclaim:       287556 kB
-    KernelStack:       28704 kB
-    PageTables:        85308 kB
-    SecPageTables:      2084 kB
-    NFS_Unstable:          0 kB
-    Bounce:                0 kB
-    WritebackTmp:          0 kB
-    CommitLimit:    20462400 kB
-    Committed_AS:   45105316 kB
-    VmallocTotal:   34359738367 kB
-    VmallocUsed:      205924 kB
-    VmallocChunk:          0 kB
-    Percpu:            23840 kB
-    HardwareCorrupted:     0 kB
-    AnonHugePages:   1417216 kB
-    ShmemHugePages:        0 kB
-    ShmemPmdMapped:        0 kB
-    FileHugePages:    477184 kB
-    FilePmdMapped:    288768 kB
-    CmaTotal:              0 kB
-    CmaFree:               0 kB
-    Unaccepted:            0 kB
-    HugePages_Total:       0
-    HugePages_Free:        0
-    HugePages_Rsvd:        0
-    HugePages_Surp:        0
-    Hugepagesize:       2048 kB
-    Hugetlb:               0 kB
-    DirectMap4k:     1739900 kB
-    DirectMap2M:    31492096 kB
-    DirectMap1G:     1048576 kB
-"};
+// Helper constant for unit conversion clarity
+const KB: usize = 1024;
+const PAGE_SIZE: usize = 0x1000;
+
+pub fn meminfo_read() -> VfsResult<Vec<u8>> {
+    let allocator = global_allocator();
+
+    // Basic Pages Statistics
+    // We access the page allocator to get the raw physical page counts.
+    let used_pages = allocator.used_pages();
+    let free_pages = allocator.available_pages();
+    let total_pages = used_pages + free_pages;
+
+    let total_kb = (total_pages * PAGE_SIZE) / KB;
+    let free_kb = (free_pages * PAGE_SIZE) / KB;
+
+    // Granular Usage Statistics (Snapshot)
+    // We capture a snapshot of the usage tracker to avoid holding the lock for too long.
+    let usages = allocator.usages();
+
+    // Helper closure to convert bytes to KiB safely
+    let to_kb = |kind| usages.get(kind) / KB;
+
+    let heap_kb = to_kb(UsageKind::RustHeap);
+    let cache_kb = to_kb(UsageKind::PageCache);
+    let pg_tbl_kb = to_kb(UsageKind::PageTable);
+    let user_kb = to_kb(UsageKind::VirtMem);
+    let dma_kb = to_kb(UsageKind::Dma);
+
+    // Derived Metrics
+    // MemAvailable: An estimate of how much memory is available for starting new applications.
+    // In Linux, this includes free memory + reclaimable caches.
+    // For StarryOS v1, we assume PageCache is reclaimable.
+    let available_kb = free_kb + cache_kb;
+
+    // Fields set to 0 are placeholders for features not yet implemented in StarryOS.
+    let content = format!(
+        indoc! {"
+        MemTotal:       {:8} kB
+        MemFree:        {:8} kB
+        MemAvailable:   {:8} kB
+        Buffers:               0 kB
+        Cached:         {:8} kB
+        SwapCached:            0 kB
+        Active:                0 kB
+        Inactive:              0 kB
+        SwapTotal:             0 kB
+        SwapFree:              0 kB
+        Dirty:                 0 kB
+        Writeback:             0 kB
+        AnonPages:      {:8} kB
+        Mapped:         {:8} kB
+        Shmem:                 0 kB
+        Slab:           {:8} kB
+        SReclaimable:          0 kB
+        SUnreclaim:     {:8} kB
+        PageTables:     {:8} kB
+        NFS_Unstable:          0 kB
+        Bounce:                0 kB
+        CmaTotal:       {:8} kB
+        HugePages_Total:       0
+        HugePages_Free:        0
+        Hugepagesize:       2048 kB
+        DirectMap4k:    {:8} kB
+        DirectMap2M:           0 kB
+        "},
+        total_kb,     // MemTotal
+        free_kb,      // MemFree
+        available_kb, // MemAvailable
+        cache_kb,     // Cached
+        user_kb,      // AnonPages (Userspace anonymous memory)
+        user_kb,      // Mapped (Approximated as equal to AnonPages for now)
+        heap_kb,      // Slab (Kernel heap usage)
+        heap_kb,      // SUnreclaim (Kernel objects are mostly unreclaimable currently)
+        pg_tbl_kb,    // PageTables
+        dma_kb,       // CmaTotal
+        total_kb      // DirectMap4k (Assuming 1:1 mapping for all memory)
+    );
+
+    Ok(content.into_bytes())
+}
 
 pub fn new_procfs() -> Filesystem {
     SimpleFs::new_with("proc".into(), 0x9fa0, builder)
@@ -183,6 +211,103 @@ impl SimpleDirOps for ThreadFdDir {
     }
 }
 
+/// VmaSnapshot use for lock-free maps format
+struct VmaSnapshot {
+    start: usize,
+    end: usize,
+    flags: MappingFlags,
+    name: String,
+}
+
+/// iterator for travesing vma
+struct ProcIterator {
+    task: WeakAxTaskRef,
+    index: usize,
+}
+
+impl ProcIterator {
+    pub fn new(task: WeakAxTaskRef) -> Self {
+        Self { task, index: 0 }
+    }
+}
+
+impl SeqIterator for ProcIterator {
+    type Item = VmaSnapshot;
+
+    fn start(&mut self) -> Option<Self::Item> {
+        self.index = 0;
+        self.next()
+    }
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let task = self.task.upgrade()?;
+        let proc = &task.as_thread().proc_data;
+        let aspace = proc.aspace.lock();
+
+        if let Some(area) = aspace.areas().nth(self.index) {
+            self.index += 1;
+            // Phase 1 Quick Win: Identify Stack and Heap by address
+            let name = if area.end().as_usize() == USER_STACK_TOP {
+                String::from("[stack]")
+            } else if area.start().as_usize() == USER_HEAP_BASE {
+                String::from("[heap]")
+            } else {
+                // TODO: Retrieve filename from FileBackend
+                String::new()
+            };
+            Some(VmaSnapshot {
+                start: area.start().as_usize(),
+                end: area.end().as_usize(),
+                flags: area.flags(),
+                name,
+            })
+        } else {
+            None
+        }
+    }
+
+    fn show(&self, item: &Self::Item, buf: &mut String) -> core::fmt::Result {
+        write!(buf, "{:012x}-{:012x} ", item.start, item.end)?;
+
+        let r = if item.flags.contains(MappingFlags::READ) {
+            'r'
+        } else {
+            '-'
+        };
+        let w = if item.flags.contains(MappingFlags::WRITE) {
+            'w'
+        } else {
+            '-'
+        };
+        let x = if item.flags.contains(MappingFlags::EXECUTE) {
+            'x'
+        } else {
+            '-'
+        };
+
+        // 'p' = Private (COW), 's' = Shared.
+        // Currently hardcoded to 'p' as StarryOS defaults to private mappings.
+        let s = 'p';
+        write!(buf, "{}{}{}{} ", r, w, x, s)?;
+
+        // Offset, Dev, Inode
+        // Currently hardcoded to 0.
+        // TODO: Retrieve actual offset/inode from Backend in the future.
+        // Format: Offset(8 chars) Dev(Major:Minor) Inode
+        write!(buf, "{:08x} 00:00 0", 0)?;
+
+        // Pathname
+        // Linux style: pad with spaces if a name exists, otherwise just newline.
+        if !item.name.is_empty() {
+            writeln!(buf, "                          {}", item.name)?;
+        } else {
+            writeln!(buf)?;
+        }
+
+        Ok(())
+    }
+}
+
 /// The /proc/[pid] directory
 struct ThreadDir {
     fs: Arc<SimpleFs>,
@@ -245,15 +370,17 @@ impl SimpleDirOps for ThreadDir {
                 }),
             )
             .into(),
-            "maps" => SimpleFile::new_regular(fs, move || {
-                Ok(indoc! {"
-                    7f000000-7f001000 r--p 00000000 00:00 0          [vdso]
-                    7f001000-7f003000 r-xp 00001000 00:00 0          [vdso]
-                    7f003000-7f005000 r--p 00003000 00:00 0          [vdso]
-                    7f005000-7f007000 rw-p 00005000 00:00 0          [vdso]
-                "})
-            })
-            .into(),
+            "maps" => {
+                let task_ref = Arc::downgrade(&task);
+                let iter = ProcIterator::new(task_ref);
+
+                // Construct a fake Inode based on PID + Magic
+                let inode = (task.id().as_u64() << 16) | 0x100;
+
+                let node = SeqFileNode::new(iter, fs, inode);
+
+                node.into()
+            }
             "mounts" => SimpleFile::new_regular(fs, move || {
                 Ok("proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0\n")
             })
@@ -362,14 +489,7 @@ fn builder(fs: Arc<SimpleFs>) -> DirMaker {
     );
     root.add(
         "meminfo",
-        SimpleFile::new_regular(fs.clone(), || Ok(DUMMY_MEMINFO)),
-    );
-    root.add(
-        "meminfo2",
-        SimpleFile::new_regular(fs.clone(), || {
-            let allocator = axalloc::global_allocator();
-            Ok(format!("{:?}\n", allocator.usages()))
-        }),
+        SimpleFile::new_regular(fs.clone(), || meminfo_read()),
     );
     root.add(
         "instret",
