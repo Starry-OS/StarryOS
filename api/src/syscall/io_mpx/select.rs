@@ -10,13 +10,11 @@ use linux_raw_sys::{
     select_macros::{FD_ISSET, FD_SET, FD_ZERO},
 };
 use starry_signal::SignalSet;
+use starry_vm::{VmMutPtr, VmPtr};
 
 use super::FdPollSet;
 use crate::{
-    file::FD_TABLE,
-    mm::{UserConstPtr, UserPtr, nullable},
-    signal::with_replacen_blocked,
-    syscall::signal::check_sigset_size,
+    file::FD_TABLE, signal::with_replacen_blocked, syscall::signal::check_sigset_size,
     time::TimeValueLike,
 };
 
@@ -44,30 +42,44 @@ impl fmt::Debug for FdSet {
 
 fn do_select(
     nfds: u32,
-    readfds: UserPtr<__kernel_fd_set>,
-    writefds: UserPtr<__kernel_fd_set>,
-    exceptfds: UserPtr<__kernel_fd_set>,
+    readfds: *mut __kernel_fd_set,
+    writefds: *mut __kernel_fd_set,
+    exceptfds: *mut __kernel_fd_set,
     timeout: Option<Duration>,
-    sigmask: UserConstPtr<SignalSetWithSize>,
+    sigmask: *const SignalSetWithSize,
 ) -> AxResult<isize> {
     if nfds > __FD_SETSIZE {
         return Err(AxError::InvalidInput);
     }
-    let sigmask = if let Some(sigmask) = nullable!(sigmask.get_as_ref())? {
-        check_sigset_size(sigmask.sigsetsize)?;
-        let set = sigmask.set;
-        nullable!(set.get_as_ref())?
-    } else {
-        None
+    let sigmask = match sigmask.nullable() {
+        Some(p) => {
+            let sig = unsafe { p.vm_read_uninit()?.assume_init() };
+            check_sigset_size(sig.sigsetsize)?;
+            match sig.set.nullable() {
+                Some(sp) => Some(unsafe { sp.vm_read_uninit()?.assume_init() }),
+                None => None,
+            }
+        }
+        None => None,
     };
 
-    let mut readfds = nullable!(readfds.get_as_mut())?;
-    let mut writefds = nullable!(writefds.get_as_mut())?;
-    let mut exceptfds = nullable!(exceptfds.get_as_mut())?;
+    let mut read_local = match readfds.nullable() {
+        Some(p) => Some(unsafe { p.vm_read_uninit()?.assume_init() }),
+        None => None,
+    };
 
-    let read_set = FdSet::new(nfds as _, readfds.as_deref());
-    let write_set = FdSet::new(nfds as _, writefds.as_deref());
-    let except_set = FdSet::new(nfds as _, exceptfds.as_deref());
+    let mut write_local = match writefds.nullable() {
+        Some(p) => Some(unsafe { p.vm_read_uninit()?.assume_init() }),
+        None => None,
+    };
+    let mut except_local = match exceptfds.nullable() {
+        Some(p) => Some(unsafe { p.vm_read_uninit()?.assume_init() }),
+        None => None,
+    };
+
+    let read_set = FdSet::new(nfds as _, read_local.as_ref());
+    let write_set = FdSet::new(nfds as _, write_local.as_ref());
+    let except_set = FdSet::new(nfds as _, except_local.as_ref());
 
     debug!(
         "sys_select <= nfds: {nfds} sets: [read: {read_set:?}, write: {write_set:?}, except: \
@@ -98,16 +110,16 @@ fn do_select(
     drop(fd_table);
     let fds = FdPollSet(fds);
 
-    if let Some(readfds) = readfds.as_deref_mut() {
-        unsafe { FD_ZERO(readfds) };
+    if let Some(read_local) = read_local.as_mut() {
+        unsafe { FD_ZERO(read_local) };
     }
-    if let Some(writefds) = writefds.as_deref_mut() {
-        unsafe { FD_ZERO(writefds) };
+    if let Some(write_local) = write_local.as_mut() {
+        unsafe { FD_ZERO(write_local) };
     }
-    if let Some(exceptfds) = exceptfds.as_deref_mut() {
-        unsafe { FD_ZERO(exceptfds) };
+    if let Some(except_local) = except_local.as_mut() {
+        unsafe { FD_ZERO(except_local) };
     }
-    with_replacen_blocked(sigmask.copied(), || {
+    with_replacen_blocked(sigmask, || {
         match block_on(future::timeout(
             timeout,
             poll_io(&fds, IoEvents::empty(), false, || {
@@ -115,19 +127,19 @@ fn do_select(
                 for ((fd, interested), index) in fds.0.iter().zip(fd_indices.iter().copied()) {
                     let events = fd.poll() & *interested;
                     if events.contains(IoEvents::IN)
-                        && let Some(set) = readfds.as_deref_mut()
+                        && let Some(set) = read_local.as_mut()
                     {
                         res += 1;
                         unsafe { FD_SET(index as _, set) };
                     }
                     if events.contains(IoEvents::OUT)
-                        && let Some(set) = writefds.as_deref_mut()
+                        && let Some(set) = write_local.as_mut()
                     {
                         res += 1;
                         unsafe { FD_SET(index as _, set) };
                     }
                     if events.contains(IoEvents::ERR)
-                        && let Some(set) = exceptfds.as_deref_mut()
+                        && let Some(set) = except_local.as_mut()
                     {
                         res += 1;
                         unsafe { FD_SET(index as _, set) };
@@ -144,50 +156,64 @@ fn do_select(
             Err(_) => Ok(0),
         }
     })
+    .and_then(|ret| {
+        if let Some((p, set)) = readfds.nullable().zip(read_local) {
+            p.vm_write(set)?;
+        }
+        if let Some((p, set)) = writefds.nullable().zip(write_local) {
+            p.vm_write(set)?;
+        }
+        if let Some((p, set)) = exceptfds.nullable().zip(except_local) {
+            p.vm_write(set)?;
+        }
+        Ok(ret)
+    })
 }
 
 #[cfg(target_arch = "x86_64")]
 pub fn sys_select(
     nfds: u32,
-    readfds: UserPtr<__kernel_fd_set>,
-    writefds: UserPtr<__kernel_fd_set>,
-    exceptfds: UserPtr<__kernel_fd_set>,
-    timeout: UserConstPtr<timeval>,
+    readfds: *mut __kernel_fd_set,
+    writefds: *mut __kernel_fd_set,
+    exceptfds: *mut __kernel_fd_set,
+    timeout: *const timeval,
 ) -> AxResult<isize> {
     do_select(
         nfds,
         readfds,
         writefds,
         exceptfds,
-        nullable!(timeout.get_as_ref())?
-            .map(|it| it.try_into_time_value())
+        timeout
+            .nullable()
+            .map(|p| unsafe { p.vm_read_uninit()?.assume_init().try_into_time_value() })
             .transpose()?,
-        0.into(),
+        core::ptr::null(),
     )
 }
 
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct SignalSetWithSize {
-    set: UserConstPtr<SignalSet>,
+    set: *const SignalSet,
     sigsetsize: usize,
 }
 
 pub fn sys_pselect6(
     nfds: u32,
-    readfds: UserPtr<__kernel_fd_set>,
-    writefds: UserPtr<__kernel_fd_set>,
-    exceptfds: UserPtr<__kernel_fd_set>,
-    timeout: UserConstPtr<timespec>,
-    sigmask: UserConstPtr<SignalSetWithSize>,
+    readfds: *mut __kernel_fd_set,
+    writefds: *mut __kernel_fd_set,
+    exceptfds: *mut __kernel_fd_set,
+    timeout: *const timespec,
+    sigmask: *const SignalSetWithSize,
 ) -> AxResult<isize> {
     do_select(
         nfds,
         readfds,
         writefds,
         exceptfds,
-        nullable!(timeout.get_as_ref())?
-            .map(|ts| ts.try_into_time_value())
+        timeout
+            .nullable()
+            .map(|p| unsafe { p.vm_read_uninit()?.assume_init().try_into_time_value() })
             .transpose()?,
         sigmask,
     )

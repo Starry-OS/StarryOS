@@ -12,13 +12,14 @@ use axtask::current;
 use bitflags::bitflags;
 use linux_raw_sys::general::*;
 use starry_core::{task::AsThread, vfs::Device};
+use starry_vm::{VmMutPtr, VmPtr};
 
 use crate::{
     file::{
         Directory, FD_TABLE, File, FileLike, Pipe, add_file_like, close_file_like, get_file_like,
         with_fs,
     },
-    mm::{UserPtr, vm_load_string},
+    mm::vm_load_string,
     syscall::sys::{sys_getegid, sys_geteuid},
     vfs::dev::tty,
 };
@@ -245,8 +246,10 @@ pub fn sys_fcntl(fd: c_int, cmd: c_int, arg: usize) -> AxResult<isize> {
         F_SETLK | F_SETLKW => Ok(0),
         F_OFD_SETLK | F_OFD_SETLKW => Ok(0),
         F_GETLK | F_OFD_GETLK => {
-            let arg = UserPtr::<flock64>::from(arg);
-            arg.get_as_mut()?.l_type = F_UNLCK as _;
+            let ptr = arg as *mut flock64;
+            let mut lock = unsafe { ptr.vm_read_uninit()?.assume_init() };
+            lock.l_type = F_UNLCK as _;
+            ptr.vm_write(lock)?;
             Ok(0)
         }
         F_SETFL => {
