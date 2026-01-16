@@ -1,4 +1,4 @@
-use core::ptr::null_mut;
+use core::{ffi::c_char, ptr::null_mut};
 
 use kmod::capi_fn;
 
@@ -34,8 +34,8 @@ unsafe extern "C" fn write_char(c: u8) {
 }
 
 #[capi_fn]
-unsafe extern "C" fn _printk(fmt: *const u8, mut args: ...) -> i32 {
-    let c_str_fmt = unsafe { core::ffi::CStr::from_ptr(fmt as *const _) };
+unsafe extern "C" fn _printk(fmt: *const c_char, mut args: ...) -> i32 {
+    let c_str_fmt = unsafe { core::ffi::CStr::from_ptr(fmt) };
     let fmt_bytes = c_str_fmt.to_bytes();
     let level_prefix = LOG_LEVELS
         .iter()
@@ -63,7 +63,5 @@ unsafe extern "C" fn _printk(fmt: *const u8, mut args: ...) -> i32 {
             ax_print!("[INFO] ");
         }
     }
-    unsafe {
-        lwprintf_rs::lwprintf_vprintf_ex_rust(null_mut(), fmt.as_ptr() as _, args.as_va_list())
-    }
+    unsafe { lwprintf_rs::lwprintf_vprintf_ex(null_mut(), fmt.as_ptr() as _, args.as_va_list()) }
 }

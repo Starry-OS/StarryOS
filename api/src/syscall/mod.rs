@@ -601,7 +601,9 @@ pub fn handle_syscall(uctx: &mut UserContext) {
             uctx.arg3() as _,
             uctx.arg4() as _,
         ),
-
+        Sysno::finit_module => {
+            sys_finit_module(uctx.arg0() as _, uctx.arg1() as _, uctx.arg2() as _)
+        }
         Sysno::init_module => sys_init_module(uctx.arg0() as _, uctx.arg1() as _, uctx.arg2() as _),
         Sysno::delete_module => sys_delete_module(uctx.arg0() as _, uctx.arg1() as _),
         // dummy fds

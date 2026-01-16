@@ -118,13 +118,10 @@ impl KernelModuleHelper for KmodHelper {
 }
 
 // TODO: Handle module
-struct ModuleOwnerWrapper(ModuleOwner<KmodHelper>);
 
-unsafe impl Send for ModuleOwnerWrapper {}
-unsafe impl Sync for ModuleOwnerWrapper {}
+type Module = ModuleOwner<KmodHelper>;
 
-static MODULES: SpinNoPreempt<BTreeMap<String, ModuleOwnerWrapper>> =
-    SpinNoPreempt::new(BTreeMap::new());
+static MODULES: SpinNoPreempt<BTreeMap<String, Module>> = SpinNoPreempt::new(BTreeMap::new());
 
 pub fn init_module(elf: &[u8], params: Option<&str>) -> AxResult<()> {
     let loader = ModuleLoader::<KmodHelper>::new(elf).map_err(|_| AxError::InvalidInput)?;
@@ -146,7 +143,7 @@ pub fn init_module(elf: &[u8], params: Option<&str>) -> AxResult<()> {
     if modules.contains_key(&name) {
         return Err(AxError::AlreadyExists);
     }
-    modules.insert(name.to_string(), ModuleOwnerWrapper(owner));
+    modules.insert(name.to_string(), owner);
     Ok(())
 }
 
@@ -154,7 +151,7 @@ pub fn delete_module(name: &str) -> AxResult<()> {
     let mut modules = MODULES.lock();
     let mut owner_wrapper = modules.remove(name).ok_or(AxError::NotFound)?;
 
-    owner_wrapper.0.call_exit();
+    owner_wrapper.call_exit();
     axlog::warn!("Module({}) exited", name);
     Ok(())
 }
