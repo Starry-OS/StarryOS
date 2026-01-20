@@ -881,9 +881,9 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "chrono"
-version = "0.4.42"
+version = "0.4.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "145052bdd345b87320e369255277e3fb5152762ad123a901ef5c262dd38fe8d2"
+checksum = "fac4744fb15ae8337dc853fee7fb3f4e48c0fbaa23d0afe49c447b4fab126118"
 dependencies = [
  "num-traits",
 ]
@@ -2257,7 +2257,6 @@ dependencies = [
  "starry-signal",
  "starry-vm",
  "strum",
- "uluru",
  "weak-map",
  "xmas-elf",
 ]
@@ -2451,15 +2450,6 @@ dependencies = [
  "bitflags 2.10.0",
  "rustversion",
  "x86",
-]
-
-[[package]]
-name = "uluru"
-version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c8a2469e56e6e5095c82ccd3afb98dad95f7af7929aab6d8ba8d6e0f73657da"
-dependencies = [
- "arrayvec",
 ]
 
 [[package]]

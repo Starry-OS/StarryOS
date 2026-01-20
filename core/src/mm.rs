@@ -20,10 +20,10 @@ use kernel_guard::IrqSave;
 use memory_addr::{MemoryAddr, PAGE_SIZE_4K, VirtAddr};
 use ouroboros::self_referencing;
 use starry_vm::{VmError, VmIo, VmResult};
-use uluru::LRUCache;
 
 use crate::{
     config::{USER_SPACE_BASE, USER_SPACE_SIZE},
+    lrucache::LruCache,
     task::AsThread,
 };
 
@@ -173,22 +173,22 @@ impl ElfCacheEntry {
     }
 }
 
-struct ElfLoader(LRUCache<ElfCacheEntry, 32>);
+struct ElfLoader(LruCache<ElfCacheEntry, 32>);
 
 type LoadResult = Result<(VirtAddr, Vec<AuxEntry>), Vec<u8>>;
 
 impl ElfLoader {
     const fn new() -> Self {
-        Self(LRUCache::new())
+        Self(LruCache::new())
     }
 
     fn load(&mut self, uspace: &mut AddrSpace, path: &str) -> AxResult<LoadResult> {
         let loc = FS_CONTEXT.lock().resolve(path)?;
 
-        if !self.0.touch(|e| e.borrow_cache().location().ptr_eq(&loc)) {
+        if !self.0.access(|e| e.borrow_cache().location().ptr_eq(&loc)) {
             match ElfCacheEntry::load(loc)? {
                 Ok(e) => {
-                    self.0.insert(e);
+                    self.0.put(e);
                 }
                 Err(data) => {
                     return Ok(Err(data));
@@ -199,7 +199,7 @@ impl ElfLoader {
         uspace.clear();
         map_trampoline(uspace)?;
 
-        let entry = self.0.front().unwrap();
+        let entry = self.0.peek_mru().unwrap();
         let ldso = if let Some(header) = entry
             .borrow_elf()
             .ph
@@ -223,12 +223,12 @@ impl ElfLoader {
 
         let (elf, ldso) = if let Some(ldso) = ldso {
             let loc = FS_CONTEXT.lock().resolve(ldso)?;
-            if !self.0.touch(|e| e.borrow_cache().location().ptr_eq(&loc)) {
+            if !self.0.access(|e| e.borrow_cache().location().ptr_eq(&loc)) {
                 let e = ElfCacheEntry::load(loc)?.map_err(|_| AxError::InvalidInput)?;
-                self.0.insert(e);
+                self.0.put(e);
             }
 
-            let mut iter = self.0.iter();
+            let mut iter = self.0.items();
             let ldso = iter.next().unwrap();
             let elf = iter.next().unwrap();
             (elf, Some(ldso))
@@ -259,7 +259,7 @@ static ELF_LOADER: Mutex<ElfLoader> = Mutex::new(ElfLoader::new());
 ///
 /// Useful for removing noises during memory leak detect.
 pub fn clear_elf_cache() {
-    ELF_LOADER.lock().0.clear();
+    ELF_LOADER.lock().0.flush();
 }
 
 /// Load the user app to the user address space.
