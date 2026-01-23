@@ -81,10 +81,12 @@ tracepoint = { git = "https://github.com/Starry-OS/tracepoint.git", package = "k
 kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "ab3b368" }
 rbpf = { git = "https://github.com/qmonnet/rbpf.git", default-features = false, rev = "f31e471" }
 kprobe = { git = "https://github.com/Starry-OS/kprobe" }
-# kmod-loader = { path = "../../ax-project/kmod/kmod-loader" }
-kmod-loader = { git = "https://github.com/Starry-OS/kmod" }
 lwprintf-rs = "0.3.1"
+# kmod-loader = { path = "../../ax-project/kmod/kmod-loader" }
 # kmod = { path = "../../ax-project/kmod/kmod" }
+# kapi = { path = "../../ax-project/kmod/kapi" }
+kmod-loader = { git = "https://github.com/Starry-OS/kmod" }
+kapi = { git = "https://github.com/Starry-OS/kmod" }
 kmod = { git = "https://github.com/Starry-OS/kmod" }
 [target.'cfg(not(target_arch = "loongarch64"))'.dependencies]
 unwinding = { version = "=0.2.8", default-features = false, features = [

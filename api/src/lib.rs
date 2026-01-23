@@ -4,13 +4,16 @@
 #![feature(maybe_uninit_slice)]
 #![feature(c_variadic)]
 #![feature(concat_bytes)]
+#![feature(layout_for_ptr)]
 #![allow(missing_docs)]
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 #![allow(clippy::non_upper_case_globals)]
+#![allow(unsafe_op_in_unsafe_fn)]
 #[macro_use]
 extern crate axlog;
-
 extern crate alloc;
+extern crate kapi;
+
 #[cfg(not(target_arch = "loongarch64"))]
 use axerrno::{LinuxError, LinuxResult};
 

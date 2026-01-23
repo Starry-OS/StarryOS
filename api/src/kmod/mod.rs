@@ -109,7 +109,16 @@ impl KernelModuleHelper for KmodHelper {
         let ksym = crate::vfs::KALLSYMS.get()?;
         let res = ksym.lookup_name(name).map(|addr| addr as usize);
         axlog::error!("Resolving symbol: {} => {:x?}", name, res);
-        res
+        // Some(res)
+        match res {
+            Some(addr) => Some(addr),
+            None => {
+                // Try shim symbols
+                // shim::resolve_shim_symbol(name)
+                // Some(shim::default_fault_fn as usize)
+                panic!("Symbol {} not found", name)
+            }
+        }
     }
 
     fn flsuh_cache(_addr: usize, _size: usize) {

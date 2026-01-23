@@ -86,7 +86,7 @@ img: kmod build
 # Copy all modules to disk
 	@make copy_modules
 	@-sudo mkdir -p ./disk/root/modules
-	@sudo cp ./hello-*.ko ./disk/root/modules/
+	@sudo cp ./*.ko ./disk/root/modules/
 	@-sudo mkdir -p $(DISK_PATH)/musl
 	@make -C user/musl all
 	@sudo umount ./disk
