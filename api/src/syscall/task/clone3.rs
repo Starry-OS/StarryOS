@@ -2,7 +2,7 @@ use axerrno::{AxError, AxResult};
 use axhal::uspace::UserContext;
 use starry_vm::VmPtr;
 
-use super::clone::{CloneFlags, CloneParamProvider, do_clone};
+use super::clone::{CloneArgs, CloneFlags, do_clone};
 
 /// Structure passed to clone3() system call.
 #[repr(C)]
@@ -23,53 +23,8 @@ pub struct Clone3Args {
 
 const MIN_CLONE_ARGS_SIZE: usize = core::mem::size_of::<u64>() * 8;
 
-impl CloneParamProvider for Clone3Args {
-    fn flags(&self) -> CloneFlags {
-        CloneFlags::from_bits_truncate(self.flags)
-    }
-
-    fn exit_signal(&self) -> u64 {
-        self.exit_signal
-    }
-
-    fn stack_pointer(&self) -> usize {
-        // For clone3(), stack + stack_size gives the SP
-        if self.stack > 0 {
-            if self.stack_size > 0 {
-                // Stack grows downward, SP = base + size
-                (self.stack + self.stack_size) as usize
-            } else {
-                // If only stack provided, treat as SP directly
-                self.stack as usize
-            }
-        } else {
-            0
-        }
-    }
-
-    fn tls(&self) -> usize {
-        self.tls as usize
-    }
-
-    fn child_settid_ptr(&self) -> usize {
-        self.child_tid as usize
-    }
-
-    fn child_cleartid_ptr(&self) -> usize {
-        self.child_tid as usize // for glibc compatibility
-    }
-
-    fn parent_tid_ptr(&self) -> usize {
-        self.parent_tid as usize
-    }
-
-    fn pidfd_ptr(&self) -> usize {
-        // For clone3(), pidfd is a separate field
-        self.pidfd as usize
-    }
-
-    fn validate(&self) -> AxResult<()> {
-        // Warn about unsupported features
+impl Clone3Args {
+    fn into_clone_args(self) -> AxResult<CloneArgs> {
         if self.set_tid != 0 || self.set_tid_size != 0 {
             warn!("sys_clone3: set_tid/set_tid_size not supported, ignoring");
         }
@@ -77,17 +32,33 @@ impl CloneParamProvider for Clone3Args {
             warn!("sys_clone3: cgroup parameter not supported, ignoring");
         }
 
-        // In clone3(), PIDFD and PARENT_SETTID can coexist
-        // because they use separate fields (no validation needed)
+        let flags = CloneFlags::from_bits_truncate(self.flags);
 
-        Ok(())
+        let stack = if self.stack > 0 {
+            if self.stack_size > 0 {
+                (self.stack + self.stack_size) as usize
+            } else {
+                self.stack as usize
+            }
+        } else {
+            0
+        };
+
+        Ok(CloneArgs {
+            flags,
+            exit_signal: self.exit_signal,
+            stack,
+            tls: self.tls as usize,
+            parent_tid: self.parent_tid as usize,
+            child_tid: self.child_tid as usize,
+            pidfd: self.pidfd as usize,
+        })
     }
 }
 
 pub fn sys_clone3(uctx: &UserContext, args_ptr: usize, args_size: usize) -> AxResult<isize> {
     debug!("sys_clone3 <= args_ptr: {args_ptr:#x}, args_size: {args_size}");
 
-    // Validate size
     if args_size < MIN_CLONE_ARGS_SIZE {
         warn!("sys_clone3: args_size {args_size} too small, minimum is {MIN_CLONE_ARGS_SIZE}");
         return Err(AxError::InvalidInput);
@@ -97,14 +68,11 @@ pub fn sys_clone3(uctx: &UserContext, args_ptr: usize, args_size: usize) -> AxRe
         debug!("sys_clone3: args_size {args_size} larger than expected, using known fields only");
     }
 
-    // Copy arguments from user space
     let args_ptr = args_ptr as *const Clone3Args;
-    let args = unsafe { args_ptr.vm_read_uninit()?.assume_init() };
-    debug!("sys_clone3: args = {args:?}");
+    let clone3_args = unsafe { args_ptr.vm_read_uninit()?.assume_init() };
 
-    // Use common implementation
-    let result = do_clone(uctx, &args)?;
-    debug!("sys_clone3 => child tid: {result}");
+    debug!("sys_clone3: args = {clone3_args:?}");
 
-    Ok(result)
+    let args = clone3_args.into_clone_args()?;
+    do_clone(uctx, args)
 }
