@@ -1445,7 +1445,9 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 name = "hello"
 version = "0.1.0"
 dependencies = [
+ "axfeat",
  "kmod",
+ "starry-api",
 ]
 
 [[package]]
@@ -1559,6 +1561,16 @@ dependencies = [
  "lru 0.14.0",
  "printf-compat",
  "rbpf 0.3.0 (git+https://github.com/qmonnet/rbpf)",
+]
+
+[[package]]
+name = "kebpf"
+version = "0.1.0"
+dependencies = [
+ "axfeat",
+ "axlog",
+ "kmod",
+ "starry-api",
 ]
 
 [[package]]

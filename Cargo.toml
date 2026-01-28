@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["api", "core", "user/musl/async_test", "modules/hello"]
+members = ["api", "core", "user/musl/async_test", "modules/hello", "modules/kebpf"]
 exclude = ["arceos"]
 
 [workspace.package]
@@ -85,6 +85,13 @@ starry-core = { path = "./core" }
 starry-api = { path = "./api" }
 lock_api = { version = "0.4", default-features = false }
 kernel_guard = "0.1"
+
+# kmod-loader = { path = "../ax-project/kmod/kmod-loader" }
+# kmod = { path = "../ax-project/kmod/kmod", default-features = false }
+# kapi = { path = "../ax-project/kmod/kapi" }
+kmod-loader = { git = "https://github.com/Starry-OS/kmod" }
+kapi = { git = "https://github.com/Starry-OS/kmod" }
+kmod = { git = "https://github.com/Starry-OS/kmod" }
 
 [package]
 name = "starry"

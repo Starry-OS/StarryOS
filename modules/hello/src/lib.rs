@@ -1,14 +1,9 @@
 #![no_std]
-#![no_main]
+extern crate alloc;
+
+use alloc::vec;
 
 use kmod::{exit_fn, init_fn, module};
-
-#[init_fn]
-pub fn hello_init() -> i32 {
-    let mut writer = Writer;
-    core::fmt::write(&mut writer, format_args!("Hello, Kernel Module!\n")).unwrap();
-    0
-}
 
 unsafe extern "C" {
     fn write_char(c: u8);
@@ -25,8 +20,17 @@ impl core::fmt::Write for Writer {
     }
 }
 
+#[init_fn]
+pub fn hello_init() -> i32 {
+    let mut writer = Writer;
+    core::fmt::write(&mut writer, format_args!("Hello, Kernel Module!\n")).unwrap();
+    let v = vec![1, 2, 3, 4, 5];
+    core::fmt::write(&mut writer, format_args!("Vector contents: {:?}\n", v)).unwrap();
+    0
+}
+
 #[exit_fn]
-pub fn hello_exit() {
+fn hello_exit() {
     let mut writer = Writer;
     core::fmt::write(&mut writer, format_args!("Goodbye, Kernel Module!\n")).unwrap();
 }

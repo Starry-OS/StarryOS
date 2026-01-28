@@ -1,5 +1,4 @@
 [profile.release]
-lto = "fat"
 strip = true
 opt-level = 3
 panic = "abort"

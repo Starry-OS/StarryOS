@@ -1,12 +1,17 @@
 [package]
-name = "hello"
-version = "0.1.0"
-edition = "2024"
+name = "kebpf"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
 
 [dependencies]
 axfeat.workspace = true
 starry-api.workspace = true
+axlog.workspace = true
 kmod.workspace = true
+
 
 [features]
 default = []
