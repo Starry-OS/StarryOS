@@ -126,6 +126,6 @@ pub fn sys_seccomp(_op: u32, _flags: u32, _args: *const ()) -> AxResult<isize> {
 
 #[cfg(target_arch = "riscv64")]
 pub fn sys_riscv_flush_icache() -> AxResult<isize> {
-    riscv::asm::fence_i();
+    axhal::asm::flush_icache();
     Ok(0)
 }

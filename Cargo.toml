@@ -109,7 +109,8 @@ smp = ["axfeat/smp", "axplat-riscv64-visionfive2?/smp"]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc"]
 
-sg2002 = ["dep:axplat-riscv64-sg2002", "axfeat/driver-sdmmc"]
+#sg2002 = ["dep:axplat-riscv64-sg2002", "starry-api/sg2002", "axfeat/plat-sg2002"]
+sg2002 = ["dep:axplat-riscv64-sg2002",  "axfeat/plat-sg2002"]
 
 [dependencies]
 axdriver.workspace = true
@@ -147,3 +148,21 @@ optional = true
 [package.metadata.vendor-filter]
 platforms = ["riscv64gc-unknown-none-elf", "loongarch64-unknown-none-softfloat"]
 all-features = true
+
+[patch."https://github.com/arceos-org/axdriver_crates.git"]
+axdriver_base = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
+axdriver_block = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
+axdriver_display = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
+axdriver_input = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
+axdriver_net = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
+axdriver_pci = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
+axdriver_virtio = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
+axdriver_vsock = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
+
+[patch."https://github.com/arceos-org/axcpu.git"]
+axcpu = { path = "/home/os/rust/crates/axcpu" }
+
+[patch."https://github.com/arceos-org/page_table_multiarch.git"]
+page_table_multiarch = { git = "https://github.com/arceos-org//page_table_multiarch.git", rev = "53a08f4e" }
+[patch.crates-io]
+page_table_entry = { git = "https://github.com/arceos-org/page_table_multiarch.git", rev = "53a08f4e" }
