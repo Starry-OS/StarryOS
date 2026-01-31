@@ -97,218 +97,191 @@ pub struct CloneArgs {
 }
 
 impl CloneArgs {
-    /// Create CloneArgs from clone() syscall parameters.
-    ///
-    /// Note: In clone(), the parent_tid parameter serves dual purpose:
-    /// - If CLONE_PIDFD: receives the pidfd
-    /// - If CLONE_PARENT_SETTID: receives the child TID
-    /// These two flags are mutually exclusive.
-    pub fn from_clone(
-        raw_flags: u32,
-        stack: usize,
-        parent_tid: usize,
-        child_tid: usize,
-        tls: usize,
-    ) -> AxResult<Self> {
-        const FLAG_MASK: u32 = 0xff;
-        let flags = CloneFlags::from_bits_truncate((raw_flags & !FLAG_MASK) as u64);
-        let exit_signal = (raw_flags & FLAG_MASK) as u64;
+    /// Validate common clone flags and parameters.
+    fn validate(&self) -> AxResult<()> {
+        let Self { flags, exit_signal, .. } = self;
 
-        if flags.contains(CloneFlags::PIDFD | CloneFlags::PARENT_SETTID) {
+        if *exit_signal > 0 && flags.contains(CloneFlags::THREAD | CloneFlags::PARENT) {
+            return Err(AxError::InvalidInput);
+        }
+        if flags.contains(CloneFlags::THREAD) && !flags.contains(CloneFlags::VM | CloneFlags::SIGHAND) {
+            return Err(AxError::InvalidInput);
+        }
+        if flags.contains(CloneFlags::SIGHAND) && !flags.contains(CloneFlags::VM) {
+            return Err(AxError::InvalidInput);
+        }
+        if flags.contains(CloneFlags::VFORK) && flags.contains(CloneFlags::THREAD) {
+            return Err(AxError::InvalidInput);
+        }
+        if *exit_signal >= 64 {
             return Err(AxError::InvalidInput);
         }
 
-        Ok(Self {
-            flags,
+        let namespace_flags = CloneFlags::NEWNS
+            | CloneFlags::NEWIPC
+            | CloneFlags::NEWNET
+            | CloneFlags::NEWPID
+            | CloneFlags::NEWUSER
+            | CloneFlags::NEWUTS
+            | CloneFlags::NEWCGROUP;
+
+        if flags.intersects(namespace_flags) {
+            warn!(
+                "sys_clone/sys_clone3: namespace flags detected, stub support only",
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Core implementation of clone/clone3/fork/vfork.
+    pub fn do_clone(self, uctx: &UserContext) -> AxResult<isize> {
+        self.validate()?;
+
+        let Self {
+            mut flags,
             exit_signal,
             stack,
             tls,
             parent_tid,
             child_tid,
-            pidfd: 0,
-        })
-    }
-}
+            pidfd,
+        } = self;
 
-fn validate_common(args: &CloneArgs) -> AxResult<()> {
-    let flags = args.flags;
-    let exit_signal = args.exit_signal;
-
-    if exit_signal > 0 && flags.contains(CloneFlags::THREAD | CloneFlags::PARENT) {
-        return Err(AxError::InvalidInput);
-    }
-    if flags.contains(CloneFlags::THREAD) && !flags.contains(CloneFlags::VM | CloneFlags::SIGHAND) {
-        return Err(AxError::InvalidInput);
-    }
-    if flags.contains(CloneFlags::SIGHAND) && !flags.contains(CloneFlags::VM) {
-        return Err(AxError::InvalidInput);
-    }
-    if flags.contains(CloneFlags::VFORK) && flags.contains(CloneFlags::THREAD) {
-        return Err(AxError::InvalidInput);
-    }
-    if exit_signal >= 64 {
-        return Err(AxError::InvalidInput);
-    }
-
-    let namespace_flags = CloneFlags::NEWNS
-        | CloneFlags::NEWIPC
-        | CloneFlags::NEWNET
-        | CloneFlags::NEWPID
-        | CloneFlags::NEWUSER
-        | CloneFlags::NEWUTS
-        | CloneFlags::NEWCGROUP;
-
-    if flags.intersects(namespace_flags) {
-        warn!(
-            "sys_clone/sys_clone3: namespace flags detected ({:?}), stub support only",
-            flags & namespace_flags
-        );
-    }
-
-    Ok(())
-}
-
-/// Core implementation of clone/clone3/fork/vfork.
-pub fn do_clone(uctx: &UserContext, args: CloneArgs) -> AxResult<isize> {
-    validate_common(&args)?;
-
-    let mut flags = args.flags;
-    let exit_signal = args.exit_signal;
-
-    if flags.contains(CloneFlags::VFORK) {
-        debug!("do_clone: CLONE_VFORK slow path");
-        flags.remove(CloneFlags::VM);
-    }
-
-    debug!(
-        "do_clone <= flags: {:?}, exit_signal: {}, stack: {:#x}, tls: {:#x}",
-        flags, exit_signal, args.stack, args.tls
-    );
-
-    let exit_signal = if exit_signal > 0 {
-        Signo::from_repr(exit_signal as u8)
-    } else {
-        None
-    };
-
-    let mut new_uctx = *uctx;
-    if args.stack != 0 {
-        new_uctx.set_sp(args.stack);
-    }
-    if flags.contains(CloneFlags::SETTLS) {
-        new_uctx.set_tls(args.tls);
-    }
-    new_uctx.set_retval(0);
-
-    let set_child_tid = if flags.contains(CloneFlags::CHILD_SETTID) {
-        args.child_tid
-    } else {
-        0
-    };
-
-    let curr = current();
-    let old_proc_data = &curr.as_thread().proc_data;
-
-    let mut new_task = new_user_task(&curr.name(), new_uctx, set_child_tid);
-
-    let tid = new_task.id().as_u64() as Pid;
-    if flags.contains(CloneFlags::PARENT_SETTID) && args.parent_tid != 0 {
-        (args.parent_tid as *mut Pid).vm_write(tid)?;
-    }
-
-    let new_proc_data = if flags.contains(CloneFlags::THREAD) {
-        new_task
-            .ctx_mut()
-            .set_page_table_root(old_proc_data.aspace.lock().page_table_root());
-        old_proc_data.clone()
-    } else {
-        let proc = if flags.contains(CloneFlags::PARENT) {
-            old_proc_data.proc.parent().ok_or(AxError::InvalidInput)?
-        } else {
-            old_proc_data.proc.clone()
+        if flags.contains(CloneFlags::VFORK) {
+            debug!("do_clone: CLONE_VFORK slow path");
+            flags.remove(CloneFlags::VM);
         }
-        .fork(tid);
 
-        let aspace = if flags.contains(CloneFlags::VM) {
-            old_proc_data.aspace.clone()
-        } else {
-            let mut aspace = old_proc_data.aspace.lock();
-            let aspace = aspace.try_clone()?;
-            copy_from_kernel(&mut aspace.lock())?;
-            aspace
-        };
-        new_task
-            .ctx_mut()
-            .set_page_table_root(aspace.lock().page_table_root());
-
-        let signal_actions = if flags.contains(CloneFlags::SIGHAND) {
-            old_proc_data.signal.actions.clone()
-        } else if flags.contains(CloneFlags::CLEAR_SIGHAND) {
-            Arc::new(SpinNoIrq::new(Default::default()))
-        } else {
-            Arc::new(SpinNoIrq::new(old_proc_data.signal.actions.lock().clone()))
-        };
-
-        let proc_data = ProcessData::new(
-            proc,
-            old_proc_data.exe_path.read().clone(),
-            old_proc_data.cmdline.read().clone(),
-            aspace,
-            signal_actions,
-            exit_signal,
+        debug!(
+            "do_clone <= flags: {:?}, exit_signal: {}, stack: {:#x}, tls: {:#x}",
+            flags, exit_signal, stack, tls
         );
-        proc_data.set_umask(old_proc_data.umask());
-        proc_data.set_heap_top(old_proc_data.get_heap_top());
 
-        {
-            let mut scope = proc_data.scope.write();
-            if flags.contains(CloneFlags::FILES) {
-                FD_TABLE.scope_mut(&mut scope).clone_from(&FD_TABLE);
+        let exit_signal = if exit_signal > 0 {
+            Signo::from_repr(exit_signal as u8)
+        } else {
+            None
+        };
+
+        let mut new_uctx = *uctx;
+        if stack != 0 {
+            new_uctx.set_sp(stack);
+        }
+        if flags.contains(CloneFlags::SETTLS) {
+            new_uctx.set_tls(tls);
+        }
+        new_uctx.set_retval(0);
+
+        let set_child_tid = if flags.contains(CloneFlags::CHILD_SETTID) {
+            child_tid
+        } else {
+            0
+        };
+
+        let curr = current();
+        let old_proc_data = &curr.as_thread().proc_data;
+
+        let mut new_task = new_user_task(&curr.name(), new_uctx, set_child_tid);
+
+        let tid = new_task.id().as_u64() as Pid;
+        if flags.contains(CloneFlags::PARENT_SETTID) && parent_tid != 0 {
+            (parent_tid as *mut Pid).vm_write(tid).ok();
+        }
+
+        let new_proc_data = if flags.contains(CloneFlags::THREAD) {
+            new_task
+                .ctx_mut()
+                .set_page_table_root(old_proc_data.aspace.lock().page_table_root());
+            old_proc_data.clone()
+        } else {
+            let proc = if flags.contains(CloneFlags::PARENT) {
+                old_proc_data.proc.parent().ok_or(AxError::InvalidInput)?
             } else {
-                FD_TABLE
-                    .scope_mut(&mut scope)
-                    .write()
-                    .clone_from(&FD_TABLE.read());
+                old_proc_data.proc.clone()
+            }
+            .fork(tid);
+
+            let aspace = if flags.contains(CloneFlags::VM) {
+                old_proc_data.aspace.clone()
+            } else {
+                let mut aspace = old_proc_data.aspace.lock();
+                let aspace = aspace.try_clone()?;
+                copy_from_kernel(&mut aspace.lock())?;
+                aspace
+            };
+            new_task
+                .ctx_mut()
+                .set_page_table_root(aspace.lock().page_table_root());
+
+            let signal_actions = if flags.contains(CloneFlags::SIGHAND) {
+                old_proc_data.signal.actions.clone()
+            } else if flags.contains(CloneFlags::CLEAR_SIGHAND) {
+                Arc::new(SpinNoIrq::new(Default::default()))
+            } else {
+                Arc::new(SpinNoIrq::new(old_proc_data.signal.actions.lock().clone()))
+            };
+
+            let proc_data = ProcessData::new(
+                proc,
+                old_proc_data.exe_path.read().clone(),
+                old_proc_data.cmdline.read().clone(),
+                aspace,
+                signal_actions,
+                exit_signal,
+            );
+            proc_data.set_umask(old_proc_data.umask());
+            proc_data.set_heap_top(old_proc_data.get_heap_top());
+
+            {
+                let mut scope = proc_data.scope.write();
+                if flags.contains(CloneFlags::FILES) {
+                    FD_TABLE.scope_mut(&mut scope).clone_from(&FD_TABLE);
+                } else {
+                    FD_TABLE
+                        .scope_mut(&mut scope)
+                        .write()
+                        .clone_from(&FD_TABLE.read());
+                }
+
+                if flags.contains(CloneFlags::FS) {
+                    FS_CONTEXT.scope_mut(&mut scope).clone_from(&FS_CONTEXT);
+                } else {
+                    FS_CONTEXT
+                        .scope_mut(&mut scope)
+                        .lock()
+                        .clone_from(&FS_CONTEXT.lock());
+                }
             }
 
-            if flags.contains(CloneFlags::FS) {
-                FS_CONTEXT.scope_mut(&mut scope).clone_from(&FS_CONTEXT);
-            } else {
-                FS_CONTEXT
-                    .scope_mut(&mut scope)
-                    .lock()
-                    .clone_from(&FS_CONTEXT.lock());
+            proc_data
+        };
+
+        new_proc_data.proc.add_thread(tid);
+
+        if flags.contains(CloneFlags::PIDFD) {
+            let pidfd_obj = PidFd::new(&new_proc_data);
+            let fd = pidfd_obj.add_to_fd_table(true)?;
+            
+            // In clone3, pidfd field is used; in sys_clone, parent_tid is reused
+            if pidfd != 0 {
+                (pidfd as *mut i32).vm_write(fd)?;
+            } else if parent_tid != 0 {
+                (parent_tid as *mut i32).vm_write(fd)?;
             }
         }
 
-        proc_data
-    };
-
-    new_proc_data.proc.add_thread(tid);
-
-    if flags.contains(CloneFlags::PIDFD) {
-        let pidfd = PidFd::new(&new_proc_data);
-        let fd = pidfd.add_to_fd_table(true)?;
-        let target = if args.pidfd != 0 {
-            args.pidfd
-        } else {
-            args.parent_tid
-        };
-        if target != 0 {
-            (target as *mut i32).vm_write(fd)?;
+        let thr = Thread::new(tid, new_proc_data);
+        if flags.contains(CloneFlags::CHILD_CLEARTID) && child_tid != 0 {
+            thr.set_clear_child_tid(child_tid);
         }
+        *new_task.task_ext_mut() = Some(unsafe { AxTaskExt::from_impl(thr) });
+
+        let task = spawn_task(new_task);
+        add_task_to_table(&task);
+
+        Ok(tid as _)
     }
-
-    let thr = Thread::new(tid, new_proc_data);
-    if flags.contains(CloneFlags::CHILD_CLEARTID) && args.child_tid != 0 {
-        thr.set_clear_child_tid(args.child_tid);
-    }
-    *new_task.task_ext_mut() = Some(unsafe { AxTaskExt::from_impl(thr) });
-
-    let task = spawn_task(new_task);
-    add_task_to_table(&task);
-
-    Ok(tid as _)
 }
 
 pub fn sys_clone(
@@ -320,8 +293,25 @@ pub fn sys_clone(
     tls: usize,
     #[cfg(not(any(target_arch = "x86_64", target_arch = "loongarch64")))] child_tid: usize,
 ) -> AxResult<isize> {
-    let args = CloneArgs::from_clone(flags, stack, parent_tid, child_tid, tls)?;
-    do_clone(uctx, args)
+    const FLAG_MASK: u32 = 0xff;
+    let clone_flags = CloneFlags::from_bits_truncate((flags & !FLAG_MASK) as u64);
+    let exit_signal = (flags & FLAG_MASK) as u64;
+
+    if clone_flags.contains(CloneFlags::PIDFD | CloneFlags::PARENT_SETTID) {
+        return Err(AxError::InvalidInput);
+    }
+
+    let args = CloneArgs {
+        flags: clone_flags,
+        exit_signal,
+        stack,
+        tls,
+        parent_tid,
+        child_tid,
+        pidfd: 0,
+    };
+
+    args.do_clone(uctx)
 }
 
 #[cfg(target_arch = "x86_64")]
