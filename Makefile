@@ -17,6 +17,14 @@ export NO_AXSTD := y
 export AX_LIB := axfeat
 export APP_FEATURES := qemu
 
+ifeq ($(ARCH), x86_64)
+  KMOD_RUSTFLAGS :=  -C code-model=small
+else ifeq ($(ARCH), loongarch64)
+  KMOD_RUSTFLAGS :=  -C code-model=large
+endif
+
+export KMOD_RUSTFLAGS
+
 # Disk Path
 export DISK_PATH := $(abspath ./disk)
 
@@ -42,18 +50,22 @@ img: build
 	@-sudo mount arceos/disk_$(ARCH).img ./disk
 	@sudo cp kallsyms ./disk/root/kallsyms
 
-	@make -f kmod.mk all
+	@make kmod
 	@-sudo mkdir -p ./disk/root/modules
 	@sudo cp ./*.ko ./disk/root/modules/
 	@make -f kmod.mk copy_modules
 
 	@-sudo mkdir -p $(DISK_PATH)/musl
-	@make -C user/musl all
+# 	@make -C user/musl all
+
 	@sudo umount ./disk
 	@rmdir ./disk
 	@rm -f arceos/disk.img
 	@ln -s $(abspath arceos/disk_$(ARCH).img) arceos/disk.img
 	@rm kallsyms
+
+kmod:
+	@make -f kmod.mk all
 
 defconfig justrun clean:
 	@make -C arceos $@

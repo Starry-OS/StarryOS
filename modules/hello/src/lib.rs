@@ -1,5 +1,6 @@
 #![no_std]
 extern crate alloc;
+extern crate starry_api;
 
 use alloc::vec;
 

@@ -5,7 +5,6 @@ use core::{
 };
 
 use axconfig::plat::CPU_NUM;
-use axerrno::{AxError, AxResult};
 use axhal::{
     paging::{MappingFlags, PageSize},
     percpu::this_cpu_id,
@@ -25,21 +24,6 @@ use crate::{
     mm::{VmBytes, VmBytesMut, vm_load_string},
     perf::perf_event_output,
 };
-
-pub fn bpferror_to_axresult(err: BpfError) -> AxResult<isize> {
-    Err(bpferror_to_axerr(err))
-}
-
-pub fn bpferror_to_axerr(err: BpfError) -> AxError {
-    match err {
-        BpfError::InvalidArgument => AxError::InvalidInput,
-        BpfError::NotFound => AxError::NotFound,
-        BpfError::NotSupported => AxError::OperationNotSupported,
-        BpfError::NoSpace => AxError::NoMemory,
-        BpfError::TooBig => AxError::Other(axerrno::LinuxError::E2BIG),
-        BpfError::TryAgain => AxError::Other(axerrno::LinuxError::EAGAIN),
-    }
-}
 
 #[derive(Debug)]
 pub struct PerCpuImpl;
@@ -98,6 +82,8 @@ impl<T: Send + Sync + Clone> PerCpuVariants<T> for PerCpuVariantsImpl<T> {
 
 #[derive(Debug)]
 pub struct EbpfKernelAuxiliary;
+
+#[allow(dead_code)]
 impl KernelAuxiliaryOps for EbpfKernelAuxiliary {
     fn get_unified_map_from_ptr<F, R>(ptr: *const u8, func: F) -> kbpf_basic::Result<R>
     where

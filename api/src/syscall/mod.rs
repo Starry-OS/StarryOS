@@ -1,4 +1,3 @@
-mod bpf;
 mod fs;
 mod io_mpx;
 mod ipc;
@@ -13,14 +12,17 @@ mod sys;
 mod task;
 mod time;
 
+use alloc::collections::btree_map::BTreeMap;
+
 use axerrno::{AxError, LinuxError};
 use axhal::uspace::UserContext;
 pub use mm::{MmapFlags, MmapProt};
+use spin::RwLock;
 use syscalls::Sysno;
 
 use self::{
-    bpf::*, fs::*, io_mpx::*, ipc::*, kmod::*, mm::*, net::*, perf::*, resources::*, signal::*,
-    sync::*, sys::*, task::*, time::*,
+    fs::*, io_mpx::*, ipc::*, kmod::*, mm::*, net::*, perf::*, resources::*, signal::*, sync::*,
+    sys::*, task::*, time::*,
 };
 
 #[inline(never)]
@@ -593,7 +595,7 @@ pub fn handle_syscall(uctx: &mut UserContext) {
             uctx.arg3().into(),
             uctx.arg4() as _,
         ),
-        Sysno::bpf => sys_bpf(uctx.arg0() as _, uctx.arg1() as _, uctx.arg2() as _),
+        // Sysno::bpf => sys_bpf(uctx.arg0() as _, uctx.arg1() as _, uctx.arg2() as _),
         Sysno::perf_event_open => sys_perf_event_open(
             uctx.arg0() as _,
             uctx.arg1() as _,
@@ -621,11 +623,34 @@ pub fn handle_syscall(uctx: &mut UserContext) {
         Sysno::timer_create | Sysno::timer_gettime | Sysno::timer_settime => Ok(0),
 
         _ => {
-            warn!("Unimplemented syscall: {sysno}");
-            Err(AxError::Unsupported)
+            if let Some(handler) = SYSCALL_HANDLER.read().get(&sysno) {
+                handler.handle(uctx)
+            } else {
+                warn!("Unimplemented syscall: {sysno}");
+                Err(AxError::Unsupported)
+            }
         }
     };
     debug!("Syscall {sysno} return {result:?}");
 
     uctx.set_retval(result.unwrap_or_else(|err| -LinuxError::from(err).code() as _) as _);
+}
+
+pub trait SyscallHandler: Sync {
+    fn handle(&self, uctx: &mut UserContext) -> Result<isize, AxError>;
+}
+
+static SYSCALL_HANDLER: RwLock<BTreeMap<Sysno, &'static dyn SyscallHandler>> =
+    RwLock::new(BTreeMap::new());
+
+pub fn register_syscall_handler(
+    sysno: Sysno,
+    handler: &'static dyn SyscallHandler,
+) -> Result<(), AxError> {
+    let mut handlers = SYSCALL_HANDLER.write();
+    if handlers.contains_key(&sysno) {
+        return Err(AxError::AlreadyExists);
+    }
+    handlers.insert(sysno, handler);
+    Ok(())
 }

@@ -140,6 +140,7 @@ unsafe extern "C" fn __add_disk(
     0
 }
 
+#[allow(dead_code)]
 struct GenDiskRef(&'static mut gendisk);
 
 unsafe impl Send for GenDiskRef {}

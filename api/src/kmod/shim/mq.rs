@@ -345,9 +345,9 @@ unsafe fn blk_mq_init_tags(
     tags_ptr
 }
 
-fn bt_alloc() {
-    axlog::warn!("[bt_alloc] is not implemented");
-}
+// unsafe fn bt_alloc() {
+//     axlog::warn!("[bt_alloc] is not implemented");
+// }
 
 unsafe fn blk_mq_update_queue_map(set: &mut blk_mq_tag_set) {
     // blk_mq_map_queues() and multiple .map_queues() implementations
@@ -654,7 +654,6 @@ fn blk_validate_limits(lim: &mut queue_limits) -> c_int {
     // The block layer relies on the fact that every driver can
     // handle at lest a page worth of data per I/O, and needs the value
     // aligned to the logical block size.
-    
 
     if lim.max_hw_sectors == 0 {
         lim.max_hw_sectors = BLK_SAFE_MAX_SECTORS; // BLK_SAFE_MAX_SECTORS

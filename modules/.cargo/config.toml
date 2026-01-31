@@ -1,4 +1,0 @@
-[profile.release]
-strip = true
-opt-level = 3
-panic = "abort"

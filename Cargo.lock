@@ -1538,7 +1538,7 @@ dependencies = [
 [[package]]
 name = "kapi"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kmod#6a291bd0b7525b8cd79b790639c727408d9d0434"
+source = "git+https://github.com/Starry-OS/rkm#cbd1b0335f119609df5f02c50f1bc7773c3785aa"
 dependencies = [
  "axerrno 0.2.2",
  "kmod",
@@ -1548,7 +1548,7 @@ dependencies = [
 [[package]]
 name = "kbindings"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kmod#6a291bd0b7525b8cd79b790639c727408d9d0434"
+source = "git+https://github.com/Starry-OS/rkm#cbd1b0335f119609df5f02c50f1bc7773c3785aa"
 
 [[package]]
 name = "kbpf-basic"
@@ -1567,10 +1567,15 @@ dependencies = [
 name = "kebpf"
 version = "0.1.0"
 dependencies = [
+ "axcpu",
+ "axerrno 0.1.0",
  "axfeat",
+ "axio",
  "axlog",
+ "kbpf-basic",
  "kmod",
  "starry-api",
+ "syscalls",
 ]
 
 [[package]]
@@ -1596,7 +1601,7 @@ dependencies = [
 [[package]]
 name = "kmacro"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kmod#6a291bd0b7525b8cd79b790639c727408d9d0434"
+source = "git+https://github.com/Starry-OS/rkm#cbd1b0335f119609df5f02c50f1bc7773c3785aa"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1606,7 +1611,7 @@ dependencies = [
 [[package]]
 name = "kmod"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kmod#6a291bd0b7525b8cd79b790639c727408d9d0434"
+source = "git+https://github.com/Starry-OS/rkm#cbd1b0335f119609df5f02c50f1bc7773c3785aa"
 dependencies = [
  "kbindings",
  "kmacro",
@@ -1615,7 +1620,7 @@ dependencies = [
 [[package]]
 name = "kmod-loader"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kmod#6a291bd0b7525b8cd79b790639c727408d9d0434"
+source = "git+https://github.com/Starry-OS/rkm#cbd1b0335f119609df5f02c50f1bc7773c3785aa"
 dependencies = [
  "axerrno 0.2.2",
  "bitfield-struct 0.12.1",

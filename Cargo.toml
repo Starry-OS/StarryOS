@@ -85,13 +85,14 @@ starry-core = { path = "./core" }
 starry-api = { path = "./api" }
 lock_api = { version = "0.4", default-features = false }
 kernel_guard = "0.1"
+syscalls = { git = "https://github.com/jasonwhite/syscalls.git", rev = "92624de", default-features = false }
 
-# kmod-loader = { path = "../ax-project/kmod/kmod-loader" }
-# kmod = { path = "../ax-project/kmod/kmod", default-features = false }
-# kapi = { path = "../ax-project/kmod/kapi" }
-kmod-loader = { git = "https://github.com/Starry-OS/kmod" }
-kapi = { git = "https://github.com/Starry-OS/kmod" }
-kmod = { git = "https://github.com/Starry-OS/kmod" }
+# kmod-loader = { path = "../ax-project/rkm/kmod-loader" }
+# kmod = { path = "../ax-project/rkm/kmod", default-features = false }
+# kapi = { path = "../ax-project/rkm/kapi" }
+kmod-loader = { git = "https://github.com/Starry-OS/rkm" }
+kapi = { git = "https://github.com/Starry-OS/rkm" }
+kmod = { git = "https://github.com/Starry-OS/rkm" }
 
 [package]
 name = "starry"

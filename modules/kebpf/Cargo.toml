@@ -10,7 +10,13 @@ repository.workspace = true
 axfeat.workspace = true
 starry-api.workspace = true
 axlog.workspace = true
+axerrno.workspace = true
+axio.workspace = true
+syscalls.workspace = true
+axcpu.workspace = true
+
 kmod.workspace = true
+kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "ab3b368" }
 
 
 [features]

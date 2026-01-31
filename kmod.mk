@@ -19,20 +19,11 @@
 
 
 # Build Options
-KMOD_RUSTFLAGS := -C relocation-model=static
-
 SELF_FILE := kmod.mk
-
-ifeq ($(ARCH), x86_64)
-  KMOD_RUSTFLAGS +=  -C code-model=large
-else ifeq ($(ARCH), loongarch64)
-  KMOD_RUSTFLAGS +=  -C code-model=large
-endif
 
 MODULE_PATHS ?= modules
 KMOD_LINKER_SCRIPT ?= ${PWD}/kmod-linker.ld
 
-export KMOD_RUSTFLAGS
 export KMOD_LINKER_SCRIPT
 
 

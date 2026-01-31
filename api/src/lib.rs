@@ -9,6 +9,9 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 #![allow(clippy::non_upper_case_globals)]
 #![allow(unsafe_op_in_unsafe_fn)]
+
+#![allow(dead_code)]
+
 #[macro_use]
 extern crate axlog;
 extern crate alloc;
@@ -67,8 +70,8 @@ pub fn init() {
         time::inc_irq_cnt();
     });
 
-    #[cfg(not(target_arch = "loongarch64"))]
-    test_unwind();
+    // #[cfg(not(target_arch = "loongarch64"))]
+    // test_unwind();
 
     kmod::init_kmod();
 
