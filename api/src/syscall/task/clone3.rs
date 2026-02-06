@@ -6,7 +6,7 @@ use super::clone::{CloneArgs, CloneFlags};
 
 /// Structure passed to clone3() system call.
 #[repr(C)]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, bytemuck::Zeroable, bytemuck::AnyBitPattern)]
 pub struct Clone3Args {
     pub flags: u64,
     pub pidfd: u64,
@@ -20,12 +20,6 @@ pub struct Clone3Args {
     pub set_tid_size: u64,
     pub cgroup: u64,
 }
-
-// SAFETY: Clone3Args is a POD type with all fields being u64, which are Zeroable
-unsafe impl bytemuck::Zeroable for Clone3Args {}
-
-// SAFETY: Clone3Args is a POD type with no invalid bit patterns
-unsafe impl bytemuck::AnyBitPattern for Clone3Args {}
 
 const MIN_CLONE_ARGS_SIZE: usize = core::mem::size_of::<u64>() * 8;
 
@@ -76,8 +70,7 @@ pub fn sys_clone3(uctx: &UserContext, args_ptr: usize, args_size: usize) -> AxRe
         debug!("sys_clone3: args_size {args_size} larger than expected, using known fields only");
     }
 
-    let args_ptr = args_ptr as *const Clone3Args;
-    let clone3_args = args_ptr.vm_read()?;
+    let clone3_args = (args_ptr as *const Clone3Args).vm_read()?;
 
     debug!("sys_clone3: args = {clone3_args:?}");
 
