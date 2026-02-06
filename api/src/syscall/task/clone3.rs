@@ -58,22 +58,22 @@ impl TryFrom<Clone3Args> for CloneArgs {
     }
 }
 
-pub fn sys_clone3(uctx: &UserContext, args_ptr: usize, args_size: usize) -> AxResult<isize> {
-    debug!("sys_clone3 <= args_ptr: {args_ptr:#x}, args_size: {args_size}");
+pub fn sys_clone3(uctx: &UserContext, args: *const Clone3Args, size: usize) -> AxResult<isize> {
+    debug!("sys_clone3 <= args: {args:p}, size: {size}");
 
-    if args_size < MIN_CLONE_ARGS_SIZE {
-        warn!("sys_clone3: args_size {args_size} too small, minimum is {MIN_CLONE_ARGS_SIZE}");
+    if size < MIN_CLONE_ARGS_SIZE {
+        warn!("sys_clone3: size {size} too small, minimum is {MIN_CLONE_ARGS_SIZE}");
         return Err(AxError::InvalidInput);
     }
 
-    if args_size > core::mem::size_of::<Clone3Args>() {
-        debug!("sys_clone3: args_size {args_size} larger than expected, using known fields only");
+    if size > core::mem::size_of::<Clone3Args>() {
+        debug!("sys_clone3: size {size} larger than expected, using known fields only");
     }
 
-    let clone3_args = (args_ptr as *const Clone3Args).vm_read()?;
+    let clone3_args = args.vm_read()?;
 
     debug!("sys_clone3: args = {clone3_args:?}");
 
-    let args = CloneArgs::try_from(clone3_args)?;
-    args.do_clone(uctx)
+    let clone_args = CloneArgs::try_from(clone3_args)?;
+    clone_args.do_clone(uctx)
 }
