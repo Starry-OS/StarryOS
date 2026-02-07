@@ -6,3 +6,4 @@
 Cargo.lock
 *.elf
 *.bin
+*.img

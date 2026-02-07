@@ -12,15 +12,28 @@
 [package]
 edition = "2024"
 name = "starryos"
-version = "0.1.0"
+version = "0.2.0"
 authors = [
     "Azure-stars <Azure_stars@126.com>",
     "Yuekai Jia <equation618@gmail.com>",
     "KylinSoft Co., Ltd. <https://www.kylinos.cn/>",
     "朝倉水希 <asakuramizu111@gmail.com>",
     "Mivik <mivikq@gmail.com>",
+    "Yu Chen <yuchen@tsinghua.edu.cn>",
 ]
-build = false
+build = "build.rs"
+include = [
+    "src/**",
+    "build.rs",
+    "configs/**",
+    "xtask/src/**",
+    ".cargo/config.toml",
+    "scripts/make/dwarf.sh",
+    "rust-toolchain.toml",
+    "README.md",
+    "LICENSE*",
+    "NOTICE",
+]
 autolib = false
 autobins = false
 autoexamples = false
@@ -43,6 +56,20 @@ all-features = true
 [features]
 default = []
 qemu = [
+    "dep:axdriver",
+    "dep:axerrno",
+    "dep:axfs",
+    "dep:axhal",
+    "dep:axlog",
+    "dep:axruntime",
+    "dep:axsync",
+    "dep:axtask",
+    "dep:cfg-if",
+    "dep:linkme",
+    "dep:linux-raw-sys",
+    "dep:starry-core",
+    "dep:starry-process",
+    "dep:starry-signal",
     "axfeat/display",
     "axfeat/input",
     "starry-api/input",
@@ -52,20 +79,29 @@ qemu = [
     "starry-api/dev-log",
 ]
 smp = ["axfeat/smp"]
+xtask = ["dep:clap"]
 
 [[bin]]
 name = "starryos"
 path = "src/main.rs"
 required-features = ["qemu"]
 
+[[bin]]
+name = "xtask"
+path = "xtask/src/main.rs"
+required-features = ["xtask"]
+
 [dependencies.axdriver]
 version = "0.2.2-preview.1"
+optional = true
 
 [dependencies.axerrno]
 version = "0.2"
+optional = true
 
 [dependencies.axfeat]
 version = "0.2.2-preview.1"
+optional = true
 features = [
     "alloc-slab",
     "fp-simd",
@@ -82,30 +118,39 @@ features = [
 
 [dependencies.axfs]
 version = "0.2.2-preview.1"
+optional = true
 
 [dependencies.axhal]
 version = "0.2.2-preview.5"
+optional = true
 
 [dependencies.axlog]
 version = "0.2.2-preview.1"
+optional = true
 
 [dependencies.axruntime]
 version = "0.2.2-preview.2"
+optional = true
 
 [dependencies.axsync]
 version = "0.2.2-preview.1"
+optional = true
 
 [dependencies.axtask]
 version = "0.2.2-preview.3"
+optional = true
 
 [dependencies.cfg-if]
 version = "1.0"
+optional = true
 
 [dependencies.linkme]
 version = "0.3.33"
+optional = true
 
 [dependencies.linux-raw-sys]
 version = "0.11"
+optional = true
 features = [
     "no_std",
     "general",
@@ -117,12 +162,21 @@ default-features = false
 
 [dependencies.starry-api]
 version = "0.1.0"
+optional = true
 
 [dependencies.starry-core]
 version = "0.1.0"
+optional = true
 
 [dependencies.starry-process]
 version = "0.2"
+optional = true
 
 [dependencies.starry-signal]
 version = "0.2.4-preview.1"
+optional = true
+
+[dependencies.clap]
+version = "4"
+features = ["derive"]
+optional = true
