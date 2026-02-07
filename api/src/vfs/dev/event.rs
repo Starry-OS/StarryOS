@@ -1,4 +1,4 @@
-use alloc::{format, sync::Arc};
+use alloc::{format, sync::Arc, vec};
 use core::{any::Any, task::Context, time::Duration};
 
 #[allow(unused_imports)]
@@ -16,9 +16,9 @@ use linux_raw_sys::{
     ioctl::{EVIOCGID, EVIOCGRAB, EVIOCGVERSION},
 };
 use starry_core::vfs::{Device, DeviceOps, DirMapping, SimpleFs};
+use starry_vm::{VmMutPtr, vm_write_slice};
 use zerocopy::{FromBytes, Immutable, IntoBytes};
 
-use crate::mm::UserPtr;
 const KEY_CNT: usize = EventType::Key.bits_count();
 
 struct Inner {
@@ -93,12 +93,14 @@ impl EventDev {
     }
 
     fn get_event_bits(&self, arg: usize, size: usize, ty: u8) -> AxResult<usize> {
-        let bits = UserPtr::<u8>::from(arg).get_as_mut_slice(size)?;
+        let mut bits = vec![0u8; size];
         if ty == 0 {
-            Ok(copy_bytes(self.ev_bits.as_bytes(), bits))
+            let written = copy_bytes(self.ev_bits.as_bytes(), &mut bits);
+            vm_write_slice(arg as *mut u8, &bits[..written])?;
+            Ok(written)
         } else {
             let ty = EventType::from_repr(ty).ok_or(AxError::InvalidInput)?;
-            match self.inner.lock().device.get_event_bits(ty, bits) {
+            match self.inner.lock().device.get_event_bits(ty, &mut bits) {
                 Ok(true) => {}
                 Ok(false) => {
                     debug!("No events for {ty:?}");
@@ -107,7 +109,9 @@ impl EventDev {
                     warn!("Failed to get event bits: {err:?}");
                 }
             }
-            Ok(bits.len().min(ty.bits_count().div_ceil(8)))
+            let written = bits.len().min(ty.bits_count().div_ceil(8));
+            vm_write_slice(arg as *mut u8, &bits[..written])?;
+            Ok(written)
         }
     }
 }
@@ -119,13 +123,14 @@ fn copy_bytes(src: &[u8], dst: &mut [u8]) -> usize {
 }
 
 fn return_str(arg: usize, size: usize, s: &str) -> AxResult<usize> {
-    let slice = UserPtr::<u8>::from(arg).get_as_mut_slice(size)?;
-    Ok(copy_bytes(s.as_bytes(), slice))
+    let len = s.len().min(size);
+    vm_write_slice(arg as *mut u8, &s.as_bytes()[..len])?;
+    Ok(len)
 }
 fn return_zero_bits(arg: usize, size: usize, bits: usize) -> AxResult<usize> {
-    let slice = UserPtr::<u8>::from(arg).get_as_mut_slice(size)?;
-    let len = bits.div_ceil(8).min(slice.len());
-    slice[..len].fill(0);
+    let len = bits.div_ceil(8).min(size);
+    let slice = vec![0u8; len];
+    vm_write_slice(arg as *mut u8, &slice)?;
     Ok(len)
 }
 
@@ -206,12 +211,11 @@ impl DeviceOps for EventDev {
     fn ioctl(&self, cmd: u32, arg: usize) -> VfsResult<usize> {
         match cmd {
             EVIOCGVERSION => {
-                *UserPtr::<u32>::from(arg).get_as_mut()? = 0x10001;
+                (arg as *mut u32).vm_write(0x10001)?;
                 Ok(0)
             }
             EVIOCGID => {
-                *UserPtr::<InputDeviceId>::from(arg).get_as_mut()? =
-                    self.inner.lock().device.device_id();
+                (arg as *mut InputDeviceId).vm_write(self.inner.lock().device.device_id())?;
                 Ok(0)
             }
             EVIOCGRAB => Ok(0),
@@ -266,11 +270,11 @@ impl DeviceOps for EventDev {
                             }
                             // EVIOCGKEY
                             0x18 => {
-                                let bits = UserPtr::<u8>::from(arg).get_as_mut_slice(size)?;
-                                return Ok(copy_bytes(
-                                    self.inner.lock().key_state.as_bytes(),
-                                    bits,
-                                ));
+                                let mut bits = vec![0u8; size];
+                                let n =
+                                    copy_bytes(self.inner.lock().key_state.as_bytes(), &mut bits);
+                                vm_write_slice(arg as *mut u8, &bits[..n])?;
+                                return Ok(n);
                             }
                             // EVIOCGLED
                             0x19 => {
