@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members = ["api", "core"]
-exclude = ["arceos"]
 
 [workspace.package]
 version = "0.1.0"
@@ -19,7 +18,8 @@ homepage = "https://github.com/arceos-org/arceos"
 repository = "https://github.com/arceos-org/starry-next"
 
 [workspace.dependencies]
-axfeat = { path = "arceos/api/axfeat", features = [
+# ArceOS components from crates.io
+axfeat = { version = "0.2.2-preview.1", features = [
     "alloc-slab",
     "fp-simd",
     "fs-ext4",
@@ -33,20 +33,21 @@ axfeat = { path = "arceos/api/axfeat", features = [
     "uspace",
 ] }
 
-axalloc = { path = "arceos/modules/axalloc" }
-axconfig = { path = "arceos/modules/axconfig" }
-axdisplay = { path = "arceos/modules/axdisplay" }
-axdriver = { path = "arceos/modules/axdriver" }
-axfs = { path = "arceos/modules/axfs" }
-axhal = { path = "arceos/modules/axhal" }
-axinput = { path = "arceos/modules/axinput" }
-axlog = { path = "arceos/modules/axlog" }
-axmm = { path = "arceos/modules/axmm" }
-axnet = { path = "arceos/modules/axnet" }
-axruntime = { path = "arceos/modules/axruntime" }
-axsync = { path = "arceos/modules/axsync" }
-axtask = { path = "arceos/modules/axtask" }
+axalloc = "0.2.2-preview.1"
+axconfig = "0.2.2-preview.1"
+axdisplay = "0.2.2-preview.1"
+axdriver = "0.2.2-preview.1"
+axfs = "0.2.2-preview.1"
+axhal = "0.2.2-preview.4"
+axinput = "0.2.2-preview.1"
+axlog = "0.2.2-preview.1"
+axmm = "0.2.2-preview.1"
+axnet = "0.2.2-preview.1"
+axruntime = "0.2.2-preview.2"
+axsync = "0.2.2-preview.1"
+axtask = "0.2.2-preview.3"
 
+# Third-party crates
 axbacktrace = "0.1"
 axerrno = "0.2"
 axfs-ng-vfs = "0.1"
@@ -95,9 +96,6 @@ qemu = [
     "axfeat/input",
     "starry-api/input",
 
-    "axfeat/vsock",
-    "starry-api/vsock",
-
     "axfeat/defplat",
     "axfeat/bus-pci",
 
@@ -105,6 +103,10 @@ qemu = [
     "axfeat/fs-times",
     "starry-api/dev-log",
 ]
+# NOTE: vsock is temporarily disabled due to version mismatch between
+# axnet (0.2.2-preview.1) and axdriver_vsock (0.1.4-preview.3).
+# To re-enable, add "axfeat/vsock" and "starry-api/vsock" to the qemu feature
+# once compatible versions are published.
 smp = ["axfeat/smp", "axplat-riscv64-visionfive2?/smp"]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc"]
@@ -138,3 +140,9 @@ optional = true
 [package.metadata.vendor-filter]
 platforms = ["riscv64gc-unknown-none-elf", "loongarch64-unknown-none-softfloat"]
 all-features = true
+
+# Patch to unify axcpu version: axhal (crates.io) uses axcpu 0.3.0-preview.2
+# while starry-signal (git) uses axcpu 0.3.0 from git. We unify to the git
+# version (0.3.0 satisfies ^0.3.0-preview.2).
+[patch.crates-io]
+axcpu = { git = "https://github.com/arceos-org/axcpu.git", tag = "dev-v03" }
