@@ -12,13 +12,13 @@ use axhal::time::wall_time;
 use axtask::current;
 use linux_raw_sys::{
     general::*,
-    ioctl::{FIONBIO, TIOCGWINSZ},
+    ioctl::{FIOCLEX, FIONBIO, FIONCLEX, TCGETS, TIOCGWINSZ},
 };
 use starry_core::task::AsThread;
 use starry_vm::{VmPtr, vm_write_slice};
 
 use crate::{
-    file::{Directory, FileLike, get_file_like, resolve_at, with_fs},
+    file::{Directory, FileLike, get_file_like, resolve_at, set_cloexec, with_fs},
     mm::vm_load_string,
     time::TimeValueLike,
 };
@@ -26,28 +26,38 @@ use crate::{
 /// The ioctl() system call manipulates the underlying device parameters
 /// of special files.
 pub fn sys_ioctl(fd: i32, cmd: u32, arg: usize) -> AxResult<isize> {
-    debug!("sys_ioctl <= fd: {fd}, cmd: {cmd}, arg: {arg}");
-    let f = get_file_like(fd)?;
-    if cmd == FIONBIO {
-        let val = (arg as *const u8).vm_read()?;
-        if val != 0 && val != 1 {
-            return Err(AxError::InvalidInput);
-        }
-        f.set_nonblocking(val != 0)?;
-        return Ok(0);
-    }
-    f.ioctl(cmd, arg)
-        .map(|result| result as isize)
-        .inspect_err(|err| {
-            if *err == AxError::NotATty {
-                // glibc likes to call TIOCGWINSZ on non-terminal files, just
-                // ignore it
-                if cmd == TIOCGWINSZ {
-                    return;
-                }
-                warn!("Unsupported ioctl command: {cmd} for fd: {fd}");
+    debug!("sys_ioctl <= fd: {}, cmd: {}, arg: {}", fd, cmd, arg);
+    match cmd {
+        FIONBIO => {
+            let val = (arg as *const u8).vm_read()?;
+            if val > 1 {
+                return Err(AxError::InvalidInput);
             }
-        })
+            get_file_like(fd)?.set_nonblocking(val != 0)?;
+            Ok(0)
+        }
+        FIOCLEX => {
+            set_cloexec(fd, true)?;
+            Ok(0)
+        }
+        FIONCLEX => {
+            set_cloexec(fd, false)?;
+            Ok(0)
+        }
+        _ => get_file_like(fd)?
+            .ioctl(cmd, arg)
+            .map(|result| result as isize)
+            .inspect_err(|err| {
+                if *err == AxError::NotATty {
+                    // glibc likes to call TIOCGWINSZ and TCGETS on non-terminal files, just
+                    // ignore it
+                    if cmd == TIOCGWINSZ || cmd == TCGETS {
+                        return;
+                    }
+                    warn!("Unsupported ioctl command: {cmd} for fd: {fd}");
+                }
+            }),
+    }
 }
 
 pub fn sys_chdir(path: *const c_char) -> AxResult<isize> {
