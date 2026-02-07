@@ -133,7 +133,7 @@ GDB ?= gdb
 OUT_DIR ?= $(APP)
 LD_SCRIPT ?= $(TARGET_DIR)/$(TARGET)/$(MODE)/linker_$(PLAT_NAME).lds
 
-APP_NAME := $(shell basename $(APP))
+APP_NAME := $(shell sed -n '/^\[package\]/,/^\[/{s/^name = "\([^"]*\)"/\1/p;}' $(APP)/Cargo.toml)
 OUT_ELF := $(OUT_DIR)/$(APP_NAME)_$(PLAT_NAME).elf
 OUT_BIN := $(patsubst %.elf,%.bin,$(OUT_ELF))
 OUT_UIMG := $(patsubst %.elf,%.uimg,$(OUT_ELF))

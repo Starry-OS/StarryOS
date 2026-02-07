@@ -6,6 +6,7 @@ authors.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
+description = "System call API layer for Starry OS, providing Linux-compatible syscall implementations"
 
 [features]
 input = ["dep:axinput"]
@@ -40,7 +41,7 @@ chrono = { version = "0.4.41", default-features = false }
 downcast-rs = { version = "2.0", default-features = false, features = ["sync"] }
 event-listener.workspace = true
 flatten_objects = "0.2.4"
-gimli = { version = "*", default-features = false, optional = true }
+gimli = { version = "0.31", default-features = false, optional = true }
 hashbrown = { workspace = true }
 indoc = "2"
 inherit-methods-macro = "0.1.0"
@@ -61,7 +62,7 @@ spin.workspace = true
 starry-process.workspace = true
 starry-signal.workspace = true
 starry-vm.workspace = true
-syscalls = { git = "https://github.com/Starry-OS/syscalls.git", rev = "efac241", default-features = false }
+syscalls = { package = "starry-syscalls", version = "0.7.1-preview.1", default-features = false }
 zerocopy = { version = "0.8.26", features = ["derive"] }
 
 starry-core.workspace = true
