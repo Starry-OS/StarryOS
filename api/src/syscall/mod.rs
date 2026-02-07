@@ -304,7 +304,7 @@ pub fn handle_syscall(uctx: &mut UserContext) {
         Sysno::fstat => sys_fstat(uctx.arg0() as _, uctx.arg1() as _),
         #[cfg(target_arch = "x86_64")]
         Sysno::lstat => sys_lstat(uctx.arg0() as _, uctx.arg1() as _),
-        #[cfg(target_arch = "x86_64")]
+        #[cfg(any(target_arch = "x86_64", target_arch = "riscv64"))]
         Sysno::newfstatat => sys_fstatat(
             uctx.arg0() as _,
             uctx.arg1() as _,
