@@ -12,6 +12,7 @@ extern crate axlog;
 
 pub mod config;
 pub mod futex;
+mod lrucache;
 pub mod mm;
 pub mod resources;
 pub mod shm;

@@ -2268,7 +2268,6 @@ dependencies = [
  "starry-signal",
  "starry-vm",
  "strum",
- "uluru",
  "weak-map",
  "xmas-elf",
 ]
@@ -2464,15 +2463,6 @@ dependencies = [
  "bitflags 2.10.0",
  "rustversion",
  "x86",
-]
-
-[[package]]
-name = "uluru"
-version = "3.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c8a2469e56e6e5095c82ccd3afb98dad95f7af7929aab6d8ba8d6e0f73657da"
-dependencies = [
- "arrayvec",
 ]
 
 [[package]]
