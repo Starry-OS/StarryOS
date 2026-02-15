@@ -45,7 +45,6 @@ starry-process.workspace = true
 starry-signal.workspace = true
 starry-vm.workspace = true
 strum = { version = "0.27.2", default-features = false, features = ["derive"] }
-uluru = "3.1.0"
 weak-map = "0.1.1"
 xmas-elf = "0.9"
 
