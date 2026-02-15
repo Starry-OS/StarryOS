@@ -14,9 +14,9 @@ use starry_core::{
     shm::{SHM_MANAGER, ShmInner, ShmidDs},
     task::AsThread,
 };
+use starry_vm::{VmMutPtr, VmPtr};
 
 use super::{IPC_PRIVATE, IPC_RMID, IPC_SET, IPC_STAT, next_ipc_id};
-use crate::mm::{UserPtr, nullable};
 
 bitflags::bitflags! {
     /// flags for sys_shmat
@@ -150,7 +150,7 @@ pub fn sys_shmat(shmid: i32, addr: usize, shmflg: u32) -> AxResult<isize> {
     Ok(start_addr.as_usize() as isize)
 }
 
-pub fn sys_shmctl(shmid: i32, cmd: u32, buf: UserPtr<ShmidDs>) -> AxResult<isize> {
+pub fn sys_shmctl(shmid: i32, cmd: u32, buf: *mut ShmidDs) -> AxResult<isize> {
     let shm_inner = {
         let shm_manager = SHM_MANAGER.lock();
         shm_manager
@@ -161,10 +161,10 @@ pub fn sys_shmctl(shmid: i32, cmd: u32, buf: UserPtr<ShmidDs>) -> AxResult<isize
 
     let cmd = cmd as i32;
     if cmd == IPC_SET {
-        shm_inner.shmid_ds = *buf.get_as_mut()?;
+        shm_inner.shmid_ds = unsafe { buf.vm_read_uninit()?.assume_init() };
     } else if cmd == IPC_STAT {
-        if let Some(shmid_ds) = nullable!(buf.get_as_mut())? {
-            *shmid_ds = shm_inner.shmid_ds;
+        if let Some(ptr) = buf.nullable() {
+            ptr.vm_write(shm_inner.shmid_ds)?;
         }
     } else if cmd == IPC_RMID {
         shm_inner.rmid = true;
