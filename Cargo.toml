@@ -67,6 +67,7 @@ linux-raw-sys = { version = "0.12", default-features = false, features = [
     "net",
     "prctl",
     "system",
+    "netlink",
 ] }
 memory_addr = "0.4"
 scope-local = "0.1"
@@ -97,6 +98,9 @@ qemu = [
 
     "axfeat/vsock",
     "starry-api/vsock",
+
+    "axfeat/netlink",
+    "starry-api/netlink",
 
     "axfeat/defplat",
     "axfeat/bus-pci",

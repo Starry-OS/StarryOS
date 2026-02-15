@@ -28,7 +28,7 @@ pub fn sys_getpgid(pid: Pid) -> AxResult<isize> {
 pub fn sys_setpgid(pid: Pid, pgid: Pid) -> AxResult<isize> {
     let proc = &get_process_data(pid)?.proc;
 
-    if pgid == 0 {
+    if pgid == 0 || pgid == proc.pid() {
         proc.create_group();
     } else if !proc.move_to_group(&get_process_group(pgid)?) {
         return Err(AxError::OperationNotPermitted);

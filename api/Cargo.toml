@@ -11,6 +11,7 @@ repository.workspace = true
 input = ["dep:axinput"]
 memtrack = ["axfeat/dwarf", "axalloc/tracking", "dep:gimli"]
 vsock = ["axnet/vsock"]
+netlink = ["axnet/netlink"]
 dev-log = []
 
 [dependencies]
