@@ -11,8 +11,8 @@ use starry_vm::{vm_load, vm_write_slice};
 
 use crate::{
     file::{File, FileLike},
-    task::AsThread,
     pseudofs::{Device, DeviceMmap},
+    task::AsThread,
 };
 
 bitflags::bitflags! {

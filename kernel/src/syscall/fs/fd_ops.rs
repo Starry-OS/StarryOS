@@ -18,9 +18,9 @@ use crate::{
         with_fs,
     },
     mm::{UserPtr, vm_load_string},
+    pseudofs::{Device, dev::tty},
     syscall::sys::{sys_getegid, sys_geteuid},
     task::AsThread,
-    pseudofs::{Device, dev::tty},
 };
 
 /// Convert open flags to [`OpenOptions`].
