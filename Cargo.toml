@@ -79,7 +79,7 @@ starry-vm = "0.3"
 starry-kernel = { path = "./kernel" }
 
 [package]
-name = "starry-main"
+name = "starryos"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
