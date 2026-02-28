@@ -1,12 +1,13 @@
 use axerrno::{AxError, AxResult};
 use axhal::uspace::UserContext;
+use bytemuck::AnyBitPattern;
 use starry_vm::VmPtr;
 
 use super::clone::{CloneArgs, CloneFlags};
 
 /// Structure passed to clone3() system call.
 #[repr(C)]
-#[derive(Debug, Clone, Copy, Default, bytemuck::Zeroable, bytemuck::AnyBitPattern)]
+#[derive(Debug, Clone, Copy, Default, AnyBitPattern)]
 pub struct Clone3Args {
     pub flags: u64,
     pub pidfd: u64,
