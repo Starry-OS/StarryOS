@@ -37,6 +37,13 @@ impl TryFrom<Clone3Args> for CloneArgs {
 
         let flags = CloneFlags::from_bits_truncate(args.flags);
 
+        if args.exit_signal > 0 && flags.intersects(CloneFlags::THREAD | CloneFlags::PARENT) {
+            return Err(AxError::InvalidInput);
+        }
+        if flags.contains(CloneFlags::DETACHED) {
+            return Err(AxError::InvalidInput);
+        }
+
         let stack = if args.stack > 0 {
             if args.stack_size > 0 {
                 (args.stack + args.stack_size) as usize

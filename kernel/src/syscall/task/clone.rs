@@ -75,6 +75,8 @@ bitflags! {
         const CLEAR_SIGHAND = 0x100000000u64;
         /// Clone into specific cgroup (since Linux 5.7).
         const INTO_CGROUP = 0x200000000u64;
+        /// (Deprecated) Causes the parent not to receive a signal when the child terminated.
+        const DETACHED = CLONE_DETACHED as u64;
     }
 }
 
@@ -107,7 +109,10 @@ impl CloneArgs {
         if flags.contains(CloneFlags::SIGHAND) && !flags.contains(CloneFlags::VM) {
             return Err(AxError::InvalidInput);
         }
-        if flags.contains(CloneFlags::VFORK) && flags.contains(CloneFlags::THREAD) {
+        if flags.contains(CloneFlags::VFORK | CloneFlags::THREAD) {
+            return Err(AxError::InvalidInput);
+        }
+        if flags.contains(CloneFlags::PIDFD | CloneFlags::DETACHED) {
             return Err(AxError::InvalidInput);
         }
 
@@ -257,7 +262,7 @@ impl CloneArgs {
         }
 
         let thr = Thread::new(tid, new_proc_data);
-        if flags.contains(CloneFlags::CHILD_CLEARTID) && child_tid != 0 {
+        if flags.contains(CloneFlags::CHILD_CLEARTID) {
             thr.set_clear_child_tid(child_tid);
         }
         *new_task.task_ext_mut() = Some(unsafe { AxTaskExt::from_impl(thr) });
