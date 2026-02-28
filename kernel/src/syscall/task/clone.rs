@@ -110,9 +110,6 @@ impl CloneArgs {
         if flags.contains(CloneFlags::VFORK) && flags.contains(CloneFlags::THREAD) {
             return Err(AxError::InvalidInput);
         }
-        if *exit_signal >= 64 {
-            return Err(AxError::InvalidInput);
-        }
 
         let namespace_flags = CloneFlags::NEWNS
             | CloneFlags::NEWIPC
@@ -153,7 +150,7 @@ impl CloneArgs {
         );
 
         let exit_signal = if exit_signal > 0 {
-            Signo::from_repr(exit_signal as u8)
+            Some(Signo::from_repr(exit_signal as u8).ok_or(AxError::InvalidInput)?)
         } else {
             None
         };
