@@ -22,7 +22,7 @@ pub fn sys_pidfd_open(pid: u32, flags: u32) -> AxResult<isize> {
     let flags = PidFdFlags::from_bits(flags).ok_or(AxError::InvalidInput)?;
 
     let fd = if flags.contains(PidFdFlags::THREAD) {
-        PidFd::new_thread(&get_task(pid)?.as_thread())
+        PidFd::new_thread(get_task(pid)?.as_thread())
     } else {
         PidFd::new_process(&get_process_data(pid)?)
     };
