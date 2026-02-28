@@ -255,15 +255,18 @@ impl CloneArgs {
 
         new_proc_data.proc.add_thread(tid);
 
-        if flags.contains(CloneFlags::PIDFD) && pidfd != 0 {
-            let pidfd_obj = PidFd::new(&new_proc_data);
-            let fd = pidfd_obj.add_to_fd_table(true)?;
-            (pidfd as *mut i32).vm_write(fd)?;
-        }
-
-        let thr = Thread::new(tid, new_proc_data);
+        let thr = Thread::new(tid, new_proc_data.clone());
         if flags.contains(CloneFlags::CHILD_CLEARTID) {
             thr.set_clear_child_tid(child_tid);
+        }
+        if flags.contains(CloneFlags::PIDFD) && pidfd != 0 {
+            let pidfd_obj = if flags.contains(CloneFlags::THREAD) {
+                PidFd::new_thread(&thr)
+            } else {
+                PidFd::new_process(&new_proc_data)
+            };
+            let fd = pidfd_obj.add_to_fd_table(true)?;
+            (pidfd as *mut i32).vm_write(fd)?;
         }
         *new_task.task_ext_mut() = Some(AxTaskExt::from_impl(thr));
 
