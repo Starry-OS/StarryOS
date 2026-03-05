@@ -12,7 +12,7 @@ use starry_signal::Signo;
 use starry_vm::VmMutPtr;
 
 use crate::{
-    file::{FD_TABLE, FileLike, PidFd},
+    file::{FD_TABLE, FileLike, PidFd, close_file_like},
     mm::copy_from_kernel,
     task::{AsThread, ProcessData, Thread, add_task_to_table, new_user_task},
 };
@@ -98,7 +98,7 @@ impl CloneArgs {
             flags, exit_signal, ..
         } = self;
 
-        if *exit_signal > 0 && flags.contains(CloneFlags::THREAD | CloneFlags::PARENT) {
+        if *exit_signal > 0 && flags.intersects(CloneFlags::THREAD | CloneFlags::PARENT) {
             return Err(AxError::InvalidInput);
         }
         if flags.contains(CloneFlags::THREAD)
@@ -266,7 +266,10 @@ impl CloneArgs {
                 PidFd::new_process(&new_proc_data)
             };
             let fd = pidfd_obj.add_to_fd_table(true)?;
-            (pidfd as *mut i32).vm_write(fd)?;
+            if let Err(err) = (pidfd as *mut i32).vm_write(fd) {
+                let _ = close_file_like(fd);
+                return Err(err.into());
+            }
         }
         *new_task.task_ext_mut() = Some(AxTaskExt::from_impl(thr));
 
