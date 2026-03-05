@@ -73,7 +73,7 @@ pub struct Thread {
     oom_score_adj: AtomicI32,
 
     /// Ready to exit
-    exit: AtomicBool,
+    pub exit: Arc<AtomicBool>,
 
     /// Indicates whether the thread is currently accessing user memory.
     accessing_user_memory: AtomicBool,
@@ -91,7 +91,7 @@ impl Thread {
             clear_child_tid: AtomicUsize::new(0),
             robust_list_head: AtomicUsize::new(0),
             time: AssumeSync(RefCell::new(TimeManager::new())),
-            exit: AtomicBool::new(false),
+            exit: Arc::new(AtomicBool::new(false)),
             oom_score_adj: AtomicI32::new(200),
             accessing_user_memory: AtomicBool::new(false),
             exit_event: Arc::default(),
