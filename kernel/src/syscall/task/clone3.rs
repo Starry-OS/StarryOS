@@ -1,7 +1,9 @@
+use core::mem::{self, MaybeUninit};
+
 use axerrno::{AxError, AxResult};
 use axhal::uspace::UserContext;
 use bytemuck::AnyBitPattern;
-use starry_vm::VmPtr;
+use starry_vm::vm_read_slice;
 
 use super::clone::{CloneArgs, CloneFlags};
 
@@ -66,7 +68,7 @@ impl TryFrom<Clone3Args> for CloneArgs {
     }
 }
 
-pub fn sys_clone3(uctx: &UserContext, args: *const Clone3Args, size: usize) -> AxResult<isize> {
+pub fn sys_clone3(uctx: &UserContext, args: *const u8, size: usize) -> AxResult<isize> {
     debug!("sys_clone3 <= args: {args:p}, size: {size}");
 
     if size < MIN_CLONE_ARGS_SIZE {
@@ -78,9 +80,14 @@ pub fn sys_clone3(uctx: &UserContext, args: *const Clone3Args, size: usize) -> A
         debug!("sys_clone3: size {size} larger than expected, using known fields only");
     }
 
-    let clone3_args = args.vm_read()?;
-
-    debug!("sys_clone3: args = {clone3_args:?}");
+    let mut buffer = [0u8; core::mem::size_of::<Clone3Args>()];
+    // SAFETY: MaybeUninit<T> is compatible with T, and we're filling in the
+    // buffer with bytes read from the user
+    vm_read_slice(args, unsafe {
+        mem::transmute::<&mut [u8], &mut [MaybeUninit<u8>]>(&mut buffer[..size])
+    })?;
+    let clone3_args: Clone3Args =
+        bytemuck::try_pod_read_unaligned(&buffer).map_err(|_| AxError::InvalidInput)?;
 
     let clone_args = CloneArgs::try_from(clone3_args)?;
     clone_args.do_clone(uctx)
