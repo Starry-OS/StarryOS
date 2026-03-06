@@ -35,16 +35,17 @@ axruntime = { version = "0.3.0-preview.2" }
 axsync = { version = "0.3.0-preview.2" }
 axtask = { version = "0.3.0-preview.2" }
 
-starry-kernel = { path = "kernel" }
+starry-kernel = { path = "kernel", version = "0.2.0-preview.1" }
 
 [package]
 name = "starryos"
-version.workspace = true
+version = "0.3.0-preview.1"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
+description = "A Linux-compatible OS kernel built on ArceOS unikernel"
 
 [features]
 default = []
