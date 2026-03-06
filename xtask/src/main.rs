@@ -39,6 +39,23 @@ enum Cmd {
         #[arg(long, default_value = "riscv64")]
         arch: String,
     },
+    /// Run `cargo publish --dry-run` to verify crate packaging readiness
+    Publish {
+        /// Target architecture: riscv64, aarch64, x86_64, loongarch64
+        #[arg(long, default_value = "riscv64")]
+        arch: String,
+    },
+}
+
+/// Map a short architecture name to its Rust bare-metal target triple.
+fn arch_target(arch: &str) -> &'static str {
+    match arch {
+        "riscv64"    => "riscv64gc-unknown-none-elf",
+        "aarch64"    => "aarch64-unknown-none-softfloat",
+        "x86_64"     => "x86_64-unknown-none",
+        "loongarch64" => "loongarch64-unknown-none",
+        _ => unreachable!("validate_arch should have caught this"),
+    }
 }
 
 /// Returns true when running inside WSL / WSL2.
@@ -100,6 +117,35 @@ fn do_run(root: &Path, arch: &str) {
     run(cmd);
 }
 
+fn do_publish(root: &Path, arch: &str) {
+    // Generate .axconfig.toml via the Make defconfig target so that
+    // architecture-specific config crates resolve correctly during packaging.
+    println!("==> make ARCH={arch} defconfig  (generate .axconfig.toml)");
+    let mut cfg_cmd = make_cmd(root, arch);
+    cfg_cmd.arg("defconfig");
+    run(cfg_cmd);
+
+    let target = arch_target(arch);
+    println!("==> cargo publish --dry-run --allow-dirty --target={target} --features qemu");
+    let status = Command::new("cargo")
+        .current_dir(root)
+        .args([
+            "publish",
+            "--dry-run",
+            "--allow-dirty",
+            "--target", target,
+            "--features", "qemu",
+        ])
+        .status()
+        .unwrap_or_else(|e| {
+            eprintln!("xtask: failed to spawn cargo publish: {e}");
+            process::exit(1);
+        });
+    if !status.success() {
+        process::exit(status.code().unwrap_or(1));
+    }
+}
+
 fn do_test(root: &Path, arch: &str) {
     let script = root.join("scripts").join("ci-test.py");
     if !script.exists() {
@@ -119,16 +165,19 @@ fn main() {
     let root = project_root();
 
     validate_arch(match &cli.command {
-        Cmd::Rootfs { arch } | Cmd::Build { arch } | Cmd::Run { arch } | Cmd::Test { arch } => {
-            arch
-        }
+        Cmd::Rootfs { arch }
+        | Cmd::Build { arch }
+        | Cmd::Run { arch }
+        | Cmd::Test { arch }
+        | Cmd::Publish { arch } => arch,
     });
 
     match &cli.command {
-        Cmd::Rootfs { arch } => do_rootfs(&root, arch),
-        Cmd::Build { arch } => do_build(&root, arch),
-        Cmd::Run { arch } => do_run(&root, arch),
-        Cmd::Test { arch } => do_test(&root, arch),
+        Cmd::Rootfs { arch }   => do_rootfs(&root, arch),
+        Cmd::Build { arch }    => do_build(&root, arch),
+        Cmd::Run { arch }      => do_run(&root, arch),
+        Cmd::Test { arch }     => do_test(&root, arch),
+        Cmd::Publish { arch }  => do_publish(&root, arch),
     }
 }
 
