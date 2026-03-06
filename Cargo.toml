@@ -81,7 +81,7 @@ starry-core = { path = "./core", version = "0.1.0" }
 starry-api = { path = "./api", version = "0.1.0" }
 
 [package]
-name = "starryos"
+name = "starry-kernel"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -111,7 +111,7 @@ qemu = [
 smp = ["axfeat/smp"]
 
 [[bin]]
-name = "starryos"
+name = "starry-kernel"
 path = "src/main.rs"
 required-features = ["qemu"]
 

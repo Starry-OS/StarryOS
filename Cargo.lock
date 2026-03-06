@@ -2220,6 +2220,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "starry-kernel"
+version = "0.1.0"
+dependencies = [
+ "axdriver",
+ "axerrno 0.2.2",
+ "axfeat",
+ "axfs",
+ "axhal",
+ "axlog",
+ "axruntime",
+ "axsync",
+ "axtask",
+ "cfg-if",
+ "linkme",
+ "linux-raw-sys",
+ "starry-api",
+ "starry-core",
+ "starry-process",
+ "starry-signal",
+]
+
+[[package]]
 name = "starry-process"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2278,28 +2300,6 @@ dependencies = [
  "axerrno 0.2.2",
  "bytemuck",
  "extern-trait",
-]
-
-[[package]]
-name = "starryos"
-version = "0.1.0"
-dependencies = [
- "axdriver",
- "axerrno 0.2.2",
- "axfeat",
- "axfs",
- "axhal",
- "axlog",
- "axruntime",
- "axsync",
- "axtask",
- "cfg-if",
- "linkme",
- "linux-raw-sys",
- "starry-api",
- "starry-core",
- "starry-process",
- "starry-signal",
 ]
 
 [[package]]
