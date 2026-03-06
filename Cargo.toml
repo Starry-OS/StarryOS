@@ -39,7 +39,7 @@ starry-kernel = { path = "kernel", version = "0.2.0-preview.1" }
 
 [package]
 name = "starryos"
-version = "0.3.0-preview.1"
+version = "0.3.0-preview.2"
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -65,6 +65,11 @@ qemu = [
 smp = ["axfeat/smp", "axplat-riscv64-visionfive2?/smp"]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc"]
+
+[[bin]]
+name = "starryos"
+path = "src/main.rs"
+required-features = ["qemu"]
 
 [dependencies]
 axfeat.workspace = true

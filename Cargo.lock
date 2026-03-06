@@ -3134,7 +3134,7 @@ dependencies = [
 
 [[package]]
 name = "starryos"
-version = "0.3.0-preview.1"
+version = "0.3.0-preview.2"
 dependencies = [
  "axfeat",
  "axplat-riscv64-visionfive2",
