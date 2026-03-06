@@ -11,8 +11,8 @@
 
 [package]
 edition = "2024"
-name = "starryos"
-version = "0.2.0"
+name = "starry-kernel"
+version = "0.2.0-preview.1"
 authors = [
     "Azure-stars <Azure_stars@126.com>",
     "Yuekai Jia <equation618@gmail.com>",
@@ -82,7 +82,7 @@ smp = ["axfeat/smp"]
 xtask = ["dep:clap"]
 
 [[bin]]
-name = "starryos"
+name = "starry-kernel"
 path = "src/main.rs"
 required-features = ["qemu"]
 
