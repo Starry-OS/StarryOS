@@ -49,6 +49,7 @@ description = "A Linux-compatible OS kernel built on ArceOS unikernel"
 
 [features]
 default = []
+xtask = ["dep:clap"]
 qemu = [
     "axfeat/defplat",
     "axfeat/bus-pci",
@@ -71,7 +72,13 @@ name = "starryos"
 path = "src/main.rs"
 required-features = ["qemu"]
 
+[[bin]]
+name = "xtask"
+path = "xtask/src/main.rs"
+required-features = ["xtask"]
+
 [dependencies]
+clap = { version = "4", features = ["derive"], optional = true }
 axfeat.workspace = true
 starry-kernel.workspace = true
 
