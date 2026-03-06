@@ -19,21 +19,21 @@ homepage = "https://github.com/Starry-OS"
 repository = "https://github.com/Starry-OS/StarryOS"
 
 [workspace.dependencies]
-axfeat = { path = "arceos/api/axfeat" }
+axfeat = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
 
-axalloc = { path = "arceos/modules/axalloc" }
-axconfig = { path = "arceos/modules/axconfig" }
-axdisplay = { path = "arceos/modules/axdisplay" }
-axdriver = { path = "arceos/modules/axdriver" }
-axfs = { path = "arceos/modules/axfs" }
-axhal = { path = "arceos/modules/axhal" }
-axinput = { path = "arceos/modules/axinput" }
-axlog = { path = "arceos/modules/axlog" }
-axmm = { path = "arceos/modules/axmm" }
-axnet = { path = "arceos/modules/axnet" }
-axruntime = { path = "arceos/modules/axruntime" }
-axsync = { path = "arceos/modules/axsync" }
-axtask = { path = "arceos/modules/axtask" }
+axalloc = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
+axconfig = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
+axdisplay = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
+axdriver = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
+axfs = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236", package = "axfs-ng" }
+axhal = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
+axinput = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
+axlog = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
+axmm = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
+axnet = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236", package = "axnet-ng" }
+axruntime = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
+axsync = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
+axtask = { git = "https://github.com/arceos-org/arceos.git", rev = "84d6236" }
 
 starry-kernel = { path = "kernel" }
 
@@ -58,7 +58,7 @@ qemu = [
     "starry-kernel/vsock",
 
     # auxilary features
-    "axfeat/fs-times",
+    "axfeat/fs-ng-times",
     "starry-kernel/dev-log",
 ]
 smp = ["axfeat/smp", "axplat-riscv64-visionfive2?/smp"]
