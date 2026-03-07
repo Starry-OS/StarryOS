@@ -1,6 +1,9 @@
+use std::{
+    path::{Path, PathBuf},
+    process::{self, Command},
+};
+
 use clap::{Parser, Subcommand};
-use std::path::{Path, PathBuf};
-use std::process::{self, Command};
 
 /// StarryOS multi-architecture build & test tool
 #[derive(Parser)]
@@ -50,9 +53,9 @@ enum Cmd {
 /// Map a short architecture name to its Rust bare-metal target triple.
 fn arch_target(arch: &str) -> &'static str {
     match arch {
-        "riscv64"    => "riscv64gc-unknown-none-elf",
-        "aarch64"    => "aarch64-unknown-none-softfloat",
-        "x86_64"     => "x86_64-unknown-none",
+        "riscv64" => "riscv64gc-unknown-none-elf",
+        "aarch64" => "aarch64-unknown-none-softfloat",
+        "x86_64" => "x86_64-unknown-none",
         "loongarch64" => "loongarch64-unknown-none",
         _ => unreachable!("validate_arch should have caught this"),
     }
@@ -75,19 +78,16 @@ fn project_root() -> PathBuf {
 /// Build a `make` Command pre-loaded with common arguments.
 fn make_cmd(root: &Path, arch: &str) -> Command {
     let mut cmd = Command::new("make");
-    cmd.current_dir(root)
-        .arg(format!("ARCH={arch}"));
+    cmd.current_dir(root).arg(format!("ARCH={arch}"));
     cmd
 }
 
 /// Execute a Command and exit with its exit code on failure.
 fn run(mut cmd: Command) {
-    let status = cmd
-        .status()
-        .unwrap_or_else(|e| {
-            eprintln!("xtask: failed to spawn process: {e}");
-            process::exit(1);
-        });
+    let status = cmd.status().unwrap_or_else(|e| {
+        eprintln!("xtask: failed to spawn process: {e}");
+        process::exit(1);
+    });
     if !status.success() {
         process::exit(status.code().unwrap_or(1));
     }
@@ -113,7 +113,10 @@ fn do_run(root: &Path, arch: &str) {
     if is_wsl() {
         cmd.arg("ACCEL=n");
     }
-    println!("==> make ARCH={arch} run{}", if is_wsl() { " ACCEL=n" } else { "" });
+    println!(
+        "==> make ARCH={arch} run{}",
+        if is_wsl() { " ACCEL=n" } else { "" }
+    );
     run(cmd);
 }
 
@@ -133,8 +136,10 @@ fn do_publish(root: &Path, arch: &str) {
             "publish",
             "--dry-run",
             "--allow-dirty",
-            "--target", target,
-            "--features", "qemu",
+            "--target",
+            target,
+            "--features",
+            "qemu",
         ])
         .status()
         .unwrap_or_else(|e| {
@@ -154,9 +159,7 @@ fn do_test(root: &Path, arch: &str) {
     }
     println!("==> python3 scripts/ci-test.py {arch}");
     let mut cmd = Command::new("python3");
-    cmd.current_dir(root)
-        .arg(&script)
-        .arg(arch);
+    cmd.current_dir(root).arg(&script).arg(arch);
     run(cmd);
 }
 
@@ -173,11 +176,11 @@ fn main() {
     });
 
     match &cli.command {
-        Cmd::Rootfs { arch }   => do_rootfs(&root, arch),
-        Cmd::Build { arch }    => do_build(&root, arch),
-        Cmd::Run { arch }      => do_run(&root, arch),
-        Cmd::Test { arch }     => do_test(&root, arch),
-        Cmd::Publish { arch }  => do_publish(&root, arch),
+        Cmd::Rootfs { arch } => do_rootfs(&root, arch),
+        Cmd::Build { arch } => do_build(&root, arch),
+        Cmd::Run { arch } => do_run(&root, arch),
+        Cmd::Test { arch } => do_test(&root, arch),
+        Cmd::Publish { arch } => do_publish(&root, arch),
     }
 }
 
