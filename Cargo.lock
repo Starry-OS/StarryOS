@@ -51,7 +51,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b5d307320b3181d6d7954e663bd7c774a838b8220fe0593c86d9fb09f498b4b"
 dependencies = [
  "cpp_demangle",
- "gimli 0.32.3",
+ "gimli",
  "rustc-demangle",
 ]
 
@@ -289,7 +289,7 @@ checksum = "bf9566516f5d799b2f791a6ec5af57eec87d17624346f7c876fa006b922c99e6"
 dependencies = [
  "addr2line",
  "cfg-if",
- "gimli 0.32.3",
+ "gimli",
  "log",
  "paste",
  "spin 0.10.0",
@@ -1777,12 +1777,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gimli"
-version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bf7f043f89559805f8c7cacc432749b2fa0d0a0a9ee46ce47164ed5ba7f126c"
-
-[[package]]
 name = "glob"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3017,7 +3011,7 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "starry-kernel"
-version = "0.1.0"
+version = "0.2.0-preview.1"
 dependencies = [
  "axalloc",
  "axbacktrace",
@@ -3048,7 +3042,7 @@ dependencies = [
  "event-listener",
  "extern-trait",
  "flatten_objects",
- "gimli 0.33.0",
+ "gimli",
  "hashbrown 0.16.1",
  "indoc",
  "inherit-methods-macro",
@@ -3140,10 +3134,11 @@ dependencies = [
 
 [[package]]
 name = "starryos"
-version = "0.1.0"
+version = "0.3.0-preview.2"
 dependencies = [
  "axfeat",
  "axplat-riscv64-visionfive2",
+ "clap",
  "starry-kernel",
 ]
 
