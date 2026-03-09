@@ -21,8 +21,6 @@
 #   ./scripts/test.sh 4        # publish dry-run only
 #   SKIP_QEMU=true ./scripts/test.sh 3   # build only, no QEMU
 
-set -e
-
 ARCHS=("riscv64" "aarch64" "loongarch64" "x86_64")
 
 # --------------------------------------------------------------------------
