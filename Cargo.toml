@@ -4,8 +4,9 @@ members = ["kernel"]
 exclude = ["arceos"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0-preview.2"
 edition = "2024"
+description = "A Linux-compatible OS kernel built on ArceOS unikernel"
 license = "Apache-2.0"
 
 authors = [
@@ -35,21 +36,20 @@ axruntime = { version = "0.3.0-preview.2" }
 axsync = { version = "0.3.0-preview.2" }
 axtask = { version = "0.3.0-preview.2" }
 
-starry-kernel = { path = "kernel", version = "0.2.0-preview.1" }
+starry-kernel = { path = "kernel", version = "=0.2.0-preview.2" }
 
 [package]
 name = "starryos"
-version = "0.3.0-preview.2"
+version.workspace = true
 edition.workspace = true
+description.workspace = true
 authors.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
-description = "A Linux-compatible OS kernel built on ArceOS unikernel"
 
 [features]
 default = []
-xtask = ["dep:clap"]
 qemu = [
     "axfeat/defplat",
     "axfeat/bus-pci",
@@ -72,13 +72,7 @@ name = "starryos"
 path = "src/main.rs"
 required-features = ["qemu"]
 
-[[bin]]
-name = "xtask"
-path = "xtask/src/main.rs"
-required-features = ["xtask"]
-
 [dependencies]
-clap = { version = "4", features = ["derive"], optional = true }
 axfeat.workspace = true
 starry-kernel.workspace = true
 
