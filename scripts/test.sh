@@ -83,11 +83,11 @@ step3_arch_tests() {
 
         # Rootfs download (skipped by Makefile if image already exists)
         echo "  [${arch}] Downloading rootfs..."
-        cargo xtask rootfs --arch="${arch}"
+        make ARCH="${arch}" rootfs
 
         # Kernel build
         echo "  [${arch}] Building kernel..."
-        cargo xtask build --arch="${arch}"
+        make ARCH="${arch}" build
 
         # QEMU boot test
         if [ "$skip_qemu" = "true" ]; then
@@ -101,7 +101,7 @@ step3_arch_tests() {
         fi
 
         echo "  [${arch}] Running QEMU boot test..."
-        if cargo xtask test --arch="${arch}"; then
+        if make ARCH="${arch}" ci-test; then
             echo "  [${arch}] OK: boot test passed"
         else
             echo "  [${arch}] ERROR: boot test FAILED"
@@ -127,22 +127,20 @@ step4_publish() {
 
     local all_passed=true
 
-    for arch in "${ARCHS[@]}"; do
-        echo ""
-        echo "  --- Publish check: ${arch} ---"
-        if cargo xtask publish --arch="${arch}"; then
-            echo "  [${arch}] OK: publish check passed"
-        else
-            echo "  [${arch}] ERROR: publish check FAILED"
-            all_passed=false
-        fi
-    done
+    echo ""
+    echo "  --- Publish check ---"
+    if cargo publish --workspace --dry-run --allow-dirty; then
+        echo "  [${arch}] OK: publish check passed"
+    else
+        echo "  [${arch}] ERROR: publish check FAILED"
+        all_passed=false
+    fi
 
     echo ""
     if [ "$all_passed" = "true" ]; then
-        echo "  OK: all architecture publish checks passed"
+        echo "  OK: publish check passed"
     else
-        echo "ERROR: one or more publish checks failed"
+        echo "ERROR: publish check failed"
         exit 1
     fi
     echo ""
