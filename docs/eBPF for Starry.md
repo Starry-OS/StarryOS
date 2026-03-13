@@ -126,10 +126,14 @@
   - `upb-common/`（公共类型/常量）
 
 示例通用运行方式（以 syscall_ebpf 为例）：
+syscall_ebpf 的用户态程序会附着在指定的系统调用入口（如 `sysno`）上，捕获调用现场并通过 eBPF 程序进行处理。运行前需要获取目标函数的 mangled name（例如通过 `cat /proc/kallsyms | grep -m 1 sysno`），然后将该名称作为参数传递给用户态程序：
 
 ```sh
-starry:~# /musl/syscall_ebpf
+starry:/# cat /proc/kallsyms | grep -m 1 sysno
+starry:~# /musl/syscall_ebpf {mangled_func_name}
 ```
+
+其它示例（如 kret、mytrace、rawtp、upb）则会在运行时自动附着到预设的函数或事件上，无需额外参数。
 
 ### tracepoint 的文件系统接口使用方法
 

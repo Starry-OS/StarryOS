@@ -1,7 +1,6 @@
 #![no_std]
 #![feature(likely_unlikely)]
 #![feature(bstr)]
-#![feature(maybe_uninit_slice)]
 #![feature(c_variadic)]
 #![feature(concat_bytes)]
 #![feature(layout_for_ptr)]
@@ -9,7 +8,8 @@
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 #![allow(clippy::non_upper_case_globals)]
 #![allow(unsafe_op_in_unsafe_fn)]
-
+#![allow(mismatched_lifetime_syntaxes)]
+#![allow(function_casts_as_integer)]
 #![allow(dead_code)]
 
 #[macro_use]
@@ -41,7 +41,7 @@ pub mod vfs;
 
 pub struct KernelPanicHelper;
 impl axruntime::PanicHelper for KernelPanicHelper {
-    fn lookup_symbol<'a>(&self, addr: usize, buf: &'a mut [u8; 1024]) -> Option<(&'a str, usize)> {
+    fn lookup_symbol<'a>(&self, addr: usize, buf: &'a mut [u8; 4096]) -> Option<(&'a str, usize)> {
         let ksym = vfs::KALLSYMS.get()?;
         ksym.lookup_address(addr as _, buf)
             .map(|(name, _size, offset, _ty)| (name, addr - offset as usize))

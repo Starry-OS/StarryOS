@@ -20,6 +20,10 @@ pub const CMDLINE: &[&str] = &["/bin/sh", "-c", include_str!("init.sh")];
 fn main() {
     starry_api::init();
 
+    #[cfg(feature = "kebpf")]
+    kebpf::kebpf_init();
+
+     // Mount filesystems and run init process
     let args = CMDLINE
         .iter()
         .copied()

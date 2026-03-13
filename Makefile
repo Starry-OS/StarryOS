@@ -3,6 +3,7 @@ export ARCH := riscv64
 export LOG := warn
 export BACKTRACE := y
 export MEMTRACK := n
+export KMOD_BUILTIN := y
 
 # QEMU Options
 export BLK := y
@@ -17,12 +18,6 @@ export NO_AXSTD := y
 export AX_LIB := axfeat
 export APP_FEATURES := qemu
 
-ifeq ($(ARCH), x86_64)
-  KMOD_RUSTFLAGS :=  -C code-model=small
-else ifeq ($(ARCH), loongarch64)
-  KMOD_RUSTFLAGS :=  -C code-model=large
-endif
-
 export KMOD_RUSTFLAGS
 
 # Disk Path
@@ -31,6 +26,21 @@ export DISK_PATH := $(abspath ./disk)
 ifeq ($(MEMTRACK), y)
 	APP_FEATURES += starry-api/memtrack
 endif
+
+ifeq ($(KMOD_BUILTIN), y)
+	
+endif
+
+
+RUN_KMOD :=
+
+ifeq ($(KMOD_BUILTIN), y)
+	APP_FEATURES += kebpf
+	RUN_KMOD = @echo "Using built-in eBPF module, skipping kmod build and load."
+else
+	RUN_KMOD = @echo "Building and loading modules..." && make kmod && make -f kmod.mk copy_modules
+endif
+
 
 IMG_URL = https://github.com/Starry-OS/rootfs/releases/download/20250917
 IMG = rootfs-$(ARCH).img
@@ -50,13 +60,12 @@ img: build
 	@-sudo mount arceos/disk_$(ARCH).img ./disk
 	@sudo cp kallsyms ./disk/root/kallsyms
 
-	@make kmod
 	@-sudo mkdir -p ./disk/root/modules
-	@sudo cp ./*.ko ./disk/root/modules/
-	@make -f kmod.mk copy_modules
+	@-sudo cp ./*.ko ./disk/root/modules/
+	@$(RUN_KMOD)
 
 	@-sudo mkdir -p $(DISK_PATH)/musl
-# 	@make -C user/musl all
+	@make -C user/musl all
 
 	@sudo umount ./disk
 	@rmdir ./disk

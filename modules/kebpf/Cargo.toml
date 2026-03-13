@@ -16,7 +16,7 @@ syscalls.workspace = true
 axcpu.workspace = true
 
 kmod.workspace = true
-kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "ab3b368" }
+kbpf-basic.workspace = true
 
 
 [features]

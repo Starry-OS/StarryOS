@@ -428,7 +428,7 @@ dependencies = [
  "intrusive-collections",
  "kspin",
  "log",
- "lru 0.16.0",
+ "lru",
  "lwext4_rust",
  "scope-local",
  "slab",
@@ -444,7 +444,7 @@ dependencies = [
  "axpoll",
  "bitflags 2.10.0",
  "cfg-if",
- "hashbrown",
+ "hashbrown 0.15.5",
  "inherit-methods-macro",
  "log",
  "smallvec",
@@ -547,7 +547,7 @@ dependencies = [
  "cfg-if",
  "enum_dispatch",
  "event-listener",
- "hashbrown",
+ "hashbrown 0.15.5",
  "lazy_static",
  "lazyinit",
  "log",
@@ -721,7 +721,6 @@ dependencies = [
  "chrono",
  "crate_interface",
  "indoc",
- "ksym",
  "lazyinit",
  "percpu",
  "unwinding",
@@ -891,9 +890,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "cc"
-version = "1.2.51"
+version = "1.2.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a0aeaff4ff1a90589618835a598e545176939b97874f7abc7851caa0618f203"
+checksum = "aebf35691d1bfb0ac386a69bac2fde4dd276fb618cf8bf4f5318fe285e821bb2"
 dependencies = [
  "find-msvc-tools",
  "shlex",
@@ -1255,9 +1254,9 @@ dependencies = [
 
 [[package]]
 name = "find-msvc-tools"
-version = "0.1.6"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "645cbb3a84e60b7531617d5ae4e57f7e27308f6445f5abf653209ea76dec8dff"
+checksum = "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
 
 [[package]]
 name = "flatten_objects"
@@ -1279,6 +1278,12 @@ name = "foldhash"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+
+[[package]]
+name = "foldhash"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "futures"
@@ -1406,7 +1411,18 @@ checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
  "allocator-api2",
  "equivalent",
- "foldhash",
+ "foldhash 0.1.5",
+]
+
+[[package]]
+name = "hashbrown"
+version = "0.16.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash 0.2.0",
 ]
 
 [[package]]
@@ -1463,7 +1479,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f2481980430f9f78649238835720ddccc57e52df14ffce1c6f37391d61b563e9"
 dependencies = [
  "equivalent",
- "hashbrown",
+ "hashbrown 0.15.5",
 ]
 
 [[package]]
@@ -1538,7 +1554,7 @@ dependencies = [
 [[package]]
 name = "kapi"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/rkm#cbd1b0335f119609df5f02c50f1bc7773c3785aa"
+source = "git+https://github.com/Starry-OS/rkm#b5672c67405cb2579bd45e52b6d221b69bab39b3"
 dependencies = [
  "axerrno 0.2.2",
  "kmod",
@@ -1548,19 +1564,19 @@ dependencies = [
 [[package]]
 name = "kbindings"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/rkm#cbd1b0335f119609df5f02c50f1bc7773c3785aa"
+source = "git+https://github.com/Starry-OS/rkm#b5672c67405cb2579bd45e52b6d221b69bab39b3"
 
 [[package]]
 name = "kbpf-basic"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/kbpf-basic?rev=ab3b368#ab3b368bf4d64d514969270a1cbd023fae61f0b9"
+source = "git+https://github.com/Starry-OS/kbpf-basic?rev=5fc6b1c#5fc6b1ce8d6b6e472c3eb766cdb9c93a57c60dba"
 dependencies = [
  "bitflags 2.10.0",
  "int-enum",
  "log",
- "lru 0.14.0",
+ "lru",
  "printf-compat",
- "rbpf 0.3.0 (git+https://github.com/qmonnet/rbpf)",
+ "rbpf",
 ]
 
 [[package]]
@@ -1601,7 +1617,7 @@ dependencies = [
 [[package]]
 name = "kmacro"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/rkm#cbd1b0335f119609df5f02c50f1bc7773c3785aa"
+source = "git+https://github.com/Starry-OS/rkm#b5672c67405cb2579bd45e52b6d221b69bab39b3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1611,7 +1627,7 @@ dependencies = [
 [[package]]
 name = "kmod"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/rkm#cbd1b0335f119609df5f02c50f1bc7773c3785aa"
+source = "git+https://github.com/Starry-OS/rkm#b5672c67405cb2579bd45e52b6d221b69bab39b3"
 dependencies = [
  "kbindings",
  "kmacro",
@@ -1620,7 +1636,7 @@ dependencies = [
 [[package]]
 name = "kmod-loader"
 version = "0.1.0"
-source = "git+https://github.com/Starry-OS/rkm#cbd1b0335f119609df5f02c50f1bc7773c3785aa"
+source = "git+https://github.com/Starry-OS/rkm#b5672c67405cb2579bd45e52b6d221b69bab39b3"
 dependencies = [
  "axerrno 0.2.2",
  "bitfield-struct 0.12.1",
@@ -1630,7 +1646,6 @@ dependencies = [
  "kapi",
  "kmod",
  "log",
- "rustc-demangle",
 ]
 
 [[package]]
@@ -1658,7 +1673,7 @@ dependencies = [
 [[package]]
 name = "ksym"
 version = "0.2.0"
-source = "git+https://github.com/Starry-OS/ksym?rev=8fa0df1#8fa0df12076718f84d16117f410375a2e0d87c5a"
+source = "git+https://github.com/Starry-OS/ksym?rev=4927a85#4927a852c485e71d9960114000b6eb629b36ec19"
 
 [[package]]
 name = "ktracepoint"
@@ -1757,20 +1772,11 @@ dependencies = [
 
 [[package]]
 name = "lru"
-version = "0.14.0"
+version = "0.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f8cc7106155f10bdf99a6f379688f543ad6596a415375b36a59a054ceda1198"
+checksum = "a1dc47f592c06f33f8e3aea9591776ec7c9f9e4124778ff8a3c3b87159f7e593"
 dependencies = [
- "hashbrown",
-]
-
-[[package]]
-name = "lru"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86ea4e65087ff52f3862caff188d489f1fab49a0cb09e01b2e3f1a617b10aaed"
-dependencies = [
- "hashbrown",
+ "hashbrown 0.16.1",
 ]
 
 [[package]]
@@ -1784,9 +1790,9 @@ dependencies = [
 
 [[package]]
 name = "lwprintf-rs"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d132b188c9f12e4a91081eeb55c6dbb5a098a090abb5138e44e15bf7e9ea5a6c"
+checksum = "eaa1793daa377959c5d73ee413228fe8f8ebfbac58f02b14d662da7d115a0222"
 dependencies = [
  "bindgen",
  "cc",
@@ -2054,8 +2060,8 @@ dependencies = [
 
 [[package]]
 name = "printf-compat"
-version = "0.2.1"
-source = "git+https://github.com/lights0123/printf-compat?rev=ad00c19#ad00c1976bd0538c70e431ec620152f9cc3b6efe"
+version = "0.3.1"
+source = "git+https://github.com/lights0123/printf-compat?rev=6a67f5b#6a67f5b2784218b1996ec170391cb21381ecfeee"
 dependencies = [
  "bitflags 2.10.0",
  "itertools 0.14.0",
@@ -2154,18 +2160,7 @@ source = "git+https://github.com/qmonnet/rbpf.git?rev=f31e471#f31e471a29dea9a0c2
 dependencies = [
  "byteorder",
  "combine",
- "hashbrown",
- "log",
-]
-
-[[package]]
-name = "rbpf"
-version = "0.3.0"
-source = "git+https://github.com/qmonnet/rbpf#f31e471a29dea9a0c272626f7b762adba755e6cc"
-dependencies = [
- "byteorder",
- "combine",
- "hashbrown",
+ "hashbrown 0.15.5",
  "log",
 ]
 
@@ -2414,6 +2409,7 @@ dependencies = [
  "axsync",
  "axtask",
  "cfg-if",
+ "kebpf",
  "linkme",
  "linux-raw-sys",
  "starry-api",
@@ -2454,7 +2450,7 @@ dependencies = [
  "event-listener",
  "flatten_objects",
  "gimli",
- "hashbrown",
+ "hashbrown 0.15.5",
  "indoc",
  "inherit-methods-macro",
  "kapi",
@@ -2475,7 +2471,7 @@ dependencies = [
  "memory_addr",
  "num_enum",
  "rand",
- "rbpf 0.3.0 (git+https://github.com/qmonnet/rbpf.git?rev=f31e471)",
+ "rbpf",
  "ringbuf",
  "riscv",
  "scope-local",
@@ -2514,7 +2510,7 @@ dependencies = [
  "cfg-if",
  "event-listener",
  "extern-trait",
- "hashbrown",
+ "hashbrown 0.15.5",
  "inherit-methods-macro",
  "kernel-elf-parser",
  "kernel_guard",

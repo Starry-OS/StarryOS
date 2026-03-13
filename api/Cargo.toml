@@ -71,20 +71,17 @@ lazyinit.workspace = true
 lock_api.workspace = true
 axcpu.workspace = true
 kernel_guard.workspace = true
-ksym.workspace = true
 
+ksym.workspace = true
+lwprintf-rs = "0.3.3"
 static-keys = "0.8.2"
-tracepoint = { git = "https://github.com/Starry-OS/tracepoint.git", package = "ktracepoint" }
-# tracepoint = { path = "../../ax-project/tracepoint",package = "ktracepoint" }
-# kbpf-basic = { path = "../../ax-project/kbpf-basic/" }
-# kprobe = { path = "../../ax-project/kprobe" }
-kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "ab3b368" }
-rbpf = { git = "https://github.com/qmonnet/rbpf.git", default-features = false, rev = "f31e471" }
-kprobe = { git = "https://github.com/Starry-OS/kprobe" }
-lwprintf-rs = "0.3.1"
+rbpf.workspace = true
 kmod-loader.workspace = true
 kmod.workspace = true
 kapi.workspace = true
+kbpf-basic.workspace = true
+kprobe.workspace = true
+tracepoint.workspace = true
 
 [target.'cfg(not(target_arch = "loongarch64"))'.dependencies]
 unwinding = { version = "=0.2.8", default-features = false, features = [

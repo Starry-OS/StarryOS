@@ -43,8 +43,6 @@ axnet = { path = "arceos/modules/axnet" }
 axruntime = { path = "arceos/modules/axruntime" }
 axsync = { path = "arceos/modules/axsync" }
 axtask = { path = "arceos/modules/axtask", features = ["task-ext"] }
-ksym = { git = "https://github.com/Starry-OS/ksym", rev = "8fa0df1" }
-
 axcpu = { git = "https://github.com/Starry-OS/axcpu", rev = "fc3154b", features = [
     "kprobe",
 ] }
@@ -88,11 +86,19 @@ kernel_guard = "0.1"
 syscalls = { git = "https://github.com/jasonwhite/syscalls.git", rev = "92624de", default-features = false }
 
 # kmod-loader = { path = "../ax-project/rkm/kmod-loader" }
-# kmod = { path = "../ax-project/rkm/kmod", default-features = false }
 # kapi = { path = "../ax-project/rkm/kapi" }
+# kmod = { path = "../ax-project/rkm/kmod" }
+# ksym = { path = "../ax-project/ksym" }
+# kbpf-basic = { path = "../ax-project/kbpf-basic" }
+
 kmod-loader = { git = "https://github.com/Starry-OS/rkm" }
 kapi = { git = "https://github.com/Starry-OS/rkm" }
 kmod = { git = "https://github.com/Starry-OS/rkm" }
+kbpf-basic = { git = "https://github.com/Starry-OS/kbpf-basic", rev = "5fc6b1c" }
+kprobe = { git = "https://github.com/Starry-OS/kprobe" }
+tracepoint = { git = "https://github.com/Starry-OS/tracepoint.git", package = "ktracepoint" }
+rbpf = { git = "https://github.com/qmonnet/rbpf.git", default-features = false, rev = "f31e471" }
+ksym = { git = "https://github.com/Starry-OS/ksym", rev = "4927a85" }
 
 [package]
 name = "starry"
@@ -128,6 +134,7 @@ qemu = [
 ]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc-gpt"]
+kebpf = ["dep:kebpf"]
 
 # Stubs
 pci = ["axfeat/bus-pci"]
@@ -151,6 +158,8 @@ starry-signal.workspace = true
 
 starry-core.workspace = true
 starry-api.workspace = true
+
+kebpf = { path = "modules/kebpf", optional = true }
 
 [dependencies.axplat-riscv64-visionfive2]
 git = "https://github.com/Starry-OS/axplat-riscv64-visionfive2.git"

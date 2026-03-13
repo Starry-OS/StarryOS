@@ -10,6 +10,17 @@ async fn main() -> anyhow::Result<()> {
         .format_timestamp(None)
         .init();
 
+    let args_num = std::env::args().len();
+    if args_num != 2 {
+        println!("Usage: syscall_ebpf {{mangled_func_name}}");
+        println!(
+            "You can get the mangled function name by running `cat /proc/kallsyms | grep -m 1 sysno`"
+        );
+        return Ok(());
+    }
+    let args: Vec<String> = std::env::args().collect();
+    let target_syscall_entry = &args[1];
+
     // Bump the memlock rlimit. This is needed for older kernels that don't use the
     // new memcg based accounting, see https://lwn.net/Articles/837122/
     let rlim = libc::rlimit {
@@ -48,8 +59,7 @@ async fn main() -> anyhow::Result<()> {
     }
     let program: &mut KProbe = ebpf.program_mut("syscall_ebpf").unwrap().try_into()?;
     program.load()?;
-    program.attach("starry_api::syscall::sysno", 0)?;
-
+    program.attach(target_syscall_entry, 0)?;
     log::info!("attacch the kprobe to syscall_entry ok");
 
     // print the value of the blocklist per 5 seconds

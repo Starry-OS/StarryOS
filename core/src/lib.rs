@@ -3,6 +3,7 @@
 
 #![no_std]
 #![feature(likely_unlikely)]
+#![allow(mismatched_lifetime_syntaxes)]
 #![warn(missing_docs)]
 
 extern crate alloc;
