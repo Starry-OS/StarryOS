@@ -27,6 +27,7 @@
 #     - `MEM`: Memory size (default is 128M)
 #     - `DISK_IMG`: Path to the virtual disk image
 #     - `ACCEL`: Enable hardware acceleration (KVM on linux)
+#     - `QEMU_BIOS`: QEMU BIOS firmware path (default is `default`)
 #     - `QEMU_LOG`: Enable QEMU logging (log file is "qemu.log")
 #     - `NET_DUMP`: Enable network packet dump (log file is "netdump.pcap")
 #     - `NET_DEV`: QEMU netdev backend types: user, tap, bridge
@@ -69,6 +70,7 @@ MEM ?=
 ACCEL ?=
 ICOUNT ?= n
 QEMU_ARGS ?=
+QEMU_BIOS ?= default
 
 DISK_IMG ?= disk.img
 QEMU_LOG ?= n

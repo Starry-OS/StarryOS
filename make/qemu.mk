@@ -2,6 +2,7 @@
 
 QEMU := qemu-system-$(ARCH)
 
+
 ifeq ($(BUS), mmio)
   vdev-suffix := device
 else ifeq ($(BUS), pci)
@@ -30,7 +31,7 @@ qemu_args-x86_64 := \
 
 qemu_args-riscv64 := \
   -machine $(machine) \
-  -bios default \
+  -bios $(QEMU_BIOS) \
   -kernel $(FINAL_IMG)
 
 qemu_args-aarch64 := \
