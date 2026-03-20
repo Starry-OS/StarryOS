@@ -16,8 +16,18 @@ use crate::{
     task::{ProcessData, Thread, add_task_to_table, new_user_task, spawn_alarm_task},
 };
 
+#[cfg(target_arch = "riscv64")]
+#[inline]
+fn init_riscv_fp_state() {
+    use riscv::register::sstatus::{self, FS};
+    unsafe { sstatus::set_fs(FS::Dirty) };
+}
+
 /// Initialize and run initproc.
 pub fn init(args: &[String], envs: &[String]) {
+    #[cfg(target_arch = "riscv64")]
+    init_riscv_fp_state();
+
     pseudofs::mount_all().expect("Failed to mount pseudofs");
     spawn_alarm_task();
 
