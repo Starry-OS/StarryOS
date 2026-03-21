@@ -200,6 +200,22 @@ ln -s /lib/ld-musl-loongarch64.so.1 /lib64/ld-musl-loongarch-lp64d.so.1
 
 在aarch64架构下, 使用musl工具链不像其它架构一样会默认进行动态链接，而是默认进行静态链接。如果需要动态链接，需要指定 `rustflags = ["-C", "target-feature=-crt-static"]`。
 
+## 其它信息
+
+内核处理用户态的break异常路径:
+```
+int3
+ → #BP
+ → 内核
+     ├─ 如果是 uprobe：
+     │     → 执行 eBPF
+     │     → 模拟原指令
+     │     → 返回用户态（无 SIGTRAP）
+     │
+     └─ 如果不是：
+           → 发送 SIGTRAP
+```
+
 ## 参考与源码入口
 
 - `core/src/probe_aux.rs`：地址权限调整、可执行页分配、retprobe 实例管理。

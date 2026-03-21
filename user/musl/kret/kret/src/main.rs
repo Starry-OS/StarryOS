@@ -5,6 +5,18 @@ use tokio::signal;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+
+    let args_num = std::env::args().len();
+    if args_num != 2 {
+        println!("Usage: kret {{mangled_func_name}}");
+        println!(
+            "You can get the mangled function name by running `cat /proc/kallsyms | grep -m 1 sys_getpid`"
+        );
+        return Ok(());
+    }
+    let args: Vec<String> = std::env::args().collect();
+    let target_syscall_entry = &args[1];
+
     env_logger::builder()
         .filter_level(log::LevelFilter::Info)
         .format_timestamp(None)
@@ -48,7 +60,8 @@ async fn main() -> anyhow::Result<()> {
     }
     let program: &mut KProbe = ebpf.program_mut("kret").unwrap().try_into()?;
     program.load()?;
-    program.attach("starry_api::syscall::task::thread::sys_getpid", 0)?;
+    // TODO: support mangled symbol name
+    program.attach(target_syscall_entry, 0)?;
 
     let ctrl_c = signal::ctrl_c();
     println!("Waiting for Ctrl-C...");
