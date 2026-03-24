@@ -141,7 +141,7 @@ optional = true
 [dependencies.axplat-riscv64-sg2002]
 version = "0.1"
 git = "https://github.com/elliott10/axplat-riscv64-sg2002.git"
-rev = "810954ed"
+rev = "92a95ef8"
 features = ["fp-simd", "irq", "rtc"]
 optional = true
 
@@ -150,19 +150,19 @@ platforms = ["riscv64gc-unknown-none-elf", "loongarch64-unknown-none-softfloat"]
 all-features = true
 
 [patch."https://github.com/arceos-org/axdriver_crates.git"]
-axdriver_base = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
-axdriver_block = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
-axdriver_display = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
-axdriver_input = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
-axdriver_net = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
-axdriver_pci = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
-axdriver_virtio = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
-axdriver_vsock = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "d97dae8b" }
+axdriver_base = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "4d73e06a" }
+axdriver_block = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "4d73e06a" }
+axdriver_display = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "4d73e06a" }
+axdriver_input = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "4d73e06a" }
+axdriver_net = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "4d73e06a" }
+axdriver_pci = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "4d73e06a" }
+axdriver_virtio = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "4d73e06a" }
+axdriver_vsock = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "4d73e06a" }
 
 [patch."https://github.com/arceos-org/axcpu.git"]
-axcpu = { path = "/home/os/rust/crates/axcpu" }
+axcpu = { git = "https://github.com/elliott10/axcpu.git", rev = "47b2dbcb" }
 
 [patch."https://github.com/arceos-org/page_table_multiarch.git"]
 page_table_multiarch = { git = "https://github.com/arceos-org//page_table_multiarch.git", rev = "53a08f4e" }
 [patch.crates-io]
-page_table_entry = { git = "https://github.com/arceos-org/page_table_multiarch.git", rev = "53a08f4e" }
+page_table_entry = { git = "https://github.com/arceos-org/page_table_multiarch.git", rev = "53a08f4e" } # features = ["xuantie-c9xx"]
