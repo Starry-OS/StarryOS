@@ -37,10 +37,6 @@ pub fn new_user_task(name: &str, mut uctx: UserContext, set_child_tid: usize) ->
 
             let thr = curr.as_thread();
             while !thr.pending_exit() {
-
-                #[cfg(target_arch = "riscv64")]
-                axhal::asm::flush_icache();
-
                 let reason = uctx.run();
 
                 set_timer_state(&curr, TimerState::Kernel);

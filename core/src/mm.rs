@@ -127,10 +127,6 @@ fn map_elf<'a>(
             false,
             backend,
         )?;
-
-        // TDOO: flush the I-cache
-        #[cfg(target_arch = "riscv64")]
-        axhal::asm::flush_icache();
     }
 
     Ok(elf_parser)

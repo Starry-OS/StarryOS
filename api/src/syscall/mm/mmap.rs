@@ -13,7 +13,7 @@ use starry_core::{
 };
 use starry_vm::{vm_load, vm_write_slice};
 
-use crate::file::{File, FileLike};
+use crate::file::{File, FileLike, get_file_like, ion::IonBufferFile};
 
 bitflags::bitflags! {
     /// `PROT_*` flags for use with [`sys_mmap`].
@@ -120,7 +120,19 @@ pub fn sys_mmap(
     ) {
         return Err(AxError::InvalidInput);
     }
-    if map_flags.contains(MmapFlags::ANONYMOUS) != (fd <= 0) {
+
+    // 检查是否是 IonBufferFile，如果是则跳过 ANONYMOUS 检查
+    let is_ion_buffer = if fd > 0 {
+        get_file_like(fd)
+            .map(|f| f.downcast_arc::<IonBufferFile>().is_ok())
+            .unwrap_or(false)
+    } else {
+        false
+    };
+
+    // 对于普通文件，ANONYMOUS 标志必须与 fd <= 0 一致
+    // 对于 IonBufferFile，跳过这个检查
+    if !is_ion_buffer && (map_flags.contains(MmapFlags::ANONYMOUS) != (fd <= 0)) {
         return Err(AxError::InvalidInput);
     }
     if fd <= 0 && offset != 0 {
@@ -173,6 +185,58 @@ pub fn sys_mmap(
     };
 
     let file = if fd > 0 {
+        // 首先尝试检查是否是 IonBufferFile
+        match get_file_like(fd) {
+            Ok(file_like) => {
+                if let Ok(ion_file) = file_like.downcast_arc::<IonBufferFile>() {
+                    // 处理 Ion buffer 的 mmap
+                    let range = ion_file.phys_range();
+
+                    // 计算实际映射长度，向上对齐到页大小
+                    let map_length = length.max(range.size()).align_up(page_size);
+
+                    info!(
+                        "Ion buffer mmap: phys_addr=0x{:x}, buffer_size={}, requested_length={}, \
+                         map_length={}",
+                        range.start.as_usize(),
+                        range.size(),
+                        length,
+                        map_length
+                    );
+
+                    if map_length == 0 {
+                        warn!("Ion buffer mmap: map_length is 0, this should not happen");
+                        return Err(AxError::InvalidInput);
+                    }
+
+                    let backend = Backend::new_linear(
+                        start.as_usize() as isize - range.start.as_usize() as isize,
+                    );
+
+                    let populate = map_flags.contains(MmapFlags::POPULATE);
+                    aspace.map(
+                        start,
+                        map_length,
+                        permission_flags.into(),
+                        populate,
+                        backend,
+                    )?;
+
+                    info!(
+                        "Ion buffer mmap success: vaddr=0x{:x}, length={}",
+                        start.as_usize(),
+                        map_length
+                    );
+                    return Ok(start.as_usize() as _);
+                } else {
+                    debug!("fd {} is not IonBufferFile, trying as regular File", fd);
+                }
+            }
+            Err(e) => {
+                debug!("get_file_like({}) failed: {:?}", fd, e);
+            }
+        }
+
         Some(File::from_fd(fd)?)
     } else {
         None
@@ -200,7 +264,7 @@ pub fn sys_mmap(
                             .downcast::<Device>()
                             .map_err(|_| AxError::NoSuchDevice)?;
 
-                        match device.mmap() {
+                        match device.mmap(offset, length) {
                             DeviceMmap::None => {
                                 return Err(AxError::NoSuchDevice);
                             }

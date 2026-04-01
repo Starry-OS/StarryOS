@@ -11,6 +11,9 @@ mod memtrack;
 mod rtc;
 pub mod tty;
 
+#[cfg(feature = "sg2002")]
+pub mod ion;
+
 use alloc::{format, sync::Arc};
 use core::any::Any;
 
@@ -20,7 +23,11 @@ use axsync::Mutex;
 #[cfg(feature = "dev-log")]
 pub use log::bind_dev_log;
 use rand::{RngCore, SeedableRng, rngs::SmallRng};
+use spin::Once;
 use starry_core::vfs::{Device, DeviceOps, DirMaker, DirMapping, SimpleDir, SimpleFs};
+
+#[cfg(feature = "sg2002")]
+pub static ION_DEVICE: Once<Arc<ion::IonDevice>> = Once::new();
 
 const RANDOM_SEED: &[u8; 32] = b"0123456789abcdef0123456789abcdef";
 
@@ -227,6 +234,22 @@ fn builder(fs: Arc<SimpleFs>) -> DirMaker {
             tty::N_TTY.clone(),
         ),
     );
+
+    #[cfg(feature = "sg2002")]
+    {
+        // Ion device
+        let ion_device = Arc::new(ion::IonDevice::new());
+        ION_DEVICE.call_once(|| ion_device.clone());
+        root.add(
+            "ion",
+            Device::new(
+                fs.clone(),
+                NodeType::CharacterDevice,
+                DeviceId::new(10, 56), // Ion 设备的标准设备号
+                ion_device,
+            ),
+        );
+    }
 
     root.add(
         "ptmx",

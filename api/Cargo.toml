@@ -12,6 +12,7 @@ input = ["dep:axinput"]
 memtrack = ["axfeat/dwarf", "axalloc/tracking", "dep:gimli"]
 vsock = ["axnet/vsock"]
 dev-log = []
+sg2002 = []
 
 [dependencies]
 axalloc.workspace = true
@@ -32,6 +33,7 @@ axnet.workspace = true
 axpoll.workspace = true
 axsync.workspace = true
 axtask.workspace = true
+axdma.workspace = true
 bitflags.workspace = true
 bitmaps = { version = "3.2.1", default-features = false }
 bytemuck.workspace = true

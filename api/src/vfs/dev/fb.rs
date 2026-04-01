@@ -225,7 +225,7 @@ impl DeviceOps for FrameBuffer {
         self
     }
 
-    fn mmap(&self) -> DeviceMmap {
+    fn mmap(&self, _offset: usize, _length: usize) -> DeviceMmap {
         DeviceMmap::Physical(PhysAddrRange::from_start_size(
             virt_to_phys(self.base),
             self.size,

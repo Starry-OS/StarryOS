@@ -6,6 +6,9 @@ mod pidfd;
 mod pipe;
 pub mod signalfd;
 
+#[cfg(feature = "sg2002")]
+pub mod ion;
+
 use alloc::{borrow::Cow, sync::Arc};
 use core::{ffi::c_int, time::Duration};
 
