@@ -14,6 +14,9 @@ pub mod tty;
 #[cfg(feature = "sg2002")]
 pub mod ion;
 
+#[cfg(feature = "sg2002")]
+pub mod tpu;
+
 use alloc::{format, sync::Arc};
 use core::any::Any;
 
@@ -237,6 +240,16 @@ fn builder(fs: Arc<SimpleFs>) -> DirMaker {
 
     #[cfg(feature = "sg2002")]
     {
+        root.add(
+            "cvi-tpu0",
+            Device::new(
+                fs.clone(),
+                NodeType::CharacterDevice,
+                DeviceId::new(240, 0),
+                Arc::new(unsafe { tpu::TpuDevice::new() }),
+            ),
+        );
+
         // Ion device
         let ion_device = Arc::new(ion::IonDevice::new());
         ION_DEVICE.call_once(|| ion_device.clone());

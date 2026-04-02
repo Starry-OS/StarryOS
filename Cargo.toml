@@ -46,6 +46,7 @@ axnet = { path = "arceos/modules/axnet" }
 axruntime = { path = "arceos/modules/axruntime" }
 axsync = { path = "arceos/modules/axsync" }
 axtask = { path = "arceos/modules/axtask" }
+axdma = { path = "arceos/modules/axdma" }
 
 axbacktrace = "0.1"
 axerrno = "0.2"
@@ -109,8 +110,7 @@ smp = ["axfeat/smp", "axplat-riscv64-visionfive2?/smp"]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc"]
 
-#sg2002 = ["dep:axplat-riscv64-sg2002", "starry-api/sg2002", "axfeat/plat-sg2002"]
-sg2002 = ["dep:axplat-riscv64-sg2002",  "axfeat/plat-sg2002"]
+sg2002 = ["dep:axplat-riscv64-sg2002", "starry-api/sg2002", "axfeat/plat-sg2002"]
 
 [dependencies]
 axdriver.workspace = true
@@ -141,7 +141,7 @@ optional = true
 [dependencies.axplat-riscv64-sg2002]
 version = "0.1"
 git = "https://github.com/elliott10/axplat-riscv64-sg2002.git"
-rev = "92a95ef8"
+rev = "bf8a42d8"
 features = ["fp-simd", "irq", "rtc"]
 optional = true
 
@@ -160,7 +160,7 @@ axdriver_virtio = { git = "https://github.com/elliott10/axdriver_crates.git", re
 axdriver_vsock = { git = "https://github.com/elliott10/axdriver_crates.git", rev = "4d73e06a" }
 
 [patch."https://github.com/arceos-org/axcpu.git"]
-axcpu = { git = "https://github.com/elliott10/axcpu.git", rev = "47b2dbcb" }
+axcpu = { git = "https://github.com/elliott10/axcpu.git", rev = "628f1c99" }
 
 [patch."https://github.com/arceos-org/page_table_multiarch.git"]
 page_table_multiarch = { git = "https://github.com/arceos-org//page_table_multiarch.git", rev = "53a08f4e" }
