@@ -15,7 +15,7 @@ pub mod tty;
 pub mod ion;
 
 #[cfg(feature = "sg2002")]
-pub mod tpu;
+pub mod cvi_tpu;
 
 use alloc::{format, sync::Arc};
 use core::any::Any;
@@ -31,6 +31,8 @@ use starry_core::vfs::{Device, DeviceOps, DirMaker, DirMapping, SimpleDir, Simpl
 
 #[cfg(feature = "sg2002")]
 pub static ION_DEVICE: Once<Arc<ion::IonDevice>> = Once::new();
+#[cfg(feature = "sg2002")]
+pub static TPU_DEVICE: Once<Arc<cvi_tpu::CviTpuDevice>> = Once::new();
 
 const RANDOM_SEED: &[u8; 32] = b"0123456789abcdef0123456789abcdef";
 
@@ -240,13 +242,17 @@ fn builder(fs: Arc<SimpleFs>) -> DirMaker {
 
     #[cfg(feature = "sg2002")]
     {
+        // CVI TPU device
+        let tpu_device = Arc::new(cvi_tpu::CviTpuDevice::new());
+        tpu_device.init();
+        TPU_DEVICE.call_once(|| tpu_device.clone());
         root.add(
             "cvi-tpu0",
             Device::new(
                 fs.clone(),
                 NodeType::CharacterDevice,
-                DeviceId::new(240, 0),
-                Arc::new(unsafe { tpu::TpuDevice::new() }),
+                DeviceId::new(120, 0),
+                tpu_device,
             ),
         );
 

@@ -12,7 +12,7 @@ input = ["dep:axinput"]
 memtrack = ["axfeat/dwarf", "axalloc/tracking", "dep:gimli"]
 vsock = ["axnet/vsock"]
 dev-log = []
-sg2002 = []
+sg2002 = ["dep:tpu-sg2002"]
 
 [dependencies]
 axalloc.workspace = true
@@ -73,3 +73,4 @@ x86 = "0.52"
 
 [target.'cfg(any(target_arch = "riscv32", target_arch = "riscv64"))'.dependencies]
 riscv = "0.14"
+tpu-sg2002 = { git = "https://github.com/elliott10/tpu_sg2002.git", rev = "7ee2eab4", optional = true }
