@@ -70,7 +70,6 @@ vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc"]
 [[bin]]
 name = "starryos"
 path = "src/main.rs"
-required-features = ["qemu"]
 
 [dependencies]
 axfeat.workspace = true
