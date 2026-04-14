@@ -1,0 +1,13 @@
+[target.x86_64-unknown-linux-musl]
+linker = "x86_64-linux-musl-cc"
+rustflags = ["-C", "target-feature=-crt-static"]
+
+[target.riscv64gc-unknown-linux-musl]
+linker = "riscv64-linux-musl-cc"
+
+[target.loongarch64-unknown-linux-musl]
+linker = "loongarch64-linux-musl-cc"
+
+[target.aarch64-unknown-linux-musl]
+linker = "aarch64-linux-musl-cc"
+rustflags = ["-C", "target-feature=-crt-static"]
