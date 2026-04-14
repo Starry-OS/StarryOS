@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["starryos", "kernel"]
-exclude = ["arceos"]
+members = ["starryos", "kernel", "modules/*"]
+exclude = ["arceos", "user/musl/async_test"]
 
 [workspace.package]
 version = "0.2.0-preview.2"
@@ -37,3 +37,23 @@ axsync = { version = "0.3.0-preview.2" }
 axtask = { version = "0.3.0-preview.2" }
 
 starry-kernel = { path = "kernel", version = "=0.2.0-preview.2" }
+
+axerrno = "0.2"
+axio = "0.3.0-pre.1"
+syscalls = { version = "0.8", default-features = false }
+
+rbpf = { version = "0.4", default-features = false }
+ktracepoint = "0.5"
+ksym = "0.5"
+kprobe = "0.5"
+kbpf-basic = "0.5"
+kmod = { version = "0.2", package = "kmod-tools" }
+kmod-loader = "0.2"
+
+[patch.crates-io]
+axcpu = { git = "https://github.com/Godones/axcpu.git", branch = "0.3.0.preview.9" }
+axhal = { git = "https://github.com/Godones/arceos.git", branch = "dev" }
+axalloc = { git = "https://github.com/Godones/arceos.git", branch = "dev" }
+
+page_table_multiarch = { git = "https://github.com/Godones/page_table_multiarch.git" }
+page_table_entry = { git = "https://github.com/Godones/page_table_multiarch.git" }

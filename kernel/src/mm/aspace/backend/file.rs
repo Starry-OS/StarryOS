@@ -3,6 +3,7 @@ use alloc::{
     sync::{Arc, Weak},
     vec::Vec,
 };
+use axfs_ng_vfs::Location;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use axerrno::{AxError, AxResult};
@@ -103,6 +104,14 @@ impl FileBackend {
 
     pub fn futex_handle(&self) -> Weak<()> {
         Arc::downgrade(&self.0.futex_handle)
+    }
+
+    pub fn location(&self) -> &Location {
+        self.0.cache.location()
+    }
+
+    pub fn file_offset(&self) -> usize {
+        (self.0.offset_page as usize) * PAGE_SIZE_4K
     }
 }
 

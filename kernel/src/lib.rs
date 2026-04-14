@@ -4,6 +4,10 @@
 #![no_std]
 #![feature(likely_unlikely)]
 #![feature(bstr)]
+#![feature(concat_bytes)]
+#![feature(c_variadic)]
+#![feature(layout_for_ptr)]
+#![allow(unsafe_op_in_unsafe_fn)]
 #![allow(missing_docs)]
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
@@ -16,9 +20,18 @@ extern crate axlog;
 pub mod entry;
 
 mod config;
-mod file;
-mod mm;
+pub mod file;
+pub mod mm;
 mod pseudofs;
-mod syscall;
+pub mod syscall;
 mod task;
 mod time;
+
+pub mod bpf;
+mod exception;
+pub mod kmod;
+pub mod kprobe;
+pub mod lock_api;
+pub mod perf;
+pub mod tracepoint;
+pub mod uprobe;

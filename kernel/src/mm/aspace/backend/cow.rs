@@ -1,4 +1,5 @@
 use alloc::{collections::BTreeMap, sync::Arc};
+use axfs_ng_vfs::Location;
 use core::slice;
 
 use axerrno::{AxError, AxResult};
@@ -155,6 +156,15 @@ impl CowBackend {
         }
 
         Ok(())
+    }
+
+    /// Returns the location of the backing file, if any.
+    pub fn location(&self) -> Option<&Location> {
+        self.file.as_ref().map(|(file, ..)| file.location())
+    }
+
+    pub fn file_offset(&self) -> Option<usize> {
+        self.file.as_ref().map(|(_, offset, _)| *offset as usize )
     }
 }
 

@@ -50,6 +50,16 @@ impl AddrSpace {
         &mut self.pt
     }
 
+    /// Returns the memory set of the address space.
+    pub fn memoryset(&self) -> &MemorySet<Backend> {
+        &self.areas
+    }
+
+    /// Returns a mutable reference to the memory set of the address space.
+    pub fn memoryset_mut(&mut self) -> &mut MemorySet<Backend> {
+        &mut self.areas
+    }
+
     /// Returns the root physical address of the inner page table.
     pub const fn page_table_root(&self) -> PhysAddr {
         self.pt.root_paddr()

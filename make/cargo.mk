@@ -17,7 +17,19 @@ build_args := \
   $(build_args-$(MODE)) \
   $(verbose)
 
-RUSTFLAGS_LINK_ARGS := -C link-arg=-T$(LD_SCRIPT) -C link-arg=-no-pie -C link-arg=-znostart-stop-gc
+RUSTFLAGS_LINK_ARGS := \
+  -C link-arg=-T$(LD_SCRIPT) \
+  -C link-arg=-no-pie \
+  -C link-arg=-znostart-stop-gc \
+  -C link-dead-code \
+  -C lto=off
+
+ifeq ($(ARCH), loongarch64)
+  RUSTFLAGS_LINK_ARGS += -C code-model=small
+# else ifeq ($(ARCH), x86_64)
+#   RUSTFLAGS_LINK_ARGS += -C code-model=kernel
+endif
+
 RUSTDOCFLAGS := -Z unstable-options --enable-index-page -D rustdoc::broken_intra_doc_links
 
 ifeq ($(MAKECMDGOALS), doc_check_missing)

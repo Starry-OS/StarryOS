@@ -17,7 +17,10 @@ fn main() {
         .collect::<Vec<_>>();
     let envs = [];
 
-    starry_kernel::entry::init(&args, &envs);
+    starry_kernel::entry::init();
+    #[cfg(feature = "kebpf")]
+    kebpf::kebpf_init();
+    starry_kernel::entry::run(&args, &envs);
 }
 
 #[cfg(feature = "vf2")]

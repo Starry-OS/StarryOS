@@ -5,8 +5,9 @@ include cargo.mk
 ifeq ($(APP_TYPE), c)
   include build_c.mk
 else
-  rust_package := $(shell cat $(APP)/starryos/Cargo.toml | sed -n 's/^name = "\([a-z0-9A-Z_\-]*\)"/\1/p' | head -1)
+  rust_package := $(shell cat $(APP)/Cargo.toml | sed -n 's/^name = "\([a-z0-9A-Z_\-]*\)"/\1/p' | head -1)
   rust_elf := $(TARGET_DIR)/$(TARGET)/$(MODE)/$(rust_package)
+  rust_lib := $(TARGET_DIR)/$(TARGET)/$(MODE)/lib$(rust_package).rlib
 endif
 
 ifneq ($(filter $(MAKECMDGOALS),doc doc_check_missing),)
@@ -35,7 +36,8 @@ else ifneq ($(filter $(or $(MAKECMDGOALS), $(.DEFAULT_GOAL)), all build run just
     RUSTFLAGS += $(RUSTFLAGS_LINK_ARGS)
   endif
   ifeq ($(DWARF), y)
-    RUSTFLAGS += -C force-frame-pointers -C debuginfo=2 -C strip=none
+#     RUSTFLAGS += -C force-frame-pointers -C debuginfo=2 -C strip=none
+	RUSTFLAGS += -C force-frame-pointers -C strip=none
   endif
   $(if $(V), $(info RUSTFLAGS: "$(RUSTFLAGS)"))
   export RUSTFLAGS
@@ -48,6 +50,7 @@ endif
 _cargo_build: oldconfig
 	@printf "    $(GREEN_C)Building$(END_C) App: $(APP_NAME), Arch: $(ARCH), Platform: $(PLAT_NAME), App type: $(APP_TYPE)\n"
 ifeq ($(APP_TYPE), rust)
+	@echo "RUSTFLAGS: $(RUSTFLAGS)"
 	$(call cargo_build,$(APP),$(AX_FEAT) $(LIB_FEAT) $(APP_FEAT))
 	@cp $(rust_elf) $(OUT_ELF)
 else ifeq ($(APP_TYPE), c)
@@ -57,17 +60,33 @@ endif
 $(OUT_DIR):
 	$(call run_cmd,mkdir,-p $@)
 
+_kallsyms: $(OUT_ELF)
+	@if ! command -v gen_ksym >/dev/null 2>&1; then \
+		echo "Installing gen_ksym..."; \
+		RUSTFLAGS= cargo install ksym; \
+	else \
+		echo "gen_ksym already installed."; \
+	fi
+	$(NM) $(OUT_ELF) | grep ' [TtDBR] ' | awk '$$3 !~ /^\.L/' | awk '$$3 != "$$x"' | RUSTFLAGS= gen_ksym > $@
+	$(OBJCOPY) --update-section .kallsyms=$@ $<
+	@rm -f $@
+
 _dwarf: $(OUT_ELF)
 ifeq ($(DWARF), y)
 	$(call run_cmd,./dwarf.sh,$(OUT_ELF) $(OBJCOPY))
 endif
 
-$(OUT_BIN): _cargo_build $(OUT_ELF) _dwarf
+$(OUT_BIN): _cargo_build $(OUT_ELF) _kallsyms _dwarf
 	$(call run_cmd,$(OBJCOPY),$(OUT_ELF) --strip-all -O binary $@)
 	@if [ ! -s $(OUT_BIN) ]; then \
 		echo 'Empty kernel image "$(notdir $(FINAL_IMG))" is built, please check your build configuration'; \
 		exit 1; \
 	fi
+
+$(OUT_KO): oldconfig
+	$(call cargo_build,$(APP),$(AX_FEAT) $(LIB_FEAT) $(APP_FEAT))
+	@echo "Linking kernel module..."
+	$(call run_cmd,$(LD), -r -T $(KMOD_LINKER_SCRIPT) -o $@ --whole-archive $(rust_lib) --strip-debug --build-id=none --gc-sections -no-pie)
 
 ifeq ($(ARCH), aarch64)
   uimg_arch := arm64
@@ -83,4 +102,4 @@ $(OUT_UIMG): $(OUT_BIN)
 		-a $(subst _,,$(shell axconfig-gen "$(OUT_CONFIG)" -r plat.kernel-base-paddr)) \
 		-d $(OUT_BIN) $@)
 
-.PHONY: _cargo_build _dwarf
+.PHONY: _cargo_build _dwarf _kallsyms

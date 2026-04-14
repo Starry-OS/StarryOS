@@ -9,6 +9,7 @@ mod timer;
 mod user;
 
 use alloc::{boxed::Box, string::String, sync::Arc, vec::Vec};
+use kprobe::{ProbeManager, ProbePointList};
 use core::{
     cell::RefCell,
     ops::Deref,
@@ -28,7 +29,7 @@ use starry_signal::{
 };
 
 pub use self::{futex::*, ops::*, resources::*, signal::*, stat::*, timer::*, user::*};
-use crate::mm::AddrSpace;
+use crate::{lock_api::KSpinNoPreempt, mm::AddrSpace, kprobe::KprobeAuxiliary};
 
 ///  A wrapper type that assumes the inner type is `Sync`.
 #[repr(transparent)]
@@ -218,6 +219,15 @@ pub struct ProcessData {
 
     /// The default mask for file permissions.
     umask: AtomicU32,
+
+    /// Kretprobe instances attached to this process
+    pub kretprobe_instances: RwLock<Vec<kprobe::retprobe::RetprobeInstance>>,
+
+    /// Uprobe manager for this process
+    pub uprobe_manager: KSpinNoPreempt<ProbeManager<KSpinNoPreempt<()>, KprobeAuxiliary>>,
+
+    /// Uprobe point list for this process
+    pub uprobe_point_list: KSpinNoPreempt<ProbePointList<KprobeAuxiliary>>,
 }
 
 impl ProcessData {
@@ -252,6 +262,10 @@ impl ProcessData {
             futex_table: Arc::new(FutexTable::new()),
 
             umask: AtomicU32::new(0o022),
+            
+            kretprobe_instances: RwLock::new(Vec::new()),
+            uprobe_manager: KSpinNoPreempt::new(ProbeManager::new()),
+            uprobe_point_list: KSpinNoPreempt::new(ProbePointList::new()),
         })
     }
 

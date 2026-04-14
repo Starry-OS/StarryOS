@@ -7,6 +7,7 @@ mod pipe;
 pub mod signalfd;
 
 use alloc::{borrow::Cow, sync::Arc};
+use memory_addr::VirtAddr;
 use core::{ffi::c_int, time::Duration};
 
 use axerrno::{AxError, AxResult};
@@ -26,7 +27,7 @@ pub use self::{
     pidfd::PidFd,
     pipe::Pipe,
 };
-use crate::task::{AX_FILE_LIMIT, AsThread};
+use crate::{mm::AddrSpace, syscall::{MmapFlags, MmapProt}, task::{AX_FILE_LIMIT, AsThread}};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Kstat {
@@ -175,6 +176,22 @@ pub trait FileLike: Pollable + DowncastSync {
         Self: Sized + 'static,
     {
         add_file_like(Arc::new(self), cloexec)
+    }
+
+    fn custom_mmap(&self) -> bool {
+        false
+    }
+
+    fn mmap(
+        &self,
+        _aspace: &mut AddrSpace,
+        _start: VirtAddr,
+        _length: usize,
+        _prot: MmapProt,
+        _flags: MmapFlags,
+        _offset: usize,
+    ) -> AxResult<isize> {
+        Err(AxError::OperationNotSupported)
     }
 }
 impl_downcast!(sync FileLike);

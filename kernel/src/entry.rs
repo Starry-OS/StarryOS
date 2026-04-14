@@ -4,7 +4,7 @@ use alloc::{
 };
 
 use axfs::FS_CONTEXT;
-use axhal::uspace::UserContext;
+use axhal::{percpu::this_cpu_id, uspace::UserContext};
 use axsync::Mutex;
 use axtask::{AxTaskExt, spawn_task};
 use starry_process::{Pid, Process};
@@ -16,11 +16,22 @@ use crate::{
     task::{ProcessData, Thread, add_task_to_table, new_user_task, spawn_alarm_task},
 };
 
-/// Initialize and run initproc.
-pub fn init(args: &[String], envs: &[String]) {
+/// Initialize the basic kernel subsystems and prepare for running the init process.
+pub fn init() {
+    if this_cpu_id() == 0 {}
+    #[cfg(feature = "kprobe_test")]
+    crate::kprobe::kprobe_test::kprobe_test();
+    crate::tracepoint::tracepoint_init();
+    crate::bpf::init_bpf();
+    crate::perf::perf_event_init();
+    crate::kmod::init_kmod();
+    
     pseudofs::mount_all().expect("Failed to mount pseudofs");
     spawn_alarm_task();
+}
 
+/// Run the init process with the given arguments and environment variables.
+pub fn run(args: &[String], envs: &[String]) {
     let loc = FS_CONTEXT
         .lock()
         .resolve(&args[0])

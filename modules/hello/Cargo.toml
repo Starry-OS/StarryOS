@@ -1,0 +1,21 @@
+[package]
+name = "hello"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axfeat.workspace = true
+starry-kernel.workspace = true
+kmod.workspace = true
+
+[features]
+default = []
+qemu = [
+    "axfeat/defplat",
+    "axfeat/bus-pci",
+    "axfeat/display",
+    "starry-kernel/input",
+    "starry-kernel/vsock",   # auxilary features
+    "axfeat/fs-ng-times",
+    "starry-kernel/dev-log",
+]

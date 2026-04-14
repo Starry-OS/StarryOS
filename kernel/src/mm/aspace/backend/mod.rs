@@ -1,5 +1,9 @@
 //! Memory mapping backends.
-use alloc::{boxed::Box, sync::Arc};
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    sync::Arc,
+};
 
 use axalloc::{UsageKind, global_allocator};
 use axerrno::{AxError, AxResult};
@@ -25,7 +29,7 @@ fn divide_page(size: usize, page_size: PageSize) -> usize {
     size >> (page_size as usize).trailing_zeros()
 }
 
-fn alloc_frame(zeroed: bool, size: PageSize) -> AxResult<PhysAddr> {
+pub fn alloc_frame(zeroed: bool, size: PageSize) -> AxResult<PhysAddr> {
     let page_size = size as usize;
     let num_pages = page_size / PAGE_SIZE_4K;
     let vaddr = VirtAddr::from(
@@ -41,11 +45,32 @@ fn alloc_frame(zeroed: bool, size: PageSize) -> AxResult<PhysAddr> {
     Ok(paddr)
 }
 
-fn dealloc_frame(frame: PhysAddr, align: PageSize) {
+pub fn dealloc_frame(frame: PhysAddr, align: PageSize) {
     let vaddr = phys_to_virt(frame);
     let page_size: usize = align.into();
     let num_pages = page_size / PAGE_SIZE_4K;
     global_allocator().dealloc_pages(vaddr.as_usize(), num_pages, UsageKind::VirtMem);
+}
+
+pub fn alloc_frames(
+    zeroed: bool,
+    size: PageSize,
+    nums: usize,
+    kind: UsageKind,
+) -> AxResult<PhysAddr> {
+    let page_size = size as usize;
+    let vaddr = VirtAddr::from(global_allocator().alloc_pages(nums, page_size, kind)?);
+    if zeroed {
+        unsafe { core::ptr::write_bytes(vaddr.as_mut_ptr(), 0, page_size * nums) };
+    }
+    let paddr = virt_to_phys(vaddr);
+
+    Ok(paddr)
+}
+
+pub fn dealloc_frames(frames: PhysAddr, nums: usize) {
+    let vaddr = phys_to_virt(frames);
+    global_allocator().dealloc_pages(vaddr.as_usize(), nums, UsageKind::VirtMem);
 }
 
 fn pages_in(range: VirtAddrRange, align: PageSize) -> AxResult<DynPageIter<VirtAddr>> {
@@ -114,6 +139,42 @@ pub enum Backend {
     Cow(cow::CowBackend),
     Shared(shared::SharedBackend),
     File(file::FileBackend),
+}
+
+impl Backend {
+    /// Returns a string representing the location of the backend(for
+    /// /proc/[pid]/maps).
+    pub fn location(&self) -> String {
+        match self {
+            Backend::Linear(_) => "[anon]".to_string(),
+            Backend::Cow(b) => {
+                let loc = b.location();
+                if let Some(loc) = loc {
+                    return loc
+                        .absolute_path()
+                        .map(|pb| pb.to_string())
+                        .unwrap_or("unknown".to_string());
+                }
+                "[anon]".to_string()
+            }
+            Backend::Shared(_) => "[anon]".to_string(),
+            Backend::File(b) => {
+                let loc = b.location();
+                loc.absolute_path()
+                    .map(|pb| pb.to_string())
+                    .unwrap_or("unknown".to_string())
+            }
+        }
+    }
+
+    /// Returns the file offset if applicable.(for /proc/[pid]/maps).
+    pub fn file_offset(&self) -> Option<usize> {
+        match self {
+            Backend::File(b) => Some(b.file_offset()),
+            Backend::Cow(b) => b.file_offset(),
+            _ => None,
+        }
+    }
 }
 
 impl MappingBackend for Backend {

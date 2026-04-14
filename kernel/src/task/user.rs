@@ -49,14 +49,27 @@ pub fn new_user_task(name: &str, mut uctx: UserContext, set_child_tid: usize) ->
                                 if unsafe { uctx.emulate_unaligned() }.is_ok() {
                                     break 'exc;
                                 }
-                                Signo::SIGBUS
+                                Some(Signo::SIGBUS)
                             }
-                            ExceptionKind::Breakpoint => Signo::SIGTRAP,
-                            ExceptionKind::IllegalInstruction => Signo::SIGILL,
-                            _ => Signo::SIGTRAP,
+                            #[cfg(target_arch = "x86_64")]
+                            ExceptionKind::Debug => {
+                                crate::exception::user_debug_handler(&mut uctx);
+                                None
+                            }
+                            ExceptionKind::Breakpoint => {
+                                if crate::exception::user_ebreak_handler(&mut uctx) {
+                                    None
+                                } else {
+                                    Some(Signo::SIGTRAP)
+                                }
+                            }
+                            ExceptionKind::IllegalInstruction => Some(Signo::SIGILL),
+                            _ => Some(Signo::SIGTRAP),
                         };
-                        raise_signal_fatal(SignalInfo::new_kernel(signo))
-                            .expect("Failed to send SIGTRAP");
+                        if let Some(signo) = signo {
+                            raise_signal_fatal(SignalInfo::new_kernel(signo))
+                                .expect("Failed to send SIGTRAP");
+                        }
                     }
                     r => {
                         warn!("Unexpected return reason: {r:?}");
@@ -66,6 +79,7 @@ pub fn new_user_task(name: &str, mut uctx: UserContext, set_child_tid: usize) ->
                 }
 
                 if !unblock_next_signal() {
+                    // TODO: x86_64 rflags may need to be updated in unblock_next_signal
                     while check_signals(thr, &mut uctx, None) {}
                 }
 

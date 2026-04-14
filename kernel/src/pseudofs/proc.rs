@@ -14,12 +14,16 @@ use core::{
 };
 
 use axfs_ng_vfs::{Filesystem, NodeType, VfsError, VfsResult};
+use axhal::paging::MappingFlags;
 use axtask::{AxTaskRef, WeakAxTaskRef, current};
 use indoc::indoc;
+use ksym::KallsymsMapped;
+use lazyinit::LazyInit;
 use starry_process::Process;
 
 use crate::{
     file::FD_TABLE,
+    mm::Backend,
     pseudofs::{
         DirMaker, DirMapping, NodeOpsMux, RwFile, SimpleDir, SimpleDirOps, SimpleFile,
         SimpleFileOperation, SimpleFs,
@@ -87,7 +91,10 @@ const DUMMY_MEMINFO: &str = indoc! {"
     DirectMap1G:     1048576 kB
 "};
 
-pub fn new_procfs() -> Filesystem {
+pub static KALLSYMS: LazyInit<KallsymsMapped<'static>> = LazyInit::new();
+
+pub fn new_procfs(kallsyms: KallsymsMapped<'static>) -> Filesystem {
+    KALLSYMS.init_once(kallsyms);
     SimpleFs::new_with("proc".into(), 0x9fa0, builder)
 }
 
@@ -193,6 +200,69 @@ struct ThreadDir {
     task: WeakAxTaskRef,
 }
 
+impl ThreadDir {
+    fn thread_maps(&self) -> String {
+        let mut maps = String::new();
+
+        let task = match self.task.upgrade() {
+            Some(t) => t,
+            None => return maps,
+        };
+
+        let mm = task.as_thread().proc_data.aspace.lock();
+
+        let memset = mm.memoryset();
+
+        for area in memset.iter() {
+            let start = area.start();
+            let end = area.end();
+            let backend = area.backend();
+            let loc = backend.location();
+            let is_shared = matches!(backend, Backend::Shared(_));
+
+            let flag_end = if is_shared { 's' } else { 'p' };
+            let flags = area.flags();
+            let perms = {
+                let r = if flags.contains(MappingFlags::READ) {
+                    'r'
+                } else {
+                    '-'
+                };
+                let w = if flags.contains(MappingFlags::WRITE) {
+                    'w'
+                } else {
+                    '-'
+                };
+                let x = if flags.contains(MappingFlags::EXECUTE) {
+                    'x'
+                } else {
+                    '-'
+                };
+                format!("{}{}{}{}", r, w, x, flag_end)
+            };
+
+            let file_offset = backend.file_offset().unwrap_or(0);
+
+            maps += &format!(
+                "{:08x}-{:08x} {} {:08x} 00:00 0          {}\n",
+                start.as_usize(),
+                end.as_usize(),
+                perms,
+                file_offset,
+                loc,
+            );
+        }
+
+        maps += indoc! {"
+7f000000-7f001000 r--p 00000000 00:00 0          [vdso]
+7f001000-7f003000 r-xp 00001000 00:00 0          [vdso]
+7f003000-7f005000 r--p 00003000 00:00 0          [vdso]
+7f005000-7f007000 rw-p 00005000 00:00 0          [vdso]
+"};
+        maps
+    }
+}
+
 impl SimpleDirOps for ThreadDir {
     fn child_names<'a>(&'a self) -> Box<dyn Iterator<Item = Cow<'a, str>> + 'a> {
         Box::new(
@@ -249,15 +319,10 @@ impl SimpleDirOps for ThreadDir {
                 }),
             )
             .into(),
-            "maps" => SimpleFile::new_regular(fs, move || {
-                Ok(indoc! {"
-                    7f000000-7f001000 r--p 00000000 00:00 0          [vdso]
-                    7f001000-7f003000 r-xp 00001000 00:00 0          [vdso]
-                    7f003000-7f005000 r--p 00003000 00:00 0          [vdso]
-                    7f005000-7f007000 rw-p 00005000 00:00 0          [vdso]
-                "})
-            })
-            .into(),
+            "maps" => {
+                let maps = self.thread_maps();
+                SimpleFile::new_regular(fs, move || Ok(maps.clone())).into()
+            }
             "mounts" => SimpleFile::new_regular(fs, move || {
                 Ok("proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0\n")
             })
@@ -358,6 +423,12 @@ impl SimpleDirOps for ProcFsHandler {
 
 fn builder(fs: Arc<SimpleFs>) -> DirMaker {
     let mut root = DirMapping::new();
+    root.add(
+        "kallsyms",
+        SimpleFile::new_regular(fs.clone(), || {
+            Ok(KALLSYMS.get().unwrap().dump_all_symbols())
+        }),
+    );
     root.add(
         "mounts",
         SimpleFile::new_regular(fs.clone(), || {

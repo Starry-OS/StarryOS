@@ -15,10 +15,12 @@ homepage.workspace = true
 repository.workspace = true
 
 [features]
+default = ["kprobe_test"]
 dev-log = []
 input = ["dep:axinput", "axfeat/input"]
 memtrack = ["axfeat/dwarf", "axalloc/tracking", "dep:gimli"]
 vsock = ["axfeat/vsock"]
+kprobe_test = []
 
 [dependencies]
 axfeat = { workspace = true, features = [
@@ -52,11 +54,11 @@ axnet = { version = "0.3.0-preview.3", package = "axnet-ng" }
 axruntime.workspace = true
 axsync.workspace = true
 axtask.workspace = true
-
+axerrno.workspace = true
+axio.workspace = true
+syscalls.workspace = true
 axbacktrace = "0.1"
-axerrno = "0.2"
 axfs-ng-vfs = "0.1"
-axio = "0.3.0-pre.1"
 axpoll = "0.1"
 bitflags = "2.10"
 bitmaps = { version = "3.2", default-features = false }
@@ -101,11 +103,22 @@ starry-process = "0.2"
 starry-signal = "0.3"
 starry-vm = "0.3"
 strum = { version = "0.28", default-features = false, features = ["derive"] }
-syscalls = { version = "0.8", default-features = false }
 uluru = "3.1.0"
 weak-map = "0.1.1"
 xmas-elf = "0.9"
 zerocopy = { version = "0.8", features = ["derive"] }
+
+
+lazyinit = "0.2"
+static-keys = "0.8"
+lwprintf-rs = "0.3"
+rbpf.workspace = true
+ktracepoint.workspace = true
+ksym.workspace = true
+kprobe.workspace = true
+kmod.workspace = true
+kmod-loader.workspace = true
+kbpf-basic.workspace = true
 
 [target.'cfg(target_arch = "x86_64")'.dependencies]
 x86 = "0.52"

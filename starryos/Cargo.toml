@@ -29,6 +29,8 @@ smp = ["axfeat/smp", "axplat-riscv64-visionfive2?/smp"]
 
 vf2 = ["dep:axplat-riscv64-visionfive2", "axfeat/driver-sdmmc"]
 
+kebpf = ["dep:kebpf"]
+
 [[bin]]
 name = "starryos"
 path = "src/main.rs"
@@ -41,6 +43,7 @@ path = "xtask/main.rs"
 [dependencies]
 axfeat.workspace = true
 starry-kernel.workspace = true
+kebpf = { path = "../modules/kebpf", optional = true }
 
 [dependencies.axplat-riscv64-visionfive2]
 features = ["fp-simd", "irq", "rtc"]

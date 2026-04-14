@@ -50,6 +50,7 @@ TARGET_DIR ?= $(PWD)/target
 EXTRA_CONFIG ?=
 OUT_CONFIG ?= $(PWD)/.axconfig.toml
 UIMAGE ?= n
+KMOD ?= n
 
 # App options
 A ?= examples/helloworld
@@ -70,7 +71,7 @@ ACCEL ?=
 ICOUNT ?= n
 QEMU_ARGS ?=
 
-DISK_IMG ?= disk.img
+DISK_IMG ?= $(PWD)/rootfs-$(ARCH).img
 QEMU_LOG ?= n
 NET_DUMP ?= n
 NET_DEV ?= user
@@ -96,7 +97,7 @@ endif
 
 .DEFAULT_GOAL := all
 
-ifneq ($(filter $(or $(MAKECMDGOALS), $(.DEFAULT_GOAL)), all build disasm run justrun debug defconfig oldconfig),)
+ifneq ($(filter $(or $(MAKECMDGOALS), $(.DEFAULT_GOAL)), all build disasm run justrun debug defconfig oldconfig copy_ko),)
 # Install dependencies
 include deps.mk
 # Platform resolving
@@ -146,6 +147,7 @@ LD := rust-lld -flavor gnu
 OBJDUMP ?= rust-objdump -d --print-imm-hex --x86-asm-syntax=intel
 OBJCOPY ?= rust-objcopy --binary-architecture=$(ARCH)
 GDB ?= gdb
+NM ?= rust-nm -n
 
 # Paths
 OUT_DIR ?= $(APP)
@@ -155,8 +157,12 @@ APP_NAME := $(shell basename $(APP))
 OUT_ELF := $(OUT_DIR)/$(APP_NAME)_$(PLAT_NAME).elf
 OUT_BIN := $(patsubst %.elf,%.bin,$(OUT_ELF))
 OUT_UIMG := $(patsubst %.elf,%.uimg,$(OUT_ELF))
+OUT_KO := $(patsubst %.elf,%.ko,$(OUT_ELF))
+RAW_KO := $(APP_NAME).ko
 ifeq ($(UIMAGE), y)
   FINAL_IMG := $(OUT_UIMG)
+else ifeq ($(KMOD), y)
+  FINAL_IMG := $(OUT_KO)
 else
   FINAL_IMG := $(OUT_BIN)
 endif
@@ -179,6 +185,19 @@ disasm:
 	$(OBJDUMP) $(OUT_ELF) | less
 
 run: build justrun
+
+mount:
+	@echo "Mounting disk image $(DISK_IMG) to $(LOCAL_MNT)"
+	@mkdir -p $(LOCAL_MNT)
+	@sudo mount -o loop $(DISK_IMG) $(LOCAL_MNT)
+
+umount:
+	@sudo umount $(LOCAL_MNT)
+	@rmdir $(LOCAL_MNT)
+
+copy_ko:
+	@echo "Copying module $(notdir $(OUT_KO)) to disk"
+	@sudo install -D $(OUT_KO) $(LOCAL_MNT)/modules/$(RAW_KO)
 
 justrun:
 	$(call run_qemu)
@@ -205,4 +224,4 @@ clean: clean_c
 .PHONY: all defconfig oldconfig \
 	build disasm run justrun debug \
 	clippy doc doc_check_missing fmt fmt_c unittest unittest_no_fail_fast \
-	disk_img clean
+	disk_img clean mount umount copy_ko

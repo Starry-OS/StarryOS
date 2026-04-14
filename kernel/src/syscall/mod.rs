@@ -1,8 +1,10 @@
 mod fs;
 mod io_mpx;
 mod ipc;
+mod kmod;
 mod mm;
 mod net;
+mod perf;
 mod resources;
 mod signal;
 mod sync;
@@ -10,18 +12,29 @@ mod sys;
 mod task;
 mod time;
 
+use alloc::collections::btree_map::BTreeMap;
+
 use axerrno::{AxError, LinuxError};
 use axhal::uspace::UserContext;
+use spin::RwLock;
 use syscalls::Sysno;
 
 pub use self::{
-    fs::*, io_mpx::*, ipc::*, mm::*, net::*, resources::*, signal::*, sync::*, sys::*, task::*,
-    time::*,
+    fs::*, io_mpx::*, ipc::*, mm::*, net::*, perf::*, resources::*, signal::*, sync::*, sys::*,
+    task::*, time::*, kmod::*,
 };
 
+#[inline(never)]
+pub fn sysno(id: usize) -> Option<Sysno> {
+    let Some(sysno) = Sysno::new(id) else {
+        warn!("Invalid syscall number: {}", id);
+        return None;
+    };
+    Some(sysno)
+}
+
 pub fn handle_syscall(uctx: &mut UserContext) {
-    let Some(sysno) = Sysno::new(uctx.sysno()) else {
-        warn!("Invalid syscall number: {}", uctx.sysno());
+    let Some(sysno) = sysno(uctx.sysno() as usize) else {
         uctx.set_retval(-LinuxError::ENOSYS.code() as _);
         return;
     };
@@ -613,15 +626,25 @@ pub fn handle_syscall(uctx: &mut UserContext) {
             uctx.arg2(),
             uctx.arg3() as _,
         ),
+        Sysno::perf_event_open => sys_perf_event_open(
+            uctx.arg0() as _,
+            uctx.arg1() as _,
+            uctx.arg2() as _,
+            uctx.arg3() as _,
+            uctx.arg4() as _,
+        ),
+        Sysno::finit_module => {
+            sys_finit_module(uctx.arg0() as _, uctx.arg1() as _, uctx.arg2() as _)
+        }
+        Sysno::init_module => sys_init_module(uctx.arg0() as _, uctx.arg1() as _, uctx.arg2() as _),
+        Sysno::delete_module => sys_delete_module(uctx.arg0() as _, uctx.arg1() as _),
 
         // dummy fds
         Sysno::timerfd_create
         | Sysno::fanotify_init
         | Sysno::inotify_init1
         | Sysno::userfaultfd
-        | Sysno::perf_event_open
         | Sysno::io_uring_setup
-        | Sysno::bpf
         | Sysno::fsopen
         | Sysno::fspick
         | Sysno::open_tree
@@ -630,11 +653,42 @@ pub fn handle_syscall(uctx: &mut UserContext) {
         Sysno::timer_create | Sysno::timer_gettime | Sysno::timer_settime => Ok(0),
 
         _ => {
-            warn!("Unimplemented syscall: {sysno}");
-            Err(AxError::Unsupported)
+            if let Some(handler) = SYSCALL_HANDLER.read().get(&sysno) {
+                handler.handle(uctx)
+            } else {
+                warn!("Unimplemented syscall: {sysno}");
+                Err(AxError::Unsupported)
+            }
         }
     };
     debug!("Syscall {sysno} return {result:?}");
 
     uctx.set_retval(result.unwrap_or_else(|err| -LinuxError::from(err).code() as _) as _);
+}
+
+pub trait SyscallHandler: Sync {
+    fn handle(&self, uctx: &mut UserContext) -> Result<isize, AxError>;
+}
+
+static SYSCALL_HANDLER: RwLock<BTreeMap<Sysno, &'static dyn SyscallHandler>> =
+    RwLock::new(BTreeMap::new());
+
+pub fn register_syscall_handler(
+    sysno: Sysno,
+    handler: &'static dyn SyscallHandler,
+) -> Result<(), AxError> {
+    let mut handlers = SYSCALL_HANDLER.write();
+    if handlers.contains_key(&sysno) {
+        return Err(AxError::AlreadyExists);
+    }
+    handlers.insert(sysno, handler);
+    Ok(())
+}
+
+pub fn unregister_syscall_handler(sysno: Sysno) -> Result<(), AxError> {
+    let mut handlers = SYSCALL_HANDLER.write();
+    if handlers.remove(&sysno).is_none() {
+        return Err(AxError::NotFound);
+    }
+    Ok(())
 }
