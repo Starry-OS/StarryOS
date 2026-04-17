@@ -4116,7 +4116,7 @@ dependencies = [
 [[package]]
 name = "page_table_entry"
 version = "0.6.1"
-source = "git+https://github.com/Godones/page_table_multiarch.git#0b1c2f01bc693b81a3b5222774feb19a9bf137d8"
+source = "git+https://github.com/Godones/page_table_multiarch.git?branch=dev#300328f5ffcb97f45f184a6c620d765f834a7cfe"
 dependencies = [
  "aarch64-cpu 11.2.0",
  "bitflags 2.11.0",
@@ -4127,7 +4127,7 @@ dependencies = [
 [[package]]
 name = "page_table_multiarch"
 version = "0.6.1"
-source = "git+https://github.com/Godones/page_table_multiarch.git#0b1c2f01bc693b81a3b5222774feb19a9bf137d8"
+source = "git+https://github.com/Godones/page_table_multiarch.git?branch=dev#300328f5ffcb97f45f184a6c620d765f834a7cfe"
 dependencies = [
  "arrayvec",
  "axerrno 0.1.2",

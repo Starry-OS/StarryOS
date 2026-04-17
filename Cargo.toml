@@ -55,5 +55,5 @@ axcpu = { git = "https://github.com/Godones/axcpu.git", branch = "0.3.0.preview.
 axhal = { git = "https://github.com/Godones/arceos.git", branch = "dev" }
 axalloc = { git = "https://github.com/Godones/arceos.git", branch = "dev" }
 
-page_table_multiarch = { git = "https://github.com/Godones/page_table_multiarch.git" }
-page_table_entry = { git = "https://github.com/Godones/page_table_multiarch.git" }
+page_table_multiarch = { git = "https://github.com/Godones/page_table_multiarch.git", branch = "dev" }
+page_table_entry = { git = "https://github.com/Godones/page_table_multiarch.git", branch = "dev" }

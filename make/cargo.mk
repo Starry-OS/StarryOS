@@ -21,11 +21,11 @@ RUSTFLAGS_LINK_ARGS := \
   -C link-arg=-T$(LD_SCRIPT) \
   -C link-arg=-no-pie \
   -C link-arg=-znostart-stop-gc \
-  -C link-dead-code \
-  -C lto=off
+  -C link-dead-code
 
 ifeq ($(ARCH), loongarch64)
   RUSTFLAGS_LINK_ARGS += -C code-model=small
+  RUSTFLAGS_LINK_ARGS += -C lto=false
 # else ifeq ($(ARCH), x86_64)
 #   RUSTFLAGS_LINK_ARGS += -C code-model=kernel
 endif
