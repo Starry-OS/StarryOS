@@ -7,6 +7,10 @@
 [![GitHub License](https://img.shields.io/github/license/Starry-OS/StarryOS?style=for-the-badge)](https://github.com/Starry-OS/StarryOS/blob/main/LICENSE)
 [![Build status](https://img.shields.io/github/check-runs/Starry-OS/StarryOS/main?style=for-the-badge)](https://github.com/Starry-OS/StarryOS/actions)
 
+NOTICE:
+After April 2025, the componentized macrokernel StarryOS has been upgraded into the tgoskits kernel component library. [The latest StarryOS](https://github.com/rcore-os/tgoskits/tree/dev/os/StarryOS) is currently under continuous development and supports [more applications and hardware](https://github.com/rcore-os/tgoskits/tree/dev/apps/starry).
+The [StarryOS](https://github.com/Starry-OS/StarryOS) located in the Starry-OS organization is mainly used for maintenance and legacy version analysis.
+
 ## Supported Architectures
 
 - [x] RISC-V 64
